@@ -31,6 +31,7 @@ type Driver struct {
 	client      Client
 	tickCount   int64
 	eventRunner *EventRunner
+	raftInfo    *RaftInfo
 }
 
 // NewDriver returns a driver.
@@ -54,8 +55,23 @@ func (d *Driver) Prepare() error {
 	}
 	d.clusterInfo = clusterInfo
 
+	conn, err := NewConn(d.clusterInfo.Nodes)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	raftInfo, err := NewRaftInfo(d.conf, conn)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	d.raftInfo = raftInfo
+
+	for _, node := range d.clusterInfo.Nodes {
+		node.raftInfo = raftInfo
+	}
+
 	// Bootstrap.
-	store, region, err := clusterInfo.GetBootstrapInfo()
+	store, region, err := clusterInfo.GetBootstrapInfo(d.raftInfo)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -94,16 +110,17 @@ func (d *Driver) Prepare() error {
 // Tick invokes nodes' Tick.
 func (d *Driver) Tick() {
 	d.tickCount++
-	d.clusterInfo.stepRegions()
-	d.eventRunner.Tick(d.tickCount, d.clusterInfo)
+	d.raftInfo.stepRegions(d.clusterInfo)
+	d.eventRunner.Tick(d.tickCount, d.raftInfo)
 	for _, n := range d.clusterInfo.Nodes {
+		n.reportRegionChange()
 		n.Tick()
 	}
 }
 
 // Check checks if the simulation is completed.
 func (d *Driver) Check() bool {
-	return d.conf.Checker(d.clusterInfo.RegionsInfo)
+	return d.conf.Checker(d.raftInfo.RegionsInfo)
 }
 
 // Stop stops all nodes.
@@ -134,7 +151,6 @@ func (d *Driver) AddNode(id uint64) {
 		simutil.Logger.Debug("Start node failed:", err)
 		return
 	}
-	n.clusterInfo = d.clusterInfo
 	d.clusterInfo.Nodes[n.Id] = n
 }
 
