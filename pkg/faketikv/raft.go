@@ -23,16 +23,16 @@ import (
 	"github.com/pingcap/pd/server/core"
 )
 
-// RaftInfo records all raft infomation.
-type RaftInfo struct {
+// RaftEngine records all raft infomations.
+type RaftEngine struct {
 	*core.RegionsInfo
 	conn         *Conn
 	regionchange map[uint64][]uint64
 }
 
-// NewRaftInfo creates the initialized raft with the configuration.
-func NewRaftInfo(conf *cases.Conf, conn *Conn) (*RaftInfo, error) {
-	r := &RaftInfo{
+// NewRaftEngine creates the initialized raft with the configuration.
+func NewRaftEngine(conf *cases.Conf, conn *Conn) (*RaftEngine, error) {
+	r := &RaftEngine{
 		RegionsInfo:  core.NewRegionsInfo(),
 		conn:         conn,
 		regionchange: make(map[uint64][]uint64),
@@ -60,7 +60,7 @@ func NewRaftInfo(conf *cases.Conf, conn *Conn) (*RaftInfo, error) {
 	return r, nil
 }
 
-func (r *RaftInfo) stepRegions(c *ClusterInfo) {
+func (r *RaftEngine) stepRegions(c *ClusterInfo) {
 	regions := r.GetRegions()
 	for _, region := range regions {
 		r.stepLeader(region)
@@ -68,7 +68,7 @@ func (r *RaftInfo) stepRegions(c *ClusterInfo) {
 	}
 }
 
-func (r *RaftInfo) stepLeader(region *core.RegionInfo) {
+func (r *RaftEngine) stepLeader(region *core.RegionInfo) {
 	if region.Leader != nil && r.conn.nodeHealth(region.Leader.GetStoreId()) {
 		return
 	}
@@ -84,7 +84,7 @@ func (r *RaftInfo) stepLeader(region *core.RegionInfo) {
 	r.recordRegionChange(region)
 }
 
-func (r *RaftInfo) stepSplit(region *core.RegionInfo, c *ClusterInfo) {
+func (r *RaftEngine) stepSplit(region *core.RegionInfo, c *ClusterInfo) {
 	if region.Leader == nil {
 		return
 	}
@@ -121,12 +121,12 @@ func (r *RaftInfo) stepSplit(region *core.RegionInfo, c *ClusterInfo) {
 	r.recordRegionChange(newRegion)
 }
 
-func (r *RaftInfo) recordRegionChange(region *core.RegionInfo) {
+func (r *RaftEngine) recordRegionChange(region *core.RegionInfo) {
 	n := region.Leader.GetStoreId()
 	r.regionchange[n] = append(r.regionchange[n], region.Id)
 }
 
-func (r *RaftInfo) updateRegionSize(writtenBytes map[string]int64) {
+func (r *RaftEngine) updateRegionSize(writtenBytes map[string]int64) {
 	for key, size := range writtenBytes {
 		region := r.SearchRegion([]byte(key))
 		if region == nil {
@@ -138,7 +138,7 @@ func (r *RaftInfo) updateRegionSize(writtenBytes map[string]int64) {
 	}
 }
 
-func (r *RaftInfo) updateRegionWriteBytes(writeBytes map[uint64]int64) {
+func (r *RaftEngine) updateRegionWriteBytes(writeBytes map[uint64]int64) {
 	for id, bytes := range writeBytes {
 		region := r.GetRegion(id)
 		if region == nil {
@@ -150,7 +150,7 @@ func (r *RaftInfo) updateRegionWriteBytes(writeBytes map[uint64]int64) {
 	}
 }
 
-func (r *RaftInfo) updateRegionReadBytes(readBytes map[uint64]int64) {
+func (r *RaftEngine) updateRegionReadBytes(readBytes map[uint64]int64) {
 	for id, bytes := range readBytes {
 		region := r.GetRegion(id)
 		if region == nil {
@@ -162,7 +162,7 @@ func (r *RaftInfo) updateRegionReadBytes(readBytes map[uint64]int64) {
 	}
 }
 
-func (r *RaftInfo) electNewLeader(region *core.RegionInfo) *metapb.Peer {
+func (r *RaftEngine) electNewLeader(region *core.RegionInfo) *metapb.Peer {
 	var (
 		unhealth         int
 		newLeaderStoreID uint64

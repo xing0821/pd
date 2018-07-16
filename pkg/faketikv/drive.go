@@ -31,7 +31,7 @@ type Driver struct {
 	client      Client
 	tickCount   int64
 	eventRunner *EventRunner
-	raftInfo    *RaftInfo
+	raftEngine  *RaftEngine
 }
 
 // NewDriver returns a driver.
@@ -60,18 +60,18 @@ func (d *Driver) Prepare() error {
 		return errors.Trace(err)
 	}
 
-	raftInfo, err := NewRaftInfo(d.conf, conn)
+	raftEngine, err := NewRaftEngine(d.conf, conn)
 	if err != nil {
 		return errors.Trace(err)
 	}
-	d.raftInfo = raftInfo
+	d.raftEngine = raftEngine
 
 	for _, node := range d.clusterInfo.Nodes {
-		node.raftInfo = raftInfo
+		node.raftEngine = raftEngine
 	}
 
 	// Bootstrap.
-	store, region, err := clusterInfo.GetBootstrapInfo(d.raftInfo)
+	store, region, err := clusterInfo.GetBootstrapInfo(d.raftEngine)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -110,8 +110,8 @@ func (d *Driver) Prepare() error {
 // Tick invokes nodes' Tick.
 func (d *Driver) Tick() {
 	d.tickCount++
-	d.raftInfo.stepRegions(d.clusterInfo)
-	d.eventRunner.Tick(d.tickCount, d.raftInfo)
+	d.raftEngine.stepRegions(d.clusterInfo)
+	d.eventRunner.Tick(d.tickCount, d.raftEngine)
 	for _, n := range d.clusterInfo.Nodes {
 		n.reportRegionChange()
 		n.Tick()
@@ -120,7 +120,7 @@ func (d *Driver) Tick() {
 
 // Check checks if the simulation is completed.
 func (d *Driver) Check() bool {
-	return d.conf.Checker(d.raftInfo.RegionsInfo)
+	return d.conf.Checker(d.raftEngine.RegionsInfo)
 }
 
 // Stop stops all nodes.

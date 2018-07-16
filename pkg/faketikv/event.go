@@ -19,7 +19,7 @@ import (
 
 // Event that affect the status of the cluster
 type Event interface {
-	Run(tick int64, r *RaftInfo) bool
+	Run(tick int64, r *RaftEngine) bool
 }
 
 // EventRunner includes all events
@@ -52,7 +52,7 @@ func parserEvent(e cases.EventInner) Event {
 }
 
 // Tick ticks the event run
-func (er *EventRunner) Tick(tick int64, r *RaftInfo) {
+func (er *EventRunner) Tick(tick int64, r *RaftEngine) {
 	var finishedIndex int
 	for i, e := range er.events {
 		isFinished := e.Run(tick, r)
@@ -70,7 +70,7 @@ type WriteFlowOnSpot struct {
 }
 
 // Run implements the event interface
-func (w *WriteFlowOnSpot) Run(tick int64, r *RaftInfo) bool {
+func (w *WriteFlowOnSpot) Run(tick int64, r *RaftEngine) bool {
 	res := w.in.Step(tick)
 	r.updateRegionSize(res)
 	return false
@@ -82,7 +82,7 @@ type WriteFlowOnRegion struct {
 }
 
 // Run implements the event interface
-func (w *WriteFlowOnRegion) Run(tick int64, r *RaftInfo) bool {
+func (w *WriteFlowOnRegion) Run(tick int64, r *RaftEngine) bool {
 	res := w.in.Step(tick)
 	r.updateRegionWriteBytes(res)
 	return false
@@ -94,7 +94,7 @@ type ReadFlowOnRegion struct {
 }
 
 // Run implements the event interface
-func (w *ReadFlowOnRegion) Run(tick int64, r *RaftInfo) bool {
+func (w *ReadFlowOnRegion) Run(tick int64, r *RaftEngine) bool {
 	res := w.in.Step(tick)
 	r.updateRegionReadBytes(res)
 	return false

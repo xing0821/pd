@@ -25,11 +25,11 @@ import (
 type Task interface {
 	Desc() string
 	RegionID() uint64
-	Step(r *RaftInfo)
+	Step(r *RaftEngine)
 	IsFinished() bool
 }
 
-func responseToTask(resp *pdpb.RegionHeartbeatResponse, r *RaftInfo) Task {
+func responseToTask(resp *pdpb.RegionHeartbeatResponse, r *RaftEngine) Task {
 	regionID := resp.GetRegionId()
 	region := r.GetRegion(regionID)
 	epoch := resp.GetRegionEpoch()
@@ -82,7 +82,7 @@ func (t *transferLeader) Desc() string {
 	return fmt.Sprintf("transfer leader from store %d to store %d", t.fromPeer.GetStoreId(), t.peer.GetStoreId())
 }
 
-func (t *transferLeader) Step(r *RaftInfo) {
+func (t *transferLeader) Step(r *RaftEngine) {
 	if t.finished {
 		return
 	}
@@ -121,7 +121,7 @@ func (a *addPeer) Desc() string {
 	return fmt.Sprintf("add peer %+v for region %d", a.peer, a.regionID)
 }
 
-func (a *addPeer) Step(r *RaftInfo) {
+func (a *addPeer) Step(r *RaftEngine) {
 	if a.finished {
 		return
 	}
@@ -165,7 +165,7 @@ func (a *removePeer) Desc() string {
 	return fmt.Sprintf("remove peer %+v for region %d", a.peer, a.regionID)
 }
 
-func (a *removePeer) Step(r *RaftInfo) {
+func (a *removePeer) Step(r *RaftEngine) {
 	if a.finished {
 		return
 	}

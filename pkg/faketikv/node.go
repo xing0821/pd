@@ -53,7 +53,7 @@ type Node struct {
 	ctx                      context.Context
 	cancel                   context.CancelFunc
 	state                    NodeState
-	raftInfo                 *RaftInfo
+	raftEngine               *RaftEngine
 }
 
 // NewNode returns a Node.
@@ -107,7 +107,7 @@ func (n *Node) receiveRegionHeartbeat() {
 	for {
 		select {
 		case resp := <-n.receiveRegionHeartbeatCh:
-			task := responseToTask(resp, n.raftInfo)
+			task := responseToTask(resp, n.raftEngine)
 			if task != nil {
 				n.AddTask(task)
 			}
@@ -136,9 +136,9 @@ func (n *Node) stepTask() {
 	n.Lock()
 	defer n.Unlock()
 	for _, task := range n.tasks {
-		task.Step(n.raftInfo)
+		task.Step(n.raftEngine)
 		if task.IsFinished() {
-			simutil.Logger.Infof("[store %d][region %d] task finished: %s final: %v", n.GetId(), task.RegionID(), task.Desc(), n.raftInfo.GetRegion(task.RegionID()))
+			simutil.Logger.Infof("[store %d][region %d] task finished: %s final: %v", n.GetId(), task.RegionID(), task.Desc(), n.raftEngine.GetRegion(task.RegionID()))
 			delete(n.tasks, task.RegionID())
 		}
 	}
@@ -169,7 +169,7 @@ func (n *Node) regionHeartBeat() {
 	if n.state != Up {
 		return
 	}
-	regions := n.raftInfo.GetRegions()
+	regions := n.raftEngine.GetRegions()
 	for _, region := range regions {
 		if region.Leader != nil && region.Leader.GetStoreId() == n.Id {
 			ctx, cancel := context.WithTimeout(n.ctx, pdTimeout)
@@ -183,8 +183,8 @@ func (n *Node) regionHeartBeat() {
 }
 
 func (n *Node) reportRegionChange() {
-	for _, regionID := range n.raftInfo.regionchange[n.Id] {
-		region := n.raftInfo.GetRegion(regionID)
+	for _, regionID := range n.raftEngine.regionchange[n.Id] {
+		region := n.raftEngine.GetRegion(regionID)
 		ctx, cancel := context.WithTimeout(n.ctx, pdTimeout)
 		err := n.client.RegionHeartbeat(ctx, region)
 		if err != nil {
@@ -192,7 +192,7 @@ func (n *Node) reportRegionChange() {
 		}
 		cancel()
 	}
-	delete(n.raftInfo.regionchange, n.Id)
+	delete(n.raftEngine.regionchange, n.Id)
 }
 
 // AddTask adds task in this node.
