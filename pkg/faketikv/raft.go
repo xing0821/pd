@@ -195,7 +195,7 @@ func (r *RaftEngine) GetRegion(regionID uint64) *core.RegionInfo {
 	return r.regionsInfo.GetRegion(regionID)
 }
 
-// GetRegions gets a set of RegionInfo from regionMap
+// GetRegions gets all RegionInfo from regionMap
 func (r *RaftEngine) GetRegions() []*core.RegionInfo {
 	r.RLock()
 	defer r.RUnlock()

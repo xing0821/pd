@@ -188,15 +188,9 @@ func (a *removePeer) Step(r *RaftEngine) {
 
 	a.size -= a.speed
 	if a.size < 0 {
-		for i, peer := range region.GetPeers() {
+		for _, peer := range region.GetPeers() {
 			if peer.GetId() == a.peer.GetId() {
-				region.Peers = append(region.Peers[:i], region.Peers[i+1:]...)
-				for j, voter := range region.GetVoters() {
-					if peer.Id == voter.Id {
-						region.Voters = append(region.Voters[:j], region.Voters[j+1:]...)
-						break
-					}
-				}
+				region.RemoveStorePeer(peer.GetStoreId())
 				region.RegionEpoch.ConfVer++
 				r.SetRegion(region)
 				r.recordRegionChange(region)
