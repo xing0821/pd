@@ -72,7 +72,7 @@ func (a *idAllocator) setMaxID(id uint64) {
 	a.maxID = id
 }
 
-var confMap = map[string]func() *Conf{
+var ConfMap = map[string]func() *Conf{
 	"balance-leader": newBalanceLeader,
 	"add-nodes":      newAddNodes,
 	"region-split":   newRegionSplit,
@@ -83,7 +83,7 @@ var confMap = map[string]func() *Conf{
 
 // NewConf creates a config to initialize simulator cluster.
 func NewConf(name string) *Conf {
-	if f, ok := confMap[name]; ok {
+	if f, ok := ConfMap[name]; ok {
 		return f()
 	}
 	return nil
