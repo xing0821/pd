@@ -47,6 +47,26 @@ var (
 )
 
 func main() {
+	// etcd uses zap as the default Raft logger.
+	lcfg := &zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		Development: false,
+		Sampling: &zap.SamplingConfig{
+			Initial:    100,
+			Thereafter: 100,
+		},
+		Encoding:      "json",
+		EncoderConfig: zap.NewProductionEncoderConfig(),
+
+		OutputPaths:      []string{},
+		ErrorOutputPaths: []string{},
+	}
+	lg, err := etcdlogutil.NewRaftLogger(lcfg)
+	if err != nil {
+		log.Fatalf("cannot create raft logger %v", err)
+	}
+	raft.SetLogger(lg)
+
 	flag.Parse()
 
 	if *confName == "" {
@@ -115,25 +135,6 @@ func NewSingleServer() (*server.Config, *server.Server, server.CleanupFunc) {
 	if err != nil {
 		log.Fatalf("initialize logger error: %s\n", err)
 	}
-
-	lcfg := &zap.Config{
-		Level:       zap.NewAtomicLevelAt(zap.FatalLevel),
-		Development: false,
-		Sampling: &zap.SamplingConfig{
-			Initial:    100,
-			Thereafter: 100,
-		},
-		Encoding:      "json",
-		EncoderConfig: zap.NewProductionEncoderConfig(),
-
-		OutputPaths:      []string{"stderr"},
-		ErrorOutputPaths: []string{"stderr"},
-	}
-	lg, err := etcdlogutil.NewRaftLogger(lcfg)
-	if err != nil {
-		log.Fatalf("cannot create raft logger %v", err)
-	}
-	raft.SetLogger(lg)
 
 	s, err := server.CreateServer(cfg, api.NewHandler)
 	if err != nil {

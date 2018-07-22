@@ -72,6 +72,7 @@ func (a *idAllocator) setMaxID(id uint64) {
 	a.maxID = id
 }
 
+// ConfMap is a mapping of the cases to the their corresponding initialize functions.
 var ConfMap = map[string]func() *Conf{
 	"balance-leader": newBalanceLeader,
 	"add-nodes":      newAddNodes,
