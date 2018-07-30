@@ -68,7 +68,7 @@ func main() {
 
 func run(confName string) {
 	if *pdAddr != "" {
-		tickInterval := 1000 * time.Millisecond
+		tickInterval := 1 * time.Second
 		simStart(*pdAddr, confName, tickInterval)
 	} else {
 		_, local, clean := NewSingleServer()
