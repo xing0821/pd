@@ -138,6 +138,7 @@ func simStart(pdAddr string, confName string, tickInterval time.Duration, clean 
 		simutil.Logger.Fatal("simulator prepare error:", err)
 	}
 	tick := time.NewTicker(tickInterval)
+	defer tick.Stop()
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
 		syscall.SIGHUP,
