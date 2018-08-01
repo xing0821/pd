@@ -82,17 +82,14 @@ func (s *Server) syncTimestamp() error {
 		return errors.Trace(err)
 	}
 
-	var now time.Time
-
-	for {
-		now = time.Now()
-		if wait := subTimeByWallClock(last, now) + updateTimestampGuard; wait > 0 {
-			tsoCounter.WithLabelValues("sync_wait").Inc()
-			log.Warnf("wait %v to guarantee valid generated timestamp", wait)
-			time.Sleep(wait)
-			continue
-		}
-		break
+	now := time.Now()
+	// If the current system time is less than the saved etcd timestamp,
+	// which means that the system time may be incorrect,
+	// the timestamp allocation will start from the saved etcd timestamp temporarily.
+	if subTimeByWallClock(last, now)+updateTimestampGuard > 0 {
+		log.Errorf("system time may be incorrect, last: %v, now: %v", last, now)
+		s.ts.Store(&atomicObject{physical: last})
+		return nil
 	}
 
 	save := now.Add(s.cfg.TsoSaveInterval.Duration)
@@ -163,6 +160,25 @@ func (s *Server) getRespTS(count uint32) (pdpb.Timestamp, error) {
 
 		resp.Physical = current.physical.UnixNano() / int64(time.Millisecond)
 		resp.Logical = atomic.AddInt64(&current.logical, int64(count))
+
+		now := time.Now()
+		// If the current timestamp loaded from memory is no less than the system time,
+		// which means the system time haven't catched up to the timestamp saved in etcd.
+		if subTimeByWallClock(current.physical, now)+updateTimestampGuard > 0 {
+			last := &atomicObject{
+				physical: current.physical,
+				logical:  resp.Logical,
+			}
+			// If the logical time is used up, the timestamp saved in etcd will need to be updated.
+			if resp.Logical >= maxLogical {
+				last.physical = current.physical.Add(time.Millisecond)
+				last.logical = 0
+				s.saveTimestamp(last.physical)
+			}
+			s.ts.Store(last)
+			return resp, nil
+		}
+
 		if resp.Logical >= maxLogical {
 			log.Errorf("logical part outside of max logical interval %v, please check ntp time, retry count %d", resp, i)
 			time.Sleep(updateTimestampStep)
