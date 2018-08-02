@@ -93,7 +93,7 @@ type Server struct {
 	cluster *RaftCluster
 	// For tso, set after pd becomes leader.
 	ts            atomic.Value
-	lastSavedTime time.Time
+	lastSavedTime atomic.Value
 	// For async region heartbeat.
 	hbStreams *heartbeatStreams
 }

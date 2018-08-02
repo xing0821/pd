@@ -57,8 +57,8 @@ func (s *Server) loadTimestamp() (time.Time, error) {
 
 // save timestamp, if lastTs is 0, we think the timestamp doesn't exist, so create it,
 // otherwise, update it.
-func (s *Server) saveTimestamp(now time.Time) error {
-	data := uint64ToBytes(uint64(now.UnixNano()))
+func (s *Server) saveTimestamp(ts time.Time) error {
+	data := uint64ToBytes(uint64(ts.UnixNano()))
 	key := s.getTimestampPath()
 
 	resp, err := s.leaderTxn().Then(clientv3.OpPut(key, string(data))).Commit()
@@ -69,7 +69,7 @@ func (s *Server) saveTimestamp(now time.Time) error {
 		return errors.New("save timestamp failed, maybe we lost leader")
 	}
 
-	s.lastSavedTime = now
+	s.lastSavedTime.Store(ts)
 
 	return nil
 }
@@ -128,6 +128,7 @@ func (s *Server) updateTimestamp() error {
 		physical: now,
 	}
 
+	saved := s.lastSavedTime.Load().(time.Time)
 	// This is a normal situation.
 	if since > 0 {
 		// Avoid the same physical timestamp.
@@ -138,8 +139,8 @@ func (s *Server) updateTimestamp() error {
 		}
 		// If the time window is no more than updateTimestampGuard,
 		// it will adjust the time window.
-		if subTimeByWallClock(s.lastSavedTime, now) <= updateTimestampGuard {
-			last := s.lastSavedTime
+		if subTimeByWallClock(saved, now) <= updateTimestampGuard {
+			last := saved
 			save := now.Add(s.cfg.TsoSaveInterval.Duration)
 			if err := s.saveTimestamp(save); err != nil {
 				return errors.Trace(err)
@@ -149,8 +150,8 @@ func (s *Server) updateTimestamp() error {
 			log.Debugf("save timestamp ok: prev %v last %v save %v", prev, last, save)
 		}
 	} else {
-		if subTimeByWallClock(s.lastSavedTime, prev) <= updateTimestampGuard {
-			last := s.lastSavedTime
+		if subTimeByWallClock(saved, prev) <= updateTimestampGuard {
+			last := saved
 			save := prev.Add(s.cfg.TsoSaveInterval.Duration)
 			if err := s.saveTimestamp(save); err != nil {
 				return errors.Trace(err)
@@ -188,7 +189,8 @@ func (s *Server) getRespTS(count uint32) (pdpb.Timestamp, error) {
 		if resp.Logical >= maxLogical {
 			// If the time window is enough, it will increase the physical time,
 			// otherwise, it will wait for updating the time window.
-			if subTimeByWallClock(s.lastSavedTime, current.physical) > updateTimestampGuard {
+			saved := s.lastSavedTime.Load().(time.Time)
+			if subTimeByWallClock(saved, current.physical) > updateTimestampGuard {
 				last := &atomicObject{
 					physical: current.physical.Add(time.Millisecond),
 					logical:  0,
