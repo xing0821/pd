@@ -124,10 +124,6 @@ func (s *Server) updateTimestamp() error {
 		tsoCounter.WithLabelValues("slow_save").Inc()
 	}
 
-	current := &atomicObject{
-		physical: now,
-	}
-
 	saved := s.lastSavedTime.Load().(time.Time)
 	// This is a normal situation.
 	if since > 0 {
@@ -162,7 +158,11 @@ func (s *Server) updateTimestamp() error {
 		}
 		// Since the physical timestamp is greater than the current system time,
 		// the physical timestamp will be used to alloc timestamp temporarily.
-		current.physical = prev
+		return nil
+	}
+
+	current := &atomicObject{
+		physical: now,
 	}
 
 	s.ts.Store(current)
