@@ -69,7 +69,7 @@ func (s *Server) saveTimestamp(ts time.Time) error {
 		return errors.New("save timestamp failed, maybe we lost leader")
 	}
 
-	s.lastSavedTime.Store(ts)
+	s.lastSavedTime = ts
 
 	return nil
 }
@@ -113,24 +113,27 @@ func (s *Server) syncTimestamp() error {
 }
 
 func (s *Server) updateTimestamp() error {
-	prev := s.ts.Load().(*atomicObject).physical
+	prev := s.ts.Load().(*atomicObject)
 	now := time.Now()
 
 	tsoCounter.WithLabelValues("save").Inc()
 
-	since := subTimeByWallClock(now, prev)
+	since := subTimeByWallClock(now, prev.physical)
 	if since > 3*updateTimestampStep {
-		log.Warnf("clock offset: %v, prev: %v, now: %v", since, prev, now)
+		log.Warnf("clock offset: %v, prev: %v, now: %v", since, prev.physical, now)
 		tsoCounter.WithLabelValues("slow_save").Inc()
 	}
 
-	saved := s.lastSavedTime.Load().(time.Time)
+	// Check if the logical is still enough.
+	notEnough := atomic.LoadInt64(&prev.logical) > maxLogical/2
+
+	saved := s.lastSavedTime
 	// This is a normal situation.
 	if since > 0 {
 		// Avoid the same physical timestamp.
 		if since <= updateTimestampGuard {
 			tsoCounter.WithLabelValues("skip_save").Inc()
-			log.Warnf("invalid physical timestamp, prev: %v, now: %v, re-update later", prev, now)
+			log.Warnf("invalid physical timestamp, prev: %v, now: %v, re-update later", prev.physical, now)
 			return nil
 		}
 		// If the time window is no more than updateTimestampGuard,
@@ -143,18 +146,36 @@ func (s *Server) updateTimestamp() error {
 			}
 
 			tsoCounter.WithLabelValues("save_ok").Inc()
-			log.Debugf("save timestamp ok: prev %v last %v save %v", prev, last, save)
+			log.Debugf("save timestamp ok: prev %v last %v save %v", prev.physical, last, save)
+		} else {
+			if notEnough {
+				last := &atomicObject{
+					physical: now.Add(time.Millisecond),
+					logical:  0,
+				}
+				s.ts.Store(last)
+				return nil
+			}
 		}
 	} else {
-		if subTimeByWallClock(saved, prev) <= updateTimestampGuard {
+		if subTimeByWallClock(saved, prev.physical) <= updateTimestampGuard {
 			last := saved
-			save := prev.Add(s.cfg.TsoSaveInterval.Duration)
+			save := prev.physical.Add(s.cfg.TsoSaveInterval.Duration)
 			if err := s.saveTimestamp(save); err != nil {
 				return errors.Trace(err)
 			}
 
 			tsoCounter.WithLabelValues("save_incorrect").Inc()
-			log.Debugf("save timestamp incorrect: now %v prev %v last %v save %v", now, prev, last, save)
+			log.Debugf("save timestamp incorrect: now %v prev %v last %v save %v", now, prev.physical, last, save)
+		} else {
+			if notEnough {
+				last := &atomicObject{
+					physical: prev.physical.Add(time.Millisecond),
+					logical:  0,
+				}
+				s.ts.Store(last)
+				return nil
+			}
 		}
 		// Since the physical timestamp is greater than the current system time,
 		// the physical timestamp will be used to alloc timestamp temporarily.
@@ -187,20 +208,9 @@ func (s *Server) getRespTS(count uint32) (pdpb.Timestamp, error) {
 		resp.Logical = atomic.AddInt64(&current.logical, int64(count))
 
 		if resp.Logical >= maxLogical {
-			// If the time window is enough, it will increase the physical time,
-			// otherwise, it will wait for updating the time window.
-			saved := s.lastSavedTime.Load().(time.Time)
-			if subTimeByWallClock(saved, current.physical) > updateTimestampGuard {
-				last := &atomicObject{
-					physical: current.physical.Add(time.Millisecond),
-					logical:  0,
-				}
-				s.ts.Store(last)
-			} else {
-				log.Errorf("logical part outside of max logical interval %v, please check ntp time, retry count %d", resp, i)
-				time.Sleep(updateTimestampStep)
-				continue
-			}
+			log.Errorf("logical part outside of max logical interval %v, please check ntp time, retry count %d", resp, i)
+			time.Sleep(updateTimestampStep)
+			continue
 		}
 		return resp, nil
 	}
