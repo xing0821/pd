@@ -235,7 +235,7 @@ func (a *addPeer) Step(r *RaftEngine) {
 		region.RegionEpoch.ConfVer++
 		r.SetRegion(region)
 		r.recordRegionChange(region)
-		recvNode.decStoreSize(uint64(snapshotSize))
+		recvNode.incUsedSize(uint64(snapshotSize))
 		a.finished = true
 	}
 }
@@ -282,7 +282,7 @@ func (a *removePeer) Step(r *RaftEngine) {
 				region.RegionEpoch.ConfVer++
 				r.SetRegion(region)
 				r.recordRegionChange(region)
-				r.conn.Nodes[storeID].incStoreSize(regionSize)
+				r.conn.Nodes[storeID].decUsedSize(regionSize)
 				break
 			}
 		}

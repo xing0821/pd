@@ -219,12 +219,12 @@ func (n *Node) Stop() {
 	simutil.Logger.Infof("node %d stopped", n.Id)
 }
 
-func (n *Node) decStoreSize(size uint64) {
+func (n *Node) incUsedSize(size uint64) {
 	n.stats.Available -= size
 	n.stats.UsedSize += size
 }
 
-func (n *Node) incStoreSize(size uint64) {
+func (n *Node) decUsedSize(size uint64) {
 	n.stats.Available += size
 	n.stats.UsedSize -= size
 }

@@ -60,7 +60,7 @@ func NewRaftEngine(conf *cases.Conf, conn *Conn) (*RaftEngine, error) {
 		peers := region.Peers
 		regionSize := uint64(region.Size)
 		for _, peer := range peers {
-			r.conn.Nodes[peer.StoreId].decStoreSize(regionSize)
+			r.conn.Nodes[peer.StoreId].incUsedSize(regionSize)
 		}
 	}
 
@@ -139,7 +139,7 @@ func (r *RaftEngine) updateRegionStore(region *core.RegionInfo, size int64) {
 	region.WrittenBytes = wBytes
 	storeIDs := region.GetStoreIds()
 	for storeID := range storeIDs {
-		r.conn.Nodes[storeID].decStoreSize(wBytes)
+		r.conn.Nodes[storeID].incUsedSize(wBytes)
 	}
 	r.SetRegion(region)
 }
