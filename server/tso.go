@@ -83,11 +83,11 @@ func (s *Server) syncTimestamp() error {
 	}
 
 	next := time.Now()
-	// If the current system time minus the saved etcd timestamp is less than updateTimestampGuard,
+	// If the current system time minus the saved etcd timestamp is less than `updateTimestampGuard`,
 	// the timestamp allocation will start from the saved etcd timestamp temporarily.
 	if subTimeByWallClock(next, last) < updateTimestampGuard {
 		log.Errorf("system time may be incorrect: last: %v next %v", last, next)
-		next = next.Add(updateTimestampGuard)
+		next = last.Add(updateTimestampGuard)
 	}
 
 	save := next.Add(s.cfg.TsoSaveInterval.Duration)
@@ -106,6 +106,15 @@ func (s *Server) syncTimestamp() error {
 	return nil
 }
 
+// This function will do two things:
+// 1. When the logical time is going to be used up, the current physical time needs to increase.
+// 2. If the time window is not enough, which means the saved etcd time minus the next physical time
+//    is less than or equal to `updateTimestampGuard`, it will need to be updated and save the
+//    next physical time plus `TsoSaveInterval` into etcd.
+//
+// Here is some constraints that this function must satisfy:
+// 1. The physical time is monotonically increasing.
+// 2. The saved time is monotonically increasing.
 func (s *Server) updateTimestamp() error {
 	prev := s.ts.Load().(*atomicObject)
 	now := time.Now()
@@ -119,14 +128,23 @@ func (s *Server) updateTimestamp() error {
 	}
 
 	var next time.Time
+	prevLogical := atomic.LoadInt64(&prev.logical)
+	// If the system time is greater, it will be synchronized with the system time.
 	if jetLag > updateTimestampGuard {
 		next = now
-	} else if atomic.LoadInt64(&prev.logical) > maxLogical/2 {
+	} else if prevLogical > maxLogical/2 {
+		// The reason choosing maxLogical/2 here is that it's big enough for common cases.
+		// Because there is enough timestamp can be allocated before next update.
+		log.Warnf("the logical time may be not enough, prevLogical: %v", prevLogical)
 		next = prev.physical.Add(time.Millisecond)
 	} else {
+		// It will still use the previous physical time to alloc the timestamp.
+		tsoCounter.WithLabelValues("skip_save").Inc()
 		return nil
 	}
 
+	// It is not safe to increase the physical time to `next`.
+	// The time window needs to be updated and saved to etcd.
 	if subTimeByWallClock(s.lastSavedTime, next) <= updateTimestampGuard {
 		save := next.Add(s.cfg.TsoSaveInterval.Duration)
 		if err := s.saveTimestamp(save); err != nil {
