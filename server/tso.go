@@ -115,6 +115,7 @@ func (s *Server) syncTimestamp() error {
 // Here is some constraints that this function must satisfy:
 // 1. The physical time is monotonically increasing.
 // 2. The saved time is monotonically increasing.
+// 3. The physical time is always less than the saved timestamp.
 func (s *Server) updateTimestamp() error {
 	prev := s.ts.Load().(*atomicObject)
 	now := time.Now()
@@ -125,6 +126,10 @@ func (s *Server) updateTimestamp() error {
 	if jetLag > 3*updateTimestampStep {
 		log.Warnf("clock offset: %v, prev: %v, now: %v", jetLag, prev.physical, now)
 		tsoCounter.WithLabelValues("slow_save").Inc()
+	}
+
+	if jetLag < 0 {
+		tsoCounter.WithLabelValues("system_time_slow").Inc()
 	}
 
 	var next time.Time
@@ -179,6 +184,7 @@ func (s *Server) getRespTS(count uint32) (pdpb.Timestamp, error) {
 		resp.Logical = atomic.AddInt64(&current.logical, int64(count))
 		if resp.Logical >= maxLogical {
 			log.Errorf("logical part outside of max logical interval %v, please check ntp time, retry count %d", resp, i)
+			tsoCounter.WithLabelValues("logical_overflow").Inc()
 			time.Sleep(updateTimestampStep)
 			continue
 		}
