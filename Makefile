@@ -42,12 +42,12 @@ endif
 test:
 	# testing..
 	@$(GOFAIL_ENABLE)
-	CGO_ENABLED=1 go test -race -cover $(TEST_PKGS)
+	CGO_ENABLED=1 go test -race -cover $(TEST_PKGS) || { $(GOFAIL_DISABLE); exit 1; }
 	@$(GOFAIL_DISABLE)
 
 basic_test:
 	@$(GOFAIL_ENABLE)
-	go test $(BASIC_TEST_PKGS)
+	go test $(BASIC_TEST_PKGS) || { $(GOFAIL_DISABLE); exit 1; }
 	@$(GOFAIL_DISABLE)
 
 # These need to be fixed before they can be ran regularly
