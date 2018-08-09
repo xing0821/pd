@@ -64,6 +64,20 @@ func (s *testTsoSuite) testGetTimestamp(c *C, n int) *pdpb.Timestamp {
 	return res
 }
 
+func mustGetLeader(c *C, client *clientv3.Client, leaderPath string) *pdpb.Member {
+	for i := 0; i < 20; i++ {
+		leader, err := getLeader(client, leaderPath)
+		c.Assert(err, IsNil)
+		if leader != nil {
+			return leader
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	c.Fatal("get leader error")
+	return nil
+}
+
 func (s *testTsoSuite) TestTso(c *C) {
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
@@ -89,93 +103,4 @@ func (s *testTsoSuite) TestTso(c *C) {
 	}
 
 	wg.Wait()
-}
-
-var _ = Suite(&testTimeFallBackSuite{})
-
-type testTimeFallBackSuite struct {
-	client       *clientv3.Client
-	svr          *Server
-	cleanup      cleanupFunc
-	grpcPDClient pdpb.PDClient
-}
-
-func (s *testTimeFallBackSuite) SetUpSuite(c *C) {
-	s.svr, s.cleanup = mustRunTestServer(c)
-	s.client = s.svr.client
-	mustWaitLeader(c, []*Server{s.svr})
-	s.grpcPDClient = mustNewGrpcClient(c, s.svr.GetAddr())
-	err := s.svr.saveTimestamp(time.Now().Add(time.Hour))
-	c.Assert(err, IsNil)
-	s.svr.Close()
-	err = s.svr.Run(context.TODO())
-	c.Assert(err, IsNil)
-	mustWaitLeader(c, []*Server{s.svr})
-}
-
-func (s *testTimeFallBackSuite) TearDownSuite(c *C) {
-	s.cleanup()
-}
-
-func (s *testTimeFallBackSuite) testGetTimestamp(c *C, n int) *pdpb.Timestamp {
-	req := &pdpb.TsoRequest{
-		Header: newRequestHeader(s.svr.clusterID),
-		Count:  uint32(n),
-	}
-
-	tsoClient, err := s.grpcPDClient.Tso(context.Background())
-	c.Assert(err, IsNil)
-	defer tsoClient.CloseSend()
-	err = tsoClient.Send(req)
-	c.Assert(err, IsNil)
-	resp, err := tsoClient.Recv()
-	c.Assert(err, IsNil)
-	c.Assert(resp.GetCount(), Equals, uint32(n))
-
-	res := resp.GetTimestamp()
-	c.Assert(res.GetLogical(), Greater, int64(0))
-	c.Assert(res.GetPhysical(), Greater, time.Now().UnixNano()/int64(time.Millisecond))
-
-	return res
-}
-
-func (s *testTimeFallBackSuite) TestTimeFallBack(c *C) {
-	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			last := &pdpb.Timestamp{
-				Physical: 0,
-				Logical:  0,
-			}
-
-			for j := 0; j < 50; j++ {
-				ts := s.testGetTimestamp(c, 10)
-				c.Assert(ts.GetPhysical(), Not(Less), last.GetPhysical())
-				if ts.GetPhysical() == last.GetPhysical() {
-					c.Assert(ts.GetLogical(), Greater, last.GetLogical())
-				}
-				last = ts
-				time.Sleep(10 * time.Millisecond)
-			}
-		}()
-	}
-
-	wg.Wait()
-}
-
-func mustGetLeader(c *C, client *clientv3.Client, leaderPath string) *pdpb.Member {
-	for i := 0; i < 20; i++ {
-		leader, err := getLeader(client, leaderPath)
-		c.Assert(err, IsNil)
-		if leader != nil {
-			return leader
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	c.Fatal("get leader error")
-	return nil
 }
