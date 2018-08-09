@@ -41,11 +41,13 @@ endif
 
 test:
 	# testing..
+	go get github.com/etcd-io/gofail
 	@$(GOFAIL_ENABLE)
 	CGO_ENABLED=1 go test -race -cover $(TEST_PKGS) || { $(GOFAIL_DISABLE); exit 1; }
 	@$(GOFAIL_DISABLE)
 
 basic_test:
+	go get github.com/etcd-io/gofail
 	@$(GOFAIL_ENABLE)
 	go test $(BASIC_TEST_PKGS) || { $(GOFAIL_DISABLE); exit 1; }
 	@$(GOFAIL_DISABLE)
