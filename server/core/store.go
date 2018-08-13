@@ -131,9 +131,13 @@ func (s *StoreInfo) RegionScore(highSpaceRatio, lowSpaceRatio float64, delta int
 		amplification = float64(s.RegionSize) / used
 	}
 
-	if available-float64(delta)/amplification >= (1-highSpaceRatio)*capacity {
+	// highSpace is the lower bound of high space stage.
+	highSpace := (1 - highSpaceRatio) * capacity
+	// lowSpace is the upper bound of low space stage.
+	lowSpace := (1 - lowSpaceRatio) * capacity
+	if available-float64(delta)/amplification >= highSpace {
 		score = float64(s.RegionSize + delta)
-	} else if available-float64(delta)/amplification <= (1-lowSpaceRatio)*capacity {
+	} else if available-float64(delta)/amplification <= lowSpace {
 		score = maxScore - (available - float64(delta)/amplification)
 	} else {
 		// to make the score function continuous, we use linear function y = k * x + b as transition period
@@ -142,13 +146,13 @@ func (s *StoreInfo) RegionScore(highSpaceRatio, lowSpaceRatio float64, delta int
 		// and we regarded as irrelative as fixed value.
 		// Then amp = size / used = size / (capacity - irrelative - available)
 		//
-		// when available == (1 - highSpaceRatio) * capacity
-		// we can conclude that size = (capacity - irrelative - (1 - highSpaceRatio) * capacity) * amp = (used+available-(1-highSpaceRatio)*capacity)*amp
-		// Similarly, when available == (1 - lowSpaceRatio) * capacity
-		// we can conclude that size = (capacity - irrelative - (1 - highSpaceRatio) * capacity) * amp = (used+available-(1-lowSpaceRatio)*capacity)*amp
+		// when available == highSpace
+		// we can conclude that size = (capacity - irrelative - highSpace) * amp = (used + available - highSpace) * amp
+		// Similarly, when available == lowSpace
+		// we can conclude that size = (capacity - irrelative - lowSpace) * amp = (used + available - lowSpace) * amp
 		// These are the two fixed points' x-coordinates, and y-coordinates can easily get from the above two functions.
-		x1, y1 := (used+available-(1-highSpaceRatio)*capacity)*amplification, (used+available-(1-highSpaceRatio)*capacity)*amplification
-		x2, y2 := (used+available-(1-lowSpaceRatio)*capacity)*amplification, maxScore-(1-lowSpaceRatio)*capacity
+		x1, y1 := (used+available-highSpace)*amplification, (used+available-highSpace)*amplification
+		x2, y2 := (used+available-lowSpace)*amplification, maxScore-lowSpace
 
 		k := (y2 - y1) / (x2 - x1)
 		b := y1 - k*x1
