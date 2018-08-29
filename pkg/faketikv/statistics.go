@@ -104,8 +104,8 @@ func (s *snapshotStatistics) getStatistics() map[string]int {
 	return stats
 }
 
-// Print prints the statistics of the scheduler.
-func (s *schedulerStatistics) Print() {
+// PrintStatistics prints the statistics of the scheduler.
+func (s *schedulerStatistics) PrintStatistics() {
 	task := s.taskStats.getStatistics()
 	snap := s.snapshotStats.getStatistics()
 	for t, count := range task {
