@@ -13,18 +13,16 @@
 package cases
 
 import (
-	"math/rand"
-
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/pkg/faketikv/simutil"
 	"github.com/pingcap/pd/server/core"
 )
 
-func newDeleteNodes() *Conf {
+func newMakeupDownReplica() *Conf {
 	var conf Conf
 	var id idAllocator
 
-	for i := 1; i <= 8; i++ {
+	for i := 1; i <= 4; i++ {
 		conf.Stores = append(conf.Stores, &Store{
 			ID:        id.nextID(),
 			Status:    metapb.StoreState_Up,
@@ -34,11 +32,11 @@ func newDeleteNodes() *Conf {
 		})
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 400; i++ {
 		peers := []*metapb.Peer{
-			{Id: id.nextID(), StoreId: uint64(i)%8 + 1},
-			{Id: id.nextID(), StoreId: uint64(i+1)%8 + 1},
-			{Id: id.nextID(), StoreId: uint64(i+2)%8 + 1},
+			{Id: id.nextID(), StoreId: uint64(i)%4 + 1},
+			{Id: id.nextID(), StoreId: uint64(i+1)%4 + 1},
+			{Id: id.nextID(), StoreId: uint64(i+2)%4 + 1},
 		}
 		conf.Regions = append(conf.Regions, Region{
 			ID:     id.nextID(),
@@ -55,40 +53,47 @@ func newDeleteNodes() *Conf {
 		ids = append(ids, store.ID)
 	}
 
-	numNodes := 8
+	numNodes := 4
 	e := &DeleteNodesInner{}
+	down := false
 	e.Step = func(tick int64) uint64 {
-		if numNodes > 7 && tick%100 == 0 {
-			idx := rand.Intn(numNodes)
+		if numNodes > 3 && tick%100 == 0 {
 			numNodes--
-			nodeID := ids[idx]
-			ids = append(ids[:idx], ids[idx+1:]...)
+			nodeID := uint64(1)
 			return nodeID
+		}
+		if tick == 300 {
+			down = true
 		}
 		return 0
 	}
 	conf.Events = []EventInner{e}
 
 	conf.Checker = func(regions *core.RegionsInfo) bool {
-		res := true
-		leaderCounts := make([]int, 0, numNodes)
-		regionCounts := make([]int, 0, numNodes)
-		for _, i := range ids {
-			leaderCount := regions.GetStoreLeaderCount(i)
-			regionCount := regions.GetStoreRegionCount(i)
-			leaderCounts = append(leaderCounts, leaderCount)
-			regionCounts = append(regionCounts, regionCount)
-			if leaderCount > 152 || leaderCount < 132 {
-				res = false
+		sum := 0
+		regionCounts := make([]int, 0, 3)
+		for i := 1; i <= 4; i++ {
+			regionCount := regions.GetStoreRegionCount(uint64(i))
+			if i != 1 {
+				regionCounts = append(regionCounts, regionCount)
 			}
-			if regionCount > 443 || regionCount < 413 {
-				res = false
+			sum += regionCount
+		}
+
+		simutil.Logger.Infof("region counts: %v", regionCounts)
+		if down && sum < 1200 {
+			simutil.Logger.Error("making up replica doesn't start immediately")
+			down = false
+			return false
+		}
+		for _, regionCount := range regionCounts {
+			if regionCount != 400 {
+				return false
 			}
 		}
 
-		simutil.Logger.Infof("leader counts: %v", leaderCounts)
-		simutil.Logger.Infof("region counts: %v", regionCounts)
-		return res
+		return true
+
 	}
 	return &conf
 }
