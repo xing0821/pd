@@ -18,7 +18,7 @@ import (
 	"github.com/pingcap/pd/server/core"
 )
 
-func newMakeupDownReplica() *Conf {
+func newMakeupDownReplicas() *Conf {
 	var conf Conf
 	var id idAllocator
 
@@ -48,19 +48,13 @@ func newMakeupDownReplica() *Conf {
 	}
 	conf.MaxID = id.maxID
 
-	var ids []uint64
-	for _, store := range conf.Stores {
-		ids = append(ids, store.ID)
-	}
-
 	numNodes := 4
-	e := &DeleteNodesInner{}
 	down := false
+	e := &DeleteNodesInner{}
 	e.Step = func(tick int64) uint64 {
 		if numNodes > 3 && tick%100 == 0 {
 			numNodes--
-			nodeID := uint64(1)
-			return nodeID
+			return uint64(1)
 		}
 		if tick == 300 {
 			down = true
@@ -79,21 +73,21 @@ func newMakeupDownReplica() *Conf {
 			}
 			sum += regionCount
 		}
-
 		simutil.Logger.Infof("region counts: %v", regionCounts)
+
 		if down && sum < 1200 {
-			simutil.Logger.Error("making up replica doesn't start immediately")
+			// only need to print once
 			down = false
+			simutil.Logger.Error("making up replicas don't start immediately")
 			return false
 		}
+
 		for _, regionCount := range regionCounts {
 			if regionCount != 400 {
 				return false
 			}
 		}
-
 		return true
-
 	}
 	return &conf
 }
