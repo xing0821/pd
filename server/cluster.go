@@ -448,18 +448,40 @@ func (c *RaftCluster) SetStoreWeight(storeID uint64, leader, region float64) err
 }
 
 func (c *RaftCluster) checkStores() {
+	var offlineStore *metapb.Store
+	var upStoreCount uint64
+
 	cluster := c.cachedCluster
-	for _, store := range cluster.getMetaStores() {
+	allStoresFull := true
+
+	for _, store := range cluster.GetStores() {
 		if store.GetState() != metapb.StoreState_Offline {
+			if !store.IsLowSpace(cluster.GetLowSpaceRatio()) {
+				allStoresFull = false
+			}
+			upStoreCount++
 			continue
 		}
-		if c.storeIsEmpty(store.GetId()) {
-			err := c.BuryStore(store.GetId(), false)
-			if err != nil {
-				log.Errorf("bury store %v failed: %v", store, err)
-			} else {
-				log.Infof("buried store %v", store)
-			}
+		offlineStore = store.Store
+	}
+
+	if upStoreCount < c.s.GetConfig().Replication.MaxReplicas {
+		log.Warnf("store %v cannot turn into Tombstone, there are no extra nodes to accommodate the extra replicas", offlineStore)
+		return
+	}
+
+	offlineStoreID := offlineStore.GetId()
+	if allStoresFull && !c.storeIsEmpty(offlineStoreID) {
+		log.Warnf("store %v cannot turn into Tombstone, there are no extra space to accommodate the extra replicas", offlineStore)
+		return
+	}
+
+	if c.storeIsEmpty(offlineStoreID) {
+		err := c.BuryStore(offlineStoreID, false)
+		if err != nil {
+			log.Errorf("bury store %v failed: %v", offlineStore, err)
+		} else {
+			log.Infof("buried store %v", offlineStore)
 		}
 	}
 }
