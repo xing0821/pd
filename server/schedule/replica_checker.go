@@ -172,7 +172,7 @@ func (r *ReplicaChecker) checkDownPeer(region *core.RegionInfo) *Operator {
 			continue
 		}
 
-		return r.handleReplica(region, peer, "Down")
+		return r.fixPeer(region, peer, "Down")
 	}
 	return nil
 }
@@ -197,7 +197,7 @@ func (r *ReplicaChecker) checkOfflinePeer(region *core.RegionInfo) *Operator {
 			continue
 		}
 
-		return r.handleReplica(region, peer, "Offline")
+		return r.fixPeer(region, peer, "Offline")
 	}
 
 	return nil
@@ -232,14 +232,14 @@ func (r *ReplicaChecker) checkBestReplacement(region *core.RegionInfo) *Operator
 	return CreateMovePeerOperator("moveToBetterLocation", r.cluster, region, OpReplica, oldPeer.GetStoreId(), newPeer.GetStoreId(), newPeer.GetId())
 }
 
-func (r *ReplicaChecker) handleReplica(region *core.RegionInfo, peer *metapb.Peer, status string) *Operator {
-	removeExtra := fmt.Sprintf("%s%s%s", "removeExtra", status, "Replica")
+func (r *ReplicaChecker) fixPeer(region *core.RegionInfo, peer *metapb.Peer, status string) *Operator {
+	removeExtra := fmt.Sprintf("removeExtra%sReplica", status)
 	// Check the number of replicas first.
 	if len(region.GetPeers()) > r.cluster.GetMaxReplicas() {
 		return CreateRemovePeerOperator(removeExtra, r.cluster, OpReplica, region, peer.GetStoreId())
 	}
 
-	removePending := fmt.Sprintf("%s%s%s", "removePending", status, "Replica")
+	removePending := fmt.Sprintf("removePending%sReplica", status)
 	// Consider we have 3 peers (A, B, C), we set the store that contains C to
 	// offline/down while C is pending. If we generate an operator that adds a replica
 	// D then removes C, D will not be successfully added util C is normal again.
@@ -258,6 +258,6 @@ func (r *ReplicaChecker) handleReplica(region *core.RegionInfo, peer *metapb.Pee
 		return nil
 	}
 
-	replace := fmt.Sprintf("%s%s%s", "replace", status, "Replica")
+	replace := fmt.Sprintf("replace%sReplica", status)
 	return CreateMovePeerOperator(replace, r.cluster, region, OpReplica, peer.GetStoreId(), newPeer.GetStoreId(), newPeer.GetId())
 }
