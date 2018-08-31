@@ -459,9 +459,13 @@ func (c *RaftCluster) checkStores() {
 			if !store.IsLowSpace(cluster.GetLowSpaceRatio()) {
 				allStoresFull = false
 			}
-			upStoreCount++
+
+			if store.GetState() == metapb.StoreState_Up {
+				upStoreCount++
+			}
 			continue
 		}
+
 		offlineStore := store.Store
 		if c.storeIsEmpty(offlineStore.GetId()) {
 			err := c.BuryStore(offlineStore.GetId(), false)
@@ -478,12 +482,14 @@ func (c *RaftCluster) checkStores() {
 	if offlineStores == nil {
 		return
 	}
+
 	if upStoreCount < c.s.GetConfig().Replication.MaxReplicas {
 		for _, offlineStore := range offlineStores {
 			log.Warnf("store %v cannot turn into Tombstone, there are no extra nodes to accommodate the extra replicas", offlineStore)
 		}
 		return
 	}
+
 	if allStoresFull {
 		for _, offlineStore := range offlineStores {
 			log.Warnf("store %v cannot turn into Tombstone, there are no extra space to accommodate the extra replicas", offlineStore)
