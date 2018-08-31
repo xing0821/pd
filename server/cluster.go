@@ -479,7 +479,7 @@ func (c *RaftCluster) checkStores() {
 		}
 	}
 
-	if offlineStores == nil {
+	if len(offlineStores) == 0 {
 		return
 	}
 
