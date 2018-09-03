@@ -250,7 +250,7 @@ func (r *ReplicaChecker) fixPeer(region *core.RegionInfo, peer *metapb.Peer, sta
 
 	storeID, _ := r.SelectBestReplacementStore(region, peer, NewStorageThresholdFilter())
 	if storeID == 0 {
-		log.Debugf("[region %d] no best store to add replica", region.GetId())
+		log.Debugf("[region %d] no best store to add replica", region.GetID())
 		return nil
 	}
 	newPeer, err := r.cluster.AllocPeer(storeID)
