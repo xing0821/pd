@@ -633,13 +633,13 @@ func (r *RegionsInfo) GetRegions() []*RegionInfo {
 // GetStoreRegions gets all RegionInfo with a given storeID
 func (r *RegionsInfo) GetStoreRegions(storeID uint64) []*RegionInfo {
 	var regions []*RegionInfo
-	if r.leaders[storeID] != nil {
-		for _, region := range r.leaders[storeID].m {
+	if leaders, ok := r.leaders[storeID]; ok {
+		for _, region := range leaders.m {
 			regions = append(regions, region.Clone())
 		}
 	}
-	if r.followers[storeID] != nil {
-		for _, region := range r.followers[storeID].m {
+	if followers, ok := r.followers[storeID]; ok {
+		for _, region := range followers.m {
 			regions = append(regions, region.Clone())
 		}
 	}
