@@ -630,6 +630,18 @@ func (r *RegionsInfo) GetRegions() []*RegionInfo {
 	return regions
 }
 
+// GetStoreRegions gets all RegionInfo with a given storeID
+func (r *RegionsInfo) GetStoreRegions(storeID uint64) []*RegionInfo {
+	var regions []*RegionInfo
+	for _, region := range r.regions.m {
+		storeIDs := region.GetStoreIds()
+		if _, ok := storeIDs[storeID]; ok {
+			regions = append(regions, region.Clone())
+		}
+	}
+	return regions
+}
+
 // GetStoreLeaderRegionSize get total size of store's leader regions
 func (r *RegionsInfo) GetStoreLeaderRegionSize(storeID uint64) int64 {
 	return r.leaders[storeID].TotalSize()
