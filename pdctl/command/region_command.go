@@ -65,7 +65,7 @@ func NewRegionCommand() *cobra.Command {
 
 	topConfVer := &cobra.Command{
 		Use:   "topconfver <limit>",
-		Short: "show regions with top conf verion",
+		Short: "show regions with top conf version",
 		Run:   showRegionTopConfVerCommandFunc,
 	}
 	r.AddCommand(topConfVer)
