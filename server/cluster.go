@@ -460,7 +460,8 @@ func (c *RaftCluster) checkStores() {
 			}
 		}
 		offlineStore := store.Store
-		if c.storeIsEmpty(offlineStore.GetId()) {
+		// If the store is empty, it can be buried.
+		if cluster.isPrepared() && cluster.getStoreRegionCount(offlineStore.GetId()) == 0 {
 			err := c.BuryStore(offlineStore.GetId(), false)
 			if err != nil {
 				log.Errorf("bury store %v failed: %v", offlineStore, err)
@@ -500,25 +501,6 @@ func (c *RaftCluster) checkOperators() {
 			co.removeOperator(op)
 		}
 	}
-}
-
-func (c *RaftCluster) storeIsEmpty(storeID uint64) bool {
-	cluster := c.cachedCluster
-	if cluster.getStoreRegionCount(storeID) > 0 {
-		return false
-	}
-	// If pd-server is started recently, or becomes leader recently, the check may
-	// happen before any heartbeat from tikv. So we need to check region metas to
-	// verify no region's peer is on the store.
-	regions := cluster.getMetaRegions()
-	for _, region := range regions {
-		for _, p := range region.GetPeers() {
-			if p.GetStoreId() == storeID {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 func (c *RaftCluster) collectMetrics() {
