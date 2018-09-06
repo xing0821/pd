@@ -461,7 +461,7 @@ func (c *RaftCluster) checkStores() {
 		}
 		offlineStore := store.Store
 		// If the store is empty, it can be buried.
-		if cluster.isPrepared() && cluster.getStoreRegionCount(offlineStore.GetId()) == 0 {
+		if cluster.getStoreRegionCount(offlineStore.GetId()) == 0 {
 			err := c.BuryStore(offlineStore.GetId(), false)
 			if err != nil {
 				log.Errorf("bury store %v failed: %v", offlineStore, err)
