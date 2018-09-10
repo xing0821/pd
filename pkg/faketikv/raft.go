@@ -31,7 +31,7 @@ type RaftEngine struct {
 	sync.RWMutex
 	regionsInfo     *core.RegionsInfo
 	conn            *Connection
-	regionchange    map[uint64][]uint64
+	regionChange    map[uint64][]uint64
 	schedulerStats  *schedulerStatistics
 	regionSplitSize int64
 	regionSplitKeys int64
@@ -42,7 +42,7 @@ func NewRaftEngine(conf *cases.Conf, conn *Connection) *RaftEngine {
 	r := &RaftEngine{
 		regionsInfo:     core.NewRegionsInfo(),
 		conn:            conn,
-		regionchange:    make(map[uint64][]uint64),
+		regionChange:    make(map[uint64][]uint64),
 		schedulerStats:  newSchedulerStatistics(),
 		regionSplitSize: conf.RegionSplitSize,
 		regionSplitKeys: conf.RegionSplitKeys,
@@ -147,7 +147,7 @@ func (r *RaftEngine) stepSplit(region *core.RegionInfo) {
 	r.recordRegionChange(right)
 }
 
-// NeedSplit checks whether the region need to split according it's size
+// NeedSplit checks whether the region needs to split according its size
 // and number of keys.
 func (r *RaftEngine) NeedSplit(size, rows int64) bool {
 	if r.regionSplitSize != 0 && size >= r.regionSplitSize {
@@ -161,7 +161,7 @@ func (r *RaftEngine) NeedSplit(size, rows int64) bool {
 
 func (r *RaftEngine) recordRegionChange(region *core.RegionInfo) {
 	n := region.GetLeader().GetStoreId()
-	r.regionchange[n] = append(r.regionchange[n], region.GetID())
+	r.regionChange[n] = append(r.regionChange[n], region.GetID())
 }
 
 func (r *RaftEngine) updateRegionStore(region *core.RegionInfo, size int64) {

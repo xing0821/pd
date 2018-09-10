@@ -176,7 +176,7 @@ func (n *Node) regionHeartBeat() {
 }
 
 func (n *Node) reportRegionChange() {
-	for _, regionID := range n.raftEngine.regionchange[n.Id] {
+	for _, regionID := range n.raftEngine.regionChange[n.Id] {
 		region := n.raftEngine.GetRegion(regionID)
 		ctx, cancel := context.WithTimeout(n.ctx, pdTimeout)
 		err := n.client.RegionHeartbeat(ctx, region)
@@ -185,7 +185,7 @@ func (n *Node) reportRegionChange() {
 		}
 		cancel()
 	}
-	delete(n.raftEngine.regionchange, n.Id)
+	delete(n.raftEngine.regionChange, n.Id)
 }
 
 // AddTask adds task in this node.
