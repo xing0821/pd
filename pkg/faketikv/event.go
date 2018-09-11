@@ -21,18 +21,18 @@ import (
 	"github.com/pingcap/pd/server/core"
 )
 
-// Event that affect the status of the cluster
+// Event affects the status of the cluster.
 type Event interface {
-	Run(er *EventRunner, tickCount int64) bool
+	Run(raft *RaftEngine, tickCount int64) bool
 }
 
-// EventRunner includes all events
+// EventRunner includes all events.
 type EventRunner struct {
 	events     []Event
 	raftEngine *RaftEngine
 }
 
-// NewEventRunner creates an event runner
+// NewEventRunner creates an event runner.
 func NewEventRunner(events []cases.EventInner, raftEngine *RaftEngine) *EventRunner {
 	er := &EventRunner{events: make([]Event, 0, len(events)), raftEngine: raftEngine}
 	for _, e := range events {
@@ -52,8 +52,8 @@ func parserEvent(e cases.EventInner) Event {
 		return &WriteFlowOnRegion{in: v}
 	case *cases.ReadFlowOnRegionInner:
 		return &ReadFlowOnRegion{in: v}
-	case *cases.AddNodesDynamicInner:
-		return &AddNodesDynamic{in: v}
+	case *cases.AddNodesInner:
+		return &AddNodes{in: v}
 	case *cases.DeleteNodesInner:
 		return &DeleteNodes{in: v}
 	}
@@ -64,7 +64,7 @@ func parserEvent(e cases.EventInner) Event {
 func (er *EventRunner) Tick(tickCount int64) {
 	var finishedIndex int
 	for i, e := range er.events {
-		isFinished := e.Run(er, tickCount)
+		isFinished := e.Run(er.raftEngine, tickCount)
 		if isFinished {
 			er.events[i], er.events[finishedIndex] = er.events[finishedIndex], er.events[i]
 			finishedIndex++
@@ -73,14 +73,13 @@ func (er *EventRunner) Tick(tickCount int64) {
 	er.events = er.events[finishedIndex:]
 }
 
-// WriteFlowOnSpot writes bytes in some range
+// WriteFlowOnSpot writes bytes in some range.
 type WriteFlowOnSpot struct {
 	in *cases.WriteFlowOnSpotInner
 }
 
-// Run implements the event interface
-func (w *WriteFlowOnSpot) Run(er *EventRunner, tickCount int64) bool {
-	raft := er.raftEngine
+// Run implements the event interface.
+func (w *WriteFlowOnSpot) Run(raft *RaftEngine, tickCount int64) bool {
 	res := w.in.Step(tickCount)
 	for key, size := range res {
 		region := raft.SearchRegion([]byte(key))
@@ -93,14 +92,13 @@ func (w *WriteFlowOnSpot) Run(er *EventRunner, tickCount int64) bool {
 	return false
 }
 
-// WriteFlowOnRegion writes bytes in some region
+// WriteFlowOnRegion writes bytes in some region.
 type WriteFlowOnRegion struct {
 	in *cases.WriteFlowOnRegionInner
 }
 
-// Run implements the event interface
-func (w *WriteFlowOnRegion) Run(er *EventRunner, tickCount int64) bool {
-	raft := er.raftEngine
+// Run implements the event interface.
+func (w *WriteFlowOnRegion) Run(raft *RaftEngine, tickCount int64) bool {
 	res := w.in.Step(tickCount)
 	for id, bytes := range res {
 		region := raft.GetRegion(id)
@@ -118,49 +116,28 @@ type ReadFlowOnRegion struct {
 	in *cases.ReadFlowOnRegionInner
 }
 
-// Run implements the event interface
-func (w *ReadFlowOnRegion) Run(er *EventRunner, tickCount int64) bool {
+// Run implements the event interface.
+func (w *ReadFlowOnRegion) Run(raft *RaftEngine, tickCount int64) bool {
 	res := w.in.Step(tickCount)
-	er.raftEngine.updateRegionReadBytes(res)
+	raft.updateRegionReadBytes(res)
 	return false
 }
 
-// AddNodesDynamic adds nodes dynamically.
-type AddNodesDynamic struct {
-	in *cases.AddNodesDynamicInner
+// AddNodes adds nodes.
+type AddNodes struct {
+	in *cases.AddNodesInner
 }
 
 // Run implements the event interface.
-func (w *AddNodesDynamic) Run(er *EventRunner, tickCount int64) bool {
-	res := w.in.Step(tickCount)
-	if res == 0 {
+func (w *AddNodes) Run(raft *RaftEngine, tickCount int64) bool {
+	id := w.in.Step(tickCount)
+	if id == 0 {
 		return false
 	}
-	er.AddNode(res)
-	return false
-}
 
-// DeleteNodes deletes nodes randomly
-type DeleteNodes struct {
-	in *cases.DeleteNodesInner
-}
-
-// Run implements the event interface
-func (w *DeleteNodes) Run(er *EventRunner, tickCount int64) bool {
-	res := w.in.Step(tickCount)
-	if res == 0 {
-		return false
-	}
-	er.DeleteNode(res)
-	return false
-}
-
-// AddNode adds a new node.
-func (er *EventRunner) AddNode(id uint64) {
-	raft := er.raftEngine
 	if _, ok := raft.conn.Nodes[id]; ok {
 		simutil.Logger.Infof("Node %d already existed", id)
-		return
+		return false
 	}
 	s := &cases.Store{
 		ID:        id,
@@ -172,7 +149,7 @@ func (er *EventRunner) AddNode(id uint64) {
 	n, err := NewNode(s, raft.conn.pdAddr)
 	if err != nil {
 		simutil.Logger.Errorf("Add node %d failed: %v", id, err)
-		return
+		return false
 	}
 	raft.conn.Nodes[id] = n
 	n.raftEngine = raft
@@ -180,15 +157,25 @@ func (er *EventRunner) AddNode(id uint64) {
 	if err != nil {
 		simutil.Logger.Errorf("Start node %d failed: %v", id, err)
 	}
+	return false
 }
 
-// DeleteNode deletes a node.
-func (er *EventRunner) DeleteNode(id uint64) {
-	raft := er.raftEngine
+// DeleteNodes deletes nodes.
+type DeleteNodes struct {
+	in *cases.DeleteNodesInner
+}
+
+// Run implements the event interface.
+func (w *DeleteNodes) Run(raft *RaftEngine, tickCount int64) bool {
+	id := w.in.Step(tickCount)
+	if id == 0 {
+		return false
+	}
+
 	node := raft.conn.Nodes[id]
 	if node == nil {
 		simutil.Logger.Errorf("Node %d not existed", id)
-		return
+		return false
 	}
 	delete(raft.conn.Nodes, id)
 	node.Stop()
@@ -205,4 +192,5 @@ func (er *EventRunner) DeleteNode(id uint64) {
 			raft.SetRegion(region)
 		}
 	}
+	return false
 }
