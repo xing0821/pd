@@ -10,7 +10,7 @@ GOCHECKER := awk '{ print } END { if (NR > 0) { exit 1 } }'
 RETOOL:= ./hack/retool
 
 GOFAIL_ENABLE  := $$(find $$PWD/ -type d | grep -vE "(\.git|vendor)" | xargs ./hack/retool do gofail enable)
-GOFAIL_DISABLE := $$(find $$PWD/ -type d | grep -vE "(\.git|vendor)" | xargs ./hack/retool  do gofail disable)
+GOFAIL_DISABLE := $$(find $$PWD/ -type d | grep -vE "(\.git|vendor)" | xargs ./hack/retool do gofail disable)
 
 LDFLAGS += -X "$(PD_PKG)/server.PDReleaseVersion=$(shell git describe --tags --dirty)"
 LDFLAGS += -X "$(PD_PKG)/server.PDBuildTS=$(shell date -u '+%Y-%m-%d %I:%M:%S')"
