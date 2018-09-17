@@ -15,7 +15,7 @@ const (
 	defaultStoreVersion       = "2.1.0"
 )
 
-// SimConfig is the simulator configurations.
+// SimConfig is the simulator configuration.
 type SimConfig struct {
 	SimTickInterval  typeutil.Duration `toml:"sim-tick-interval"`
 	NormTickInterval typeutil.Duration `toml:"norm-tick-interval"`
