@@ -25,7 +25,6 @@ import (
 	"github.com/BurntSushi/toml"
 	etcdlogutil "github.com/coreos/etcd/pkg/logutil"
 	"github.com/coreos/etcd/raft"
-	"github.com/pingcap/pd/pkg/faketikv"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server"
 	"github.com/pingcap/pd/server/api"
@@ -70,7 +69,7 @@ func main() {
 }
 
 func run(simCase string) {
-	simConfig := faketikv.NewSimConfig()
+	simConfig := simulator.NewSimConfig()
 	if *configFile != "" {
 		if _, err := toml.DecodeFile(*configFile, simConfig); err != nil {
 			simutil.Logger.Fatal(err)
@@ -145,9 +144,9 @@ func initRaftLogger() {
 	raft.SetLogger(lg)
 }
 
-func simStart(pdAddr string, simCase string, simConfig *faketikv.SimConfig, clean ...server.CleanupFunc) {
+func simStart(pdAddr string, simCase string, simConfig *simulator.SimConfig, clean ...server.CleanupFunc) {
 	start := time.Now()
-	driver, err := simulator.NewDriver(pdAddr, confName)
+	driver, err := simulator.NewDriver(pdAddr, simCase, simConfig)
 	if err != nil {
 		simutil.Logger.Fatal("create driver error:", err)
 	}
