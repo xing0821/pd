@@ -50,6 +50,7 @@ type Case struct {
 	RegionSplitSize int64
 	RegionSplitKeys int64
 	Events          []EventInner
+	TableNumber     int
 
 	Checker CheckerFunc // To check the schedule is finished.
 }
@@ -83,6 +84,7 @@ var CaseMap = map[string]func() *Case{
 	"hot-read":             newHotRead,
 	"hot-write":            newHotWrite,
 	"makeup-down-replicas": newMakeupDownReplicas,
+	"import-data":          newImportData,
 }
 
 // NewCase creates a new case.

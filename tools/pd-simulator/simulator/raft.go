@@ -14,6 +14,7 @@
 package simulator
 
 import (
+	"bytes"
 	"context"
 	"math/rand"
 	"sort"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/server/core"
+	"github.com/pingcap/pd/table"
 	"github.com/pingcap/pd/tools/pd-simulator/simulator/cases"
 	"github.com/pingcap/pd/tools/pd-simulator/simulator/simutil"
 	"github.com/pkg/errors"
@@ -29,13 +31,14 @@ import (
 // RaftEngine records all raft infomations.
 type RaftEngine struct {
 	sync.RWMutex
-	regionsInfo     *core.RegionsInfo
-	conn            *Connection
-	regionChange    map[uint64][]uint64
-	schedulerStats  *schedulerStatistics
-	regionSplitSize int64
-	regionSplitKeys int64
-	storeConfig     *SimConfig
+	regionsInfo      *core.RegionsInfo
+	conn             *Connection
+	regionChange     map[uint64][]uint64
+	schedulerStats   *schedulerStatistics
+	regionSplitSize  int64
+	regionSplitKeys  int64
+	storeConfig      *SimConfig
+	useTiDBEncodeKey bool
 }
 
 // NewRaftEngine creates the initialized raft with the configuration.
@@ -49,8 +52,14 @@ func NewRaftEngine(conf *cases.Case, conn *Connection, storeConfig *SimConfig) *
 		regionSplitKeys: conf.RegionSplitKeys,
 		storeConfig:     storeConfig,
 	}
+	var splitKeys []string
+	if conf.TableNumber > 0 {
+		splitKeys = generateTableKeys(conf.TableNumber, len(conf.Regions)-1)
+		r.useTiDBEncodeKey = true
+	} else {
+		splitKeys = generateKeys(len(conf.Regions) - 1)
+	}
 
-	splitKeys := generateKeys(len(conf.Regions) - 1)
 	for i, region := range conf.Regions {
 		meta := &metapb.Region{
 			Id:          region.ID,
@@ -125,7 +134,12 @@ func (r *RaftEngine) stepSplit(region *core.RegionInfo) {
 		}
 	}
 
-	splitKey := generateSplitKey(region.GetStartKey(), region.GetEndKey())
+	var splitKey []byte
+	if r.useTiDBEncodeKey {
+		splitKey = generateMvccSplitKey(region.GetStartKey(), region.GetEndKey())
+	} else {
+		splitKey = generateSplitKey(region.GetStartKey(), region.GetEndKey())
+	}
 	left := region.Clone(
 		core.WithNewRegionID(ids[len(ids)-1]),
 		core.WithNewPeerIds(ids[0:len(ids)-1]...),
@@ -145,6 +159,7 @@ func (r *RaftEngine) stepSplit(region *core.RegionInfo) {
 
 	r.SetRegion(right)
 	r.SetRegion(left)
+	simutil.Logger.Debugf("[region %d] origin: %v split to left:%v, right:%v", region.GetID(), region.GetMeta(), left.GetMeta(), right.GetMeta())
 	r.recordRegionChange(left)
 	r.recordRegionChange(right)
 }
@@ -283,6 +298,30 @@ func generateKeys(size int) []string {
 	return v
 }
 
+func generateTableKeys(tableCount, size int) []string {
+	v := make([]string, 0, size)
+	groupNumber := size / tableCount
+	id := 0
+	for size > 0 {
+		id++
+		tableID := id
+		for rowID := 0; rowID < groupNumber && size > 0; rowID++ {
+			if rowID == 0 {
+				key := table.GenerateTableKey(int64(tableID))
+				key = table.EncodeBytes(key)
+				v = append(v, string(key))
+				size--
+				continue
+			}
+			key := table.GenerateRowKey(int64(tableID), int64(rowID))
+			key = table.EncodeBytes(key)
+			v = append(v, string(key))
+			size--
+		}
+	}
+	return v
+}
+
 func generateSplitKey(start, end []byte) []byte {
 	var key []byte
 	// lessThanEnd is set as true when the key is already less than end key.
@@ -304,4 +343,64 @@ func generateSplitKey(start, end []byte) []byte {
 	}
 	key = append(key, ('a'+'z')/2)
 	return key
+}
+
+func mustDecodeMvccKey(key []byte) []byte {
+	left, res, err := table.DecodeBytes(key)
+	if len(left) > 0 {
+		simutil.Logger.Fatalf("Decode key left some bytes: %v", key)
+	}
+	if err != nil {
+		simutil.Logger.Fatalf("Decode key %v meet error: %v", res, err)
+	}
+	return res
+}
+
+func generateMvccSplitKey(start, end []byte) []byte {
+	start = mustDecodeMvccKey(start)
+	end = mustDecodeMvccKey(end)
+	if len(start) == 0 && len(end) == 0 {
+		// suppose use table key with table ID: 0
+		key := table.GenerateTableKey(int64(0))
+		return table.EncodeBytes(key)
+	}
+	if len(end) == 0 {
+		end = make([]byte, len(start))
+	} else if len(start) < len(end) {
+		pad := make([]byte, len(end)-len(start))
+		start = append(start, pad...)
+	} else if len(end) < len(start) {
+		pad := make([]byte, len(start)-len(end))
+		end = append(end, pad...)
+	}
+	borrow := false
+	var (
+		d uint16
+		e uint16
+	)
+	res := make([]byte, len(start))
+	for i := 0; i < len(start); i++ {
+		s := start[i]
+		e = uint16(end[i])
+		if borrow {
+			e += 0x100
+		}
+		borrow = (uint16(s)+e)%2 != 0
+		d = (uint16(s) + e) / 2
+		if d >= 0x100 {
+			d -= 0x100
+			for j := i - 1; j >= 0; j-- {
+				res[j]++
+				if res[j] != 0 {
+					break
+				}
+			}
+		}
+		res[i] = byte(d)
+	}
+	if bytes.Equal(res, start) {
+		res = append(res, 0)
+	}
+
+	return table.EncodeBytes(res)
 }
