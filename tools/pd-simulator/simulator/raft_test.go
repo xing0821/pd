@@ -1,4 +1,4 @@
-// Copyright 2017 PingCAP, Inc.
+// Copyright 2018 PingCAP, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,38 +14,36 @@
 package simulator
 
 import (
-	"bytes"
-	"strings"
 	"testing"
+
+	. "github.com/pingcap/check"
 )
 
-func TestGenerateTableKeys(t *testing.T) {
+func Test(t *testing.T) {
+	TestingT(t)
+}
+
+var _ = Suite(&testTableKeySuite{})
+
+type testTableKeySuite struct{}
+
+func (t *testTableKeySuite) TestGenerateTableKeys(c *C) {
 	tableCount := 3
 	size := 10
 	keys := generateTableKeys(tableCount, size)
-	if len(keys) != size {
-		t.Fatalf("keys length %d, expected %d", len(keys), size)
-	}
+	c.Assert(len(keys), Equals, size)
+
 	for i := 1; i < len(keys); i++ {
-		if strings.Compare(keys[i-1], keys[i]) >= 0 {
-			t.Fatal("not an increamental sequence")
-		}
-		splitKey := string(generateMvccSplitKey([]byte(keys[i-1]), []byte(keys[i])))
-		if strings.Compare(keys[i-1], splitKey) >= 0 {
-			t.Fatalf("not expected split key")
-		}
-		if strings.Compare(splitKey, keys[i]) >= 0 {
-			t.Fatalf("not expected split key")
-		}
+		c.Assert(keys[i-1], Less, keys[i])
+		splitKey := string(generateTiDBEncodedSplitKey([]byte(keys[i-1]), []byte(keys[i])))
+		c.Assert(keys[i-1], Less, splitKey)
+		c.Assert(splitKey, Less, keys[i])
 	}
 	// empty key
 	startKey := []byte("")
 	endKey := []byte{116, 128, 0, 0, 0, 0, 0, 0, 255, 1, 0, 0, 0, 0, 0, 0, 0, 248}
-	splitKey := generateMvccSplitKey(startKey, endKey)
-	if bytes.Compare(startKey, splitKey) >= 0 {
-		t.Fatalf("not expected split key")
-	}
-	if bytes.Compare(splitKey, endKey) >= 0 {
-		t.Fatalf("not expected split key")
-	}
+	splitKey := generateTiDBEncodedSplitKey(startKey, endKey)
+	c.Assert(startKey, Less, splitKey)
+	c.Assert(splitKey, Less, endKey)
+
 }

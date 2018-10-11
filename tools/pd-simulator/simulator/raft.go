@@ -31,14 +31,14 @@ import (
 // RaftEngine records all raft infomations.
 type RaftEngine struct {
 	sync.RWMutex
-	regionsInfo      *core.RegionsInfo
-	conn             *Connection
-	regionChange     map[uint64][]uint64
-	schedulerStats   *schedulerStatistics
-	regionSplitSize  int64
-	regionSplitKeys  int64
-	storeConfig      *SimConfig
-	useTiDBEncodeKey bool
+	regionsInfo       *core.RegionsInfo
+	conn              *Connection
+	regionChange      map[uint64][]uint64
+	schedulerStats    *schedulerStatistics
+	regionSplitSize   int64
+	regionSplitKeys   int64
+	storeConfig       *SimConfig
+	useTiDBEncodedKey bool
 }
 
 // NewRaftEngine creates the initialized raft with the configuration.
@@ -55,7 +55,7 @@ func NewRaftEngine(conf *cases.Case, conn *Connection, storeConfig *SimConfig) *
 	var splitKeys []string
 	if conf.TableNumber > 0 {
 		splitKeys = generateTableKeys(conf.TableNumber, len(conf.Regions)-1)
-		r.useTiDBEncodeKey = true
+		r.useTiDBEncodedKey = true
 	} else {
 		splitKeys = generateKeys(len(conf.Regions) - 1)
 	}
@@ -135,8 +135,8 @@ func (r *RaftEngine) stepSplit(region *core.RegionInfo) {
 	}
 
 	var splitKey []byte
-	if r.useTiDBEncodeKey {
-		splitKey = generateMvccSplitKey(region.GetStartKey(), region.GetEndKey())
+	if r.useTiDBEncodedKey {
+		splitKey = generateTiDBEncodedSplitKey(region.GetStartKey(), region.GetEndKey())
 	} else {
 		splitKey = generateSplitKey(region.GetStartKey(), region.GetEndKey())
 	}
@@ -306,14 +306,11 @@ func generateTableKeys(tableCount, size int) []string {
 		id++
 		tableID := id
 		for rowID := 0; rowID < groupNumber && size > 0; rowID++ {
+			key := table.GenerateRowKey(int64(tableID), int64(rowID))
 			if rowID == 0 {
-				key := table.GenerateTableKey(int64(tableID))
-				key = table.EncodeBytes(key)
-				v = append(v, string(key))
-				size--
+				key = table.GenerateTableKey(int64(tableID))
 				continue
 			}
-			key := table.GenerateRowKey(int64(tableID), int64(rowID))
 			key = table.EncodeBytes(key)
 			v = append(v, string(key))
 			size--
@@ -356,7 +353,13 @@ func mustDecodeMvccKey(key []byte) []byte {
 	return res
 }
 
-func generateMvccSplitKey(start, end []byte) []byte {
+// generateTiDBEncodedSplitKey calculates the split key with start and end key,
+// the keys are encoded according to the TiDB encoding rules.
+// The algorithm is the computationally the logical median.
+func generateTiDBEncodedSplitKey(start, end []byte) []byte {
+	if bytes.Equal(start, end) {
+		simutil.Logger.Fatal("start key and end key should not be same")
+	}
 	start = mustDecodeMvccKey(start)
 	end = mustDecodeMvccKey(end)
 	if len(start) == 0 && len(end) == 0 {
@@ -364,6 +367,7 @@ func generateMvccSplitKey(start, end []byte) []byte {
 		key := table.GenerateTableKey(int64(0))
 		return table.EncodeBytes(key)
 	}
+	// make the start and end in same length.
 	if len(end) == 0 {
 		end = make([]byte, len(start))
 	} else if len(start) < len(end) {
@@ -373,7 +377,9 @@ func generateMvccSplitKey(start, end []byte) []byte {
 		pad := make([]byte, len(start)-len(end))
 		end = append(end, pad...)
 	}
+
 	borrow := false
+	equalWithStart := true
 	var (
 		d uint16
 		e uint16
@@ -385,8 +391,12 @@ func generateMvccSplitKey(start, end []byte) []byte {
 		if borrow {
 			e += 0x100
 		}
+		// if can't divide 2, assume that the lowposition borrows one from the high position, and then can divide 2.
 		borrow = (uint16(s)+e)%2 != 0
 		d = (uint16(s) + e) / 2
+		if d != uint16(s) {
+			equalWithStart = false
+		}
 		if d >= 0x100 {
 			d -= 0x100
 			for j := i - 1; j >= 0; j-- {
@@ -398,7 +408,7 @@ func generateMvccSplitKey(start, end []byte) []byte {
 		}
 		res[i] = byte(d)
 	}
-	if bytes.Equal(res, start) {
+	if equalWithStart {
 		res = append(res, 0)
 	}
 

@@ -97,7 +97,6 @@ func newImportData() *Case {
 			}
 		}
 		if leaderTotal == 0 || peerTotal == 0 {
-			simutil.Logger.Info("scan zore region")
 			return false
 		}
 		leaderLog := "leader distribute (table2)"
