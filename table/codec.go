@@ -131,9 +131,7 @@ func decodeCmpUintToInt(u uint64) int64 {
 // DecodeBytes decodes bytes which is encoded by EncodeBytes before,
 // returns the leftover bytes and decoded value if no error.
 func DecodeBytes(b []byte) ([]byte, []byte, error) {
-	if len(b) == 0 {
-		return b, nil, nil
-	}
+
 	data := make([]byte, 0, len(b))
 	for {
 		if len(b) < encGroupSize+1 {

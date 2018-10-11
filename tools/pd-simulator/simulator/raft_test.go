@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	. "github.com/pingcap/check"
+	"github.com/pingcap/pd/table"
 )
 
 func Test(t *testing.T) {
@@ -35,15 +36,41 @@ func (t *testTableKeySuite) TestGenerateTableKeys(c *C) {
 
 	for i := 1; i < len(keys); i++ {
 		c.Assert(keys[i-1], Less, keys[i])
-		splitKey := string(generateTiDBEncodedSplitKey([]byte(keys[i-1]), []byte(keys[i])))
-		c.Assert(keys[i-1], Less, splitKey)
-		c.Assert(splitKey, Less, keys[i])
+		s := []byte(keys[i-1])
+		e := []byte(keys[i])
+		for j := 0; j < 1000; j++ {
+			split := generateTiDBEncodedSplitKey(s, e)
+			c.Assert(s, Less, split)
+			c.Assert(split, Less, e)
+			e = split
+		}
 	}
+
+}
+
+func (t *testTableKeySuite) TestGenerateSplitKey(c *C) {
+	s := []byte(table.EncodeBytes([]byte("a")))
+	e := []byte(table.EncodeBytes([]byte("ab")))
+	for i := 0; i <= 100; i++ {
+		cc := generateTiDBEncodedSplitKey(s, e)
+		c.Assert(s, LessEqual, cc)
+		c.Assert(cc, LessEqual, e)
+		e = cc
+	}
+
 	// empty key
-	startKey := []byte("")
-	endKey := []byte{116, 128, 0, 0, 0, 0, 0, 0, 255, 1, 0, 0, 0, 0, 0, 0, 0, 248}
-	splitKey := generateTiDBEncodedSplitKey(startKey, endKey)
-	c.Assert(startKey, Less, splitKey)
-	c.Assert(splitKey, Less, endKey)
+	s = []byte("")
+	e = []byte{116, 128, 0, 0, 0, 0, 0, 0, 255, 1, 0, 0, 0, 0, 0, 0, 0, 248}
+	splitKey := generateTiDBEncodedSplitKey(s, e)
+	c.Assert(s, Less, splitKey)
+	c.Assert(splitKey, Less, e)
+
+	// split equal key
+	s = table.EncodeBytes([]byte{116, 128, 0, 0, 0, 0, 0, 0, 1})
+	e = table.EncodeBytes([]byte{116, 128, 0, 0, 0, 0, 0, 0, 1, 0})
+	c.Assert(s, Less, e)
+	splitKey = generateTiDBEncodedSplitKey(s, e)
+	c.Assert(s, Less, splitKey)
+	c.Assert(splitKey, LessEqual, e)
 
 }

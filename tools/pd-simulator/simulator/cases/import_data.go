@@ -99,8 +99,8 @@ func newImportData() *Case {
 		if leaderTotal == 0 || peerTotal == 0 {
 			return false
 		}
-		leaderLog := "leader distribute (table2)"
-		peerLog := "peer distribute (table2)"
+		leaderLog := fmt.Sprintf("table2 total %d leaders -", leaderTotal)
+		peerLog := fmt.Sprintf("table2 total %d peers-", peerTotal)
 		for storeID := 1; storeID <= 10; storeID++ {
 			if leaderCount, ok := leaderDstb[uint64(storeID)]; ok {
 				leaderLog = fmt.Sprintf("%s [store %d]:%.2f%%", leaderLog, storeID, float64(leaderCount)/float64(leaderTotal)*100)
