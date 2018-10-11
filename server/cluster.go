@@ -19,9 +19,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pingcap/errcode"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
-	"github.com/pingcap/pd/pkg/error_code"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
@@ -55,8 +55,9 @@ type RaftCluster struct {
 
 	coordinator *coordinator
 
-	wg   sync.WaitGroup
-	quit chan struct{}
+	wg           sync.WaitGroup
+	quit         chan struct{}
+	regionSyncer *regionSyncer
 }
 
 // ClusterStatus saves some state information
@@ -66,10 +67,11 @@ type ClusterStatus struct {
 
 func newRaftCluster(s *Server, clusterID uint64) *RaftCluster {
 	return &RaftCluster{
-		s:           s,
-		running:     false,
-		clusterID:   clusterID,
-		clusterRoot: s.getClusterRootPath(),
+		s:            s,
+		running:      false,
+		clusterID:    clusterID,
+		clusterRoot:  s.getClusterRootPath(),
+		regionSyncer: newRegionSyncer(s),
 	}
 }
 
@@ -115,13 +117,42 @@ func (c *RaftCluster) start() error {
 	c.cachedCluster.regionStats = newRegionStatistics(c.s.scheduleOpt, c.s.classifier)
 	c.quit = make(chan struct{})
 
-	c.wg.Add(2)
+	c.wg.Add(3)
 	go c.runCoordinator()
 	go c.runBackgroundJobs(backgroundJobInterval)
-
+	go c.runSyncRegions()
 	c.running = true
 
 	return nil
+}
+
+func (c *RaftCluster) runSyncRegions() {
+	defer logutil.LogPanic()
+	defer c.wg.Done()
+	var requests []*metapb.Region
+	ticker := time.NewTicker(syncerKeepAliveInterval)
+	for {
+		select {
+		case <-c.quit:
+			return
+		case first := <-c.cachedCluster.getChangedRegions():
+			requests = append(requests, first.GetMeta())
+			pending := len(c.cachedCluster.getChangedRegions())
+			for i := 0; i < pending && i < maxSyncRegionBatchSize; i++ {
+				region := <-c.cachedCluster.getChangedRegions()
+				requests = append(requests, region.GetMeta())
+			}
+			regions := &pdpb.SyncRegionResponse{
+				Header:  &pdpb.ResponseHeader{ClusterId: c.s.clusterID},
+				Regions: requests,
+			}
+			c.regionSyncer.broadcast(regions)
+		case <-ticker.C:
+			alive := &pdpb.SyncRegionResponse{Header: &pdpb.ResponseHeader{ClusterId: c.s.clusterID}}
+			c.regionSyncer.broadcast(alive)
+		}
+		requests = requests[:0]
+	}
 }
 
 func (c *RaftCluster) runCoordinator() {
@@ -226,6 +257,11 @@ func (c *RaftCluster) GetPrevRegionByKey(regionKey []byte) (*metapb.Region, *met
 // GetRegionInfoByKey gets regionInfo by region key from cluster.
 func (c *RaftCluster) GetRegionInfoByKey(regionKey []byte) *core.RegionInfo {
 	return c.cachedCluster.searchRegion(regionKey)
+}
+
+// ScanRegionsByKey scans region with start key, until number greater than limit.
+func (c *RaftCluster) ScanRegionsByKey(startKey []byte, limit int) []*core.RegionInfo {
+	return c.cachedCluster.ScanRegions(startKey, limit)
 }
 
 // GetRegionByID gets region and leader peer by regionID from cluster.

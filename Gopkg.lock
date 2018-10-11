@@ -196,6 +196,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:7f114b78210bf5b75f307fc97cff293633c835bab1e0ea8a744a44b39c042dfe"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
+
+[[projects]]
+  branch = "master"
   digest = "1:05f95ffdfcf651bdb0f05b40b69e7f5663047f8da75c72d58728acb59b5cc107"
   name = "github.com/google/btree"
   packages = ["."]
@@ -314,8 +322,24 @@
   revision = "1c287c953996ab3a0bf535dba9d53d809d3dc0b6"
 
 [[projects]]
+  digest = "1:cffc7d72991e2d84e164a07a0fabbc67a3fce70745d425e41245358a0c107d66"
+  name = "github.com/pingcap/errcode"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "a1a7271709d9bea2d0a0d2aab8a97d7a2ce0ea51"
+  version = "v0.1"
+
+[[projects]]
+  digest = "1:677ff2ee188099669fbecf583de8c23111020adee48d71a6f60c733f6b2fea7a"
+  name = "github.com/pingcap/errors"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "31ffda8a65b0f910c6d65f1fef40e761fd606384"
+  version = "v0.10.1"
+
+[[projects]]
   branch = "master"
-  digest = "1:3be99496a5d1fc018eb176c53a81df986408af94bece871d829eaceddf7c5325"
+  digest = "1:94d3fa0d66021a886bcc2cb35fad3571afc5d9cda8f295bcf05b0c15a86c8520"
   name = "github.com/pingcap/kvproto"
   packages = [
     "pkg/eraftpb",
@@ -323,7 +347,8 @@
     "pkg/pdpb",
   ]
   pruneopts = "NUT"
-  revision = "279515615485b0f2d12f1421cc412fe2784e0190"
+  revision = "fae11119f066d7fed2ae3d785fedd9f446143f70"
+  source = "https://github.com/pingcap/kvproto.git"
 
 [[projects]]
   digest = "1:5cf3f025cbee5951a4ee961de067c8a89fc95a5adabead774f82822efabab121"
@@ -409,6 +434,27 @@
   pruneopts = "NUT"
   revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
   version = "v1.0.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:f2ffd421680b0a3f7887501b3c6974bcf19217ecd301d0e2c9b681940ec363d5"
+  name = "github.com/syndtr/goleveldb"
+  packages = [
+    "leveldb",
+    "leveldb/cache",
+    "leveldb/comparer",
+    "leveldb/errors",
+    "leveldb/filter",
+    "leveldb/iterator",
+    "leveldb/journal",
+    "leveldb/memdb",
+    "leveldb/opt",
+    "leveldb/storage",
+    "leveldb/table",
+    "leveldb/util",
+  ]
+  pruneopts = "NUT"
+  revision = "ae2bd5eed72d46b28834ec3f60db3a3ebedd8dbd"
 
 [[projects]]
   branch = "master"
@@ -561,7 +607,7 @@
   revision = "86e600f69ee4704c6efbf6a2a40a5c10700e76c2"
 
 [[projects]]
-  digest = "1:7c485de3fafb9d0220cd8a5a53dea873b7a7771d88ad894998fc5b2a1a0b3b35"
+  digest = "1:0547cc571133c0dcc6422e5c53b72aafaa0ba3f14bcf33b2fd16ac5f3ea11d33"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -592,9 +638,9 @@
     "transport",
   ]
   pruneopts = "NUT"
-  revision = "41344da2231b913fa3d983840a57a6b1b7b631a1"
+  revision = "7a6a684ca69eb4cae85ad0a484f2e531598c047b"
   source = "https://github.com/grpc/grpc-go.git"
-  version = "v1.12.0"
+  version = "v1.12.2"
 
 [[projects]]
   digest = "1:80c34337e8a734e190f2d1b716cae774cca74db98315166f92074434e9af0227"
@@ -640,6 +686,7 @@
     "github.com/montanaflynn/stats",
     "github.com/opentracing/opentracing-go",
     "github.com/pingcap/check",
+    "github.com/pingcap/errcode",
     "github.com/pingcap/kvproto/pkg/eraftpb",
     "github.com/pingcap/kvproto/pkg/metapb",
     "github.com/pingcap/kvproto/pkg/pdpb",
@@ -649,6 +696,8 @@
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
+    "github.com/syndtr/goleveldb/leveldb",
+    "github.com/syndtr/goleveldb/leveldb/util",
     "github.com/unrolled/render",
     "github.com/urfave/negroni",
     "go.uber.org/zap",
@@ -656,6 +705,7 @@
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
     "google.golang.org/grpc/credentials",
+    "google.golang.org/grpc/grpclog",
     "google.golang.org/grpc/status",
     "gopkg.in/natefinch/lumberjack.v2",
   ]
