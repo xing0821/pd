@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/server/core"
@@ -39,8 +38,8 @@ func newImportData() *Case {
 		})
 	}
 
-	for i := 0; i < 30; i++ {
-		storeIDs := rand.Perm(10)
+	storeIDs := rand.Perm(3)
+	for i := 0; i < 40; i++ {
 		peers := []*metapb.Peer{
 			{Id: id.nextID(), StoreId: uint64(storeIDs[0] + 1)},
 			{Id: id.nextID(), StoreId: uint64(storeIDs[1] + 1)},
@@ -64,19 +63,24 @@ func newImportData() *Case {
 	table3 := string(table.EncodeBytes(table.GenerateTableKey(3)))
 	table5 := string(table.EncodeBytes(table.GenerateTableKey(5)))
 	e.Step = func(tick int64) map[string]int64 {
+		if tick < 100 {
+			return map[string]int64{
+				table3: 4 * MB,
+				table5: 32 * MB,
+			}
+		}
 		return map[string]int64{
-			table2: 4 * MB,
-			table3: 1 * MB,
+			table2: 2 * MB,
+			table3: 4 * MB,
 			table5: 16 * MB,
 		}
 	}
 	simCase.Events = []EventInner{e}
 
 	// Checker description
-	startTime := time.Now()
 	simCase.Checker = func(regions *core.RegionsInfo) bool {
-		leaderDstb := make(map[uint64]int)
-		peerDstb := make(map[uint64]int)
+		leaderDist := make(map[uint64]int)
+		peerDist := make(map[uint64]int)
 		leaderTotal := 0
 		peerTotal := 0
 		res := make([]*core.RegionInfo, 0, 100)
@@ -89,32 +93,50 @@ func newImportData() *Case {
 		})
 
 		for _, r := range res {
-			leaderDstb[r.GetLeader().GetStoreId()]++
 			leaderTotal++
+			leaderDist[r.GetLeader().GetStoreId()]++
 			for _, p := range r.GetPeers() {
-				peerDstb[p.GetStoreId()]++
+				peerDist[p.GetStoreId()]++
 				peerTotal++
 			}
 		}
 		if leaderTotal == 0 || peerTotal == 0 {
 			return false
 		}
-		leaderLog := fmt.Sprintf("table2 total %d leaders -", leaderTotal)
-		peerLog := fmt.Sprintf("table2 total %d peers-", peerTotal)
+		tableLeaderLog := fmt.Sprintf("%d leader:", leaderTotal)
+		tablePeerLog := fmt.Sprintf("%d peer: ", peerTotal)
 		for storeID := 1; storeID <= 10; storeID++ {
-			if leaderCount, ok := leaderDstb[uint64(storeID)]; ok {
-				leaderLog = fmt.Sprintf("%s [store %d]:%.2f%%", leaderLog, storeID, float64(leaderCount)/float64(leaderTotal)*100)
+			if leaderCount, ok := leaderDist[uint64(storeID)]; ok {
+				tableLeaderLog = fmt.Sprintf("%s [store %d]:%.2f%%", tableLeaderLog, storeID, float64(leaderCount)/float64(leaderTotal)*100)
 			}
 		}
 		for storeID := 1; storeID <= 10; storeID++ {
-			if peerCount, ok := peerDstb[uint64(storeID)]; ok {
-				peerLog = fmt.Sprintf("%s [store %d]:%.2f%%", peerLog, storeID, float64(peerCount)/float64(peerTotal)*100)
+			if peerCount, ok := peerDist[uint64(storeID)]; ok {
+				tablePeerLog = fmt.Sprintf("%s [store %d]:%.2f%%", tablePeerLog, storeID, float64(peerCount)/float64(peerTotal)*100)
 			}
 		}
-
-		simutil.Logger.Info(leaderLog)
-		simutil.Logger.Info(peerLog)
-		return startTime.Add(time.Minute).Before(time.Now())
+		regionTotal := regions.GetRegionCount()
+		totalLeaderLog := fmt.Sprintf("%d leader:", regionTotal)
+		totalPeerLog := fmt.Sprintf("%d peer:", regionTotal*3)
+		isEnd := true
+		for storeID := uint64(1); storeID <= 10; storeID++ {
+			regions.GetStoreRegionCount(uint64(storeID))
+			totalLeaderLog = fmt.Sprintf("%s [store %d]:%.2f%%", totalLeaderLog, storeID, float64(regions.GetStoreLeaderCount(storeID))/float64(regionTotal)*100)
+			regionProp := float64(regions.GetStoreRegionCount(storeID)) / float64(regionTotal*3) * 100
+			if regionProp > 13.8 {
+				isEnd = false
+			}
+			totalPeerLog = fmt.Sprintf("%s [store %d]:%.2f%%", totalPeerLog, storeID, regionProp)
+		}
+		simutil.Logger.Infof(`
+******* table 2 *******
+%s
+%s
+*******  global *******
+%s
+%s
+`, tableLeaderLog, tablePeerLog, totalLeaderLog, totalPeerLog)
+		return isEnd
 	}
 	return &simCase
 }
