@@ -51,10 +51,10 @@ func (t *testTableKeySuite) TestGenerateTableKeys(c *C) {
 func (t *testTableKeySuite) TestGenerateSplitKey(c *C) {
 	s := []byte(table.EncodeBytes([]byte("a")))
 	e := []byte(table.EncodeBytes([]byte("ab")))
-	for i := 0; i <= 100; i++ {
+	for i := 0; i <= 1000; i++ {
 		cc := generateTiDBEncodedSplitKey(s, e)
-		c.Assert(s, LessEqual, cc)
-		c.Assert(cc, LessEqual, e)
+		c.Assert(s, Less, cc)
+		c.Assert(cc, Less, e)
 		e = cc
 	}
 
@@ -67,10 +67,13 @@ func (t *testTableKeySuite) TestGenerateSplitKey(c *C) {
 
 	// split equal key
 	s = table.EncodeBytes([]byte{116, 128, 0, 0, 0, 0, 0, 0, 1})
-	e = table.EncodeBytes([]byte{116, 128, 0, 0, 0, 0, 0, 0, 1, 0})
-	c.Assert(s, Less, e)
-	splitKey = generateTiDBEncodedSplitKey(s, e)
-	c.Assert(s, Less, splitKey)
-	c.Assert(splitKey, LessEqual, e)
+	e = table.EncodeBytes([]byte{116, 128, 0, 0, 0, 0, 0, 0, 1, 1})
+	for i := 0; i <= 1000; i++ {
+		c.Assert(s, Less, e)
+		splitKey = generateTiDBEncodedSplitKey(s, e)
+		c.Assert(s, Less, splitKey)
+		c.Assert(splitKey, Less, e)
+		e = splitKey
+	}
 
 }

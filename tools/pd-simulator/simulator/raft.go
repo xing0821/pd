@@ -300,10 +300,8 @@ func generateKeys(size int) []string {
 
 func generateTableKey(tableID, rowID int64) []byte {
 	key := table.GenerateRowKey(tableID, rowID)
-	// To try not to split the same keys as much as possible
-	for i := 0; i <= keyLen; i++ {
-		key = append(key, byte(rand.Intn(0xFF)))
-	}
+	// append 0xFF use to split
+	key = append(key, 0xFF)
 
 	return table.EncodeBytes(key)
 }
@@ -373,6 +371,7 @@ func generateTiDBEncodedSplitKey(start, end []byte) []byte {
 
 	start = mustDecodeMvccKey(start)
 	end = mustDecodeMvccKey(end)
+	originStartLen := len(start)
 
 	// make the start key and end key in same length.
 	if len(end) == 0 {
@@ -389,10 +388,8 @@ func generateTiDBEncodedSplitKey(start, end []byte) []byte {
 	}
 
 	switch bytes.Compare(start, end) {
-	case 0:
-		return table.EncodeBytes(start)
-	case 1:
-		simutil.Logger.Fatalf("invalid start key: %v  end key: %v", start, end)
+	case 0, 1:
+		simutil.Logger.Fatalf("invalid start key(decode): %v  end key(decode): %v", start[:originStartLen], end)
 	case -1:
 	}
 	for i := len(end) - 1; i >= 0; i-- {
@@ -405,6 +402,11 @@ func generateTiDBEncodedSplitKey(start, end []byte) []byte {
 			end[i]--
 			break
 		}
+	}
+	// if endKey equal to startKey after reduce 1.
+	// we append 0xFF to the split key
+	if bytes.Equal(end, start) {
+		end = append(end, 0xFF)
 	}
 	return table.EncodeBytes(end)
 }
