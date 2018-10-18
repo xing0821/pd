@@ -17,15 +17,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/coreos/etcd/embed"
 	etcdlogutil "github.com/coreos/etcd/pkg/logutil"
 	"github.com/coreos/etcd/raft"
 	"github.com/pingcap/pd/pkg/logutil"
+	"github.com/pingcap/pd/pkg/tempurl"
 	"github.com/pingcap/pd/server"
 	"github.com/pingcap/pd/server/api"
 	"github.com/pingcap/pd/server/schedule"
@@ -43,7 +46,7 @@ import (
 
 var (
 	pdAddr         = flag.String("pd", "", "pd address")
-	configFile     = flag.String("config", "", "config file")
+	configFile     = flag.String("config", "conf/simconfig.toml", "config file")
 	caseName       = flag.String("case", "", "case name")
 	serverLogLevel = flag.String("serverLog", "fatal", "pd server log level.")
 	simLogLevel    = flag.String("simLog", "fatal", "simulator log level.")
@@ -80,7 +83,7 @@ func run(simCase string) {
 	if *pdAddr != "" {
 		simStart(*pdAddr, simCase, simConfig)
 	} else {
-		_, local, clean := NewSingleServer()
+		local, clean := NewSingleServer(simConfig)
 		err := local.Run(context.Background())
 		if err != nil {
 			simutil.Logger.Fatal("run server error:", err)
@@ -96,9 +99,8 @@ func run(simCase string) {
 }
 
 // NewSingleServer creates a pd server for simulator.
-func NewSingleServer() (*server.Config, *server.Server, server.CleanupFunc) {
-	cfg := server.NewTestSingleConfig()
-	cfg.Log.Level = *serverLogLevel
+func NewSingleServer(simConfig *simulator.SimConfig) (*server.Server, server.CleanupFunc) {
+	cfg := NewSimServerConfig(simConfig)
 	err := logutil.InitLogger(&cfg.Log)
 	if err != nil {
 		log.Fatalf("initialize logger error: %s\n", err)
@@ -113,7 +115,7 @@ func NewSingleServer() (*server.Config, *server.Server, server.CleanupFunc) {
 		s.Close()
 		cleanServer(cfg)
 	}
-	return cfg, s, cleanup
+	return s, cleanup
 }
 
 func cleanServer(cfg *server.Config) {
@@ -156,17 +158,7 @@ func simStart(pdAddr string, simCase string, simConfig *simulator.SimConfig, cle
 		simutil.Logger.Fatal("simulator prepare error:", err)
 	}
 
-	var runInternal bool
-	if len(clean) != 0 {
-		runInternal = true
-	}
-
-	var tickInterval time.Duration
-	if runInternal {
-		tickInterval = simConfig.SimTickInterval.Duration
-	} else {
-		tickInterval = simConfig.NormTickInterval.Duration
-	}
+	tickInterval := simConfig.SimTickInterval.Duration
 
 	tick := time.NewTicker(tickInterval)
 	defer tick.Stop()
@@ -194,7 +186,7 @@ EXIT:
 	}
 
 	driver.Stop()
-	if runInternal {
+	if len(clean) != 0 {
 		clean[0]()
 	}
 
@@ -204,4 +196,31 @@ EXIT:
 	if simResult != "OK" {
 		os.Exit(1)
 	}
+}
+
+// NewSimServerConfig is only for the simulator to create one pd.
+func NewSimServerConfig(simConfig *simulator.SimConfig) *server.Config {
+	cfg := &server.Config{
+		Name:       "pd",
+		ClientUrls: tempurl.Alloc(),
+		PeerUrls:   tempurl.Alloc(),
+
+		InitialClusterState:         embed.ClusterStateFlagNew,
+		LeaderLease:                 simConfig.LeaderLease,
+		TsoSaveInterval:             simConfig.TsoSaveInterval,
+		TickInterval:                simConfig.TickInterval,
+		ElectionInterval:            simConfig.ElectionInterval,
+		LeaderPriorityCheckInterval: simConfig.LeaderPriorityCheckInterval,
+	}
+
+	cfg.AdvertiseClientUrls = cfg.ClientUrls
+	cfg.AdvertisePeerUrls = cfg.PeerUrls
+	cfg.DataDir, _ = ioutil.TempDir("/tmp", "test_pd")
+	cfg.InitialCluster = fmt.Sprintf("pd=%s", cfg.PeerUrls)
+	cfg.Schedule = simConfig.Schedule
+	cfg.Log.Level = *serverLogLevel
+
+	cfg.Adjust(nil)
+
+	return cfg
 }
