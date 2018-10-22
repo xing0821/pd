@@ -23,8 +23,6 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	etcdlogutil "github.com/coreos/etcd/pkg/logutil"
-	"github.com/coreos/etcd/raft"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server"
 	"github.com/pingcap/pd/server/api"
@@ -33,7 +31,6 @@ import (
 	"github.com/pingcap/pd/tools/pd-simulator/simulator/cases"
 	"github.com/pingcap/pd/tools/pd-simulator/simulator/simutil"
 	log "github.com/sirupsen/logrus"
-	"go.uber.org/zap"
 
 	// Register schedulers.
 	_ "github.com/pingcap/pd/server/schedulers"
@@ -52,7 +49,6 @@ var (
 func main() {
 	flag.Parse()
 
-	initRaftLogger()
 	simutil.InitLogger(*simLogLevel)
 	schedule.Simulating = true
 
@@ -117,29 +113,6 @@ func NewSingleServer(simConfig *simulator.SimConfig) (*server.Server, server.Cle
 func cleanServer(cfg *server.Config) {
 	// Clean data directory
 	os.RemoveAll(cfg.DataDir)
-}
-
-func initRaftLogger() {
-	// etcd uses zap as the default Raft logger.
-	lcfg := &zap.Config{
-		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
-		Development: false,
-		Sampling: &zap.SamplingConfig{
-			Initial:    100,
-			Thereafter: 100,
-		},
-		Encoding:      "json",
-		EncoderConfig: zap.NewProductionEncoderConfig(),
-
-		// Passing no URLs here, because we don't want to output the Raft log.
-		OutputPaths:      []string{},
-		ErrorOutputPaths: []string{},
-	}
-	lg, err := etcdlogutil.NewRaftLogger(lcfg)
-	if err != nil {
-		log.Fatalf("cannot create raft logger %v", err)
-	}
-	raft.SetLogger(lg)
 }
 
 func simStart(pdAddr string, simCase string, simConfig *simulator.SimConfig, clean ...server.CleanupFunc) {
