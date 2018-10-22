@@ -17,18 +17,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/coreos/etcd/embed"
 	etcdlogutil "github.com/coreos/etcd/pkg/logutil"
 	"github.com/coreos/etcd/raft"
 	"github.com/pingcap/pd/pkg/logutil"
-	"github.com/pingcap/pd/pkg/tempurl"
 	"github.com/pingcap/pd/server"
 	"github.com/pingcap/pd/server/api"
 	"github.com/pingcap/pd/server/schedule"
@@ -72,7 +69,7 @@ func main() {
 }
 
 func run(simCase string) {
-	simConfig := simulator.NewSimConfig()
+	simConfig := simulator.NewSimConfig(*serverLogLevel)
 	if *configFile != "" {
 		if _, err := toml.DecodeFile(*configFile, simConfig); err != nil {
 			simutil.Logger.Fatal(err)
@@ -100,20 +97,19 @@ func run(simCase string) {
 
 // NewSingleServer creates a pd server for simulator.
 func NewSingleServer(simConfig *simulator.SimConfig) (*server.Server, server.CleanupFunc) {
-	cfg := NewSimServerConfig(simConfig)
-	err := logutil.InitLogger(&cfg.Log)
+	err := logutil.InitLogger(&simConfig.ServerConfig.Log)
 	if err != nil {
 		log.Fatalf("initialize logger error: %s\n", err)
 	}
 
-	s, err := server.CreateServer(cfg, api.NewHandler)
+	s, err := server.CreateServer(simConfig.ServerConfig, api.NewHandler)
 	if err != nil {
 		panic("create server failed")
 	}
 
 	cleanup := func() {
 		s.Close()
-		cleanServer(cfg)
+		cleanServer(simConfig.ServerConfig)
 	}
 	return s, cleanup
 }
@@ -196,31 +192,4 @@ EXIT:
 	if simResult != "OK" {
 		os.Exit(1)
 	}
-}
-
-// NewSimServerConfig is only for the simulator to create one pd.
-func NewSimServerConfig(simConfig *simulator.SimConfig) *server.Config {
-	cfg := &server.Config{
-		Name:       "pd",
-		ClientUrls: tempurl.Alloc(),
-		PeerUrls:   tempurl.Alloc(),
-
-		InitialClusterState:         embed.ClusterStateFlagNew,
-		LeaderLease:                 simConfig.LeaderLease,
-		TsoSaveInterval:             simConfig.TsoSaveInterval,
-		TickInterval:                simConfig.TickInterval,
-		ElectionInterval:            simConfig.ElectionInterval,
-		LeaderPriorityCheckInterval: simConfig.LeaderPriorityCheckInterval,
-	}
-
-	cfg.AdvertiseClientUrls = cfg.ClientUrls
-	cfg.AdvertisePeerUrls = cfg.PeerUrls
-	cfg.DataDir, _ = ioutil.TempDir("/tmp", "test_pd")
-	cfg.InitialCluster = fmt.Sprintf("pd=%s", cfg.PeerUrls)
-	cfg.Schedule = simConfig.Schedule
-	cfg.Log.Level = *serverLogLevel
-
-	cfg.Adjust(nil)
-
-	return cfg
 }

@@ -1,8 +1,11 @@
 package simulator
 
 import (
+	"fmt"
+	"io/ioutil"
 	"time"
 
+	"github.com/pingcap/pd/pkg/tempurl"
 	"github.com/pingcap/pd/pkg/typeutil"
 	"github.com/pingcap/pd/server"
 )
@@ -32,19 +35,24 @@ type SimConfig struct {
 	StoreAvailableGB   uint64 `toml:"store-available"`
 	StoreIOMBPerSecond int64  `toml:"store-io-per-second"`
 	StoreVersion       string `toml:"store-version"`
-	// schedule
-	Schedule server.ScheduleConfig `toml:"schedule"`
 	// server
-	LeaderLease                 int64             `toml:"lease"`
-	TsoSaveInterval             typeutil.Duration `toml:"tso-save-interval"`
-	TickInterval                typeutil.Duration `toml:"tick-interval"`
-	ElectionInterval            typeutil.Duration `toml:"election-interval"`
-	LeaderPriorityCheckInterval typeutil.Duration `toml:"leader-priority-check-interval"`
+	ServerConfig *server.Config `toml:"server"`
 }
 
 // NewSimConfig create a new configuration of the simulator.
-func NewSimConfig() *SimConfig {
-	return &SimConfig{}
+func NewSimConfig(serverLogLevel string) *SimConfig {
+	cfg := &server.Config{
+		Name:       "pd",
+		ClientUrls: tempurl.Alloc(),
+		PeerUrls:   tempurl.Alloc(),
+	}
+
+	cfg.AdvertiseClientUrls = cfg.ClientUrls
+	cfg.AdvertisePeerUrls = cfg.PeerUrls
+	cfg.DataDir, _ = ioutil.TempDir("/tmp", "test_pd")
+	cfg.InitialCluster = fmt.Sprintf("pd=%s", cfg.PeerUrls)
+	cfg.Log.Level = serverLogLevel
+	return &SimConfig{ServerConfig: cfg}
 }
 
 func adjustDuration(v *typeutil.Duration, defValue time.Duration) {
@@ -78,9 +86,11 @@ func (sc *SimConfig) Adjust() {
 	adjustUint64(&sc.StoreAvailableGB, defaultStoreAvailableGB)
 	adjustInt64(&sc.StoreIOMBPerSecond, defaultStoreIOMBPerSecond)
 	adjustString(&sc.StoreVersion, defaultStoreVersion)
-	adjustInt64(&sc.LeaderLease, defaultLeaderLease)
-	adjustDuration(&sc.TsoSaveInterval, defaultTsoSaveInterval)
-	adjustDuration(&sc.TickInterval, defaultTickInterval)
-	adjustDuration(&sc.ElectionInterval, defaultElectionInterval)
-	adjustDuration(&sc.LeaderPriorityCheckInterval, defaultLeaderPriorityCheckInterval)
+	adjustInt64(&sc.ServerConfig.LeaderLease, defaultLeaderLease)
+	adjustDuration(&sc.ServerConfig.TsoSaveInterval, defaultTsoSaveInterval)
+	adjustDuration(&sc.ServerConfig.TickInterval, defaultTickInterval)
+	adjustDuration(&sc.ServerConfig.ElectionInterval, defaultElectionInterval)
+	adjustDuration(&sc.ServerConfig.LeaderPriorityCheckInterval, defaultLeaderPriorityCheckInterval)
+
+	sc.ServerConfig.Adjust(nil)
 }

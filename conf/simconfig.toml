@@ -15,17 +15,17 @@ store-io-per-second = 40
 store-version = "2.1.0"
 
 # the meaning of these configurations below are similar with config.toml
-[schedule]
-split-merge-interval = "1ms"
-max-store-down-time = "30s"
-leader-schedule-limit = 32
-region-schedule-limit = 128
-replica-schedule-limit = 32
-merge-schedule-limit = 32
-
 [server]
 lease = 1
 tso-save-interval = "200ms"
 tick-interval = "100ms"
 election-interval = "3s"
 leader-priority-check-interval = "100ms"
+
+[server.schedule]
+split-merge-interval = "1ms"
+max-store-down-time = "30s"
+leader-schedule-limit = 32
+region-schedule-limit = 128
+replica-schedule-limit = 32
+merge-schedule-limit = 32
