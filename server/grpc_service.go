@@ -580,7 +580,7 @@ func (s *Server) ScatterRegion(ctx context.Context, request *pdpb.ScatterRegionR
 
 	co := cluster.coordinator
 	if op := co.regionScatterer.Scatter(region); op != nil {
-		co.schedLimiter.AddOperator(op)
+		co.opController.AddOperator(op)
 	}
 
 	return &pdpb.ScatterRegionResponse{
