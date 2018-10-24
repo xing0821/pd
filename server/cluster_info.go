@@ -514,11 +514,11 @@ func (c *clusterInfo) handleRegionHeartbeat(region *core.RegionInfo) error {
 	}
 
 	if saveKV && c.kv != nil {
-		if err := c.kv.SaveRegion(region.GetMeta()); err != nil {
-			// Not successfully saved to kv is not fatal, it only leads to longer warm-up
-			// after restart. Here we only log the error then go on updating cache.
-			log.Errorf("[region %d] fail to save region %v: %v", region.GetID(), region, err)
-		}
+		// if err := c.kv.SaveRegion(region.GetMeta()); err != nil {
+		// 	// Not successfully saved to kv is not fatal, it only leads to longer warm-up
+		// 	// after restart. Here we only log the error then go on updating cache.
+		// 	log.Errorf("[region %d] fail to save region %v: %v", region.GetID(), region, err)
+		// }
 		select {
 		case c.changedRegions <- region:
 		default:
@@ -537,11 +537,11 @@ func (c *clusterInfo) handleRegionHeartbeat(region *core.RegionInfo) error {
 	if saveCache {
 		overlaps := c.core.Regions.SetRegion(region)
 		if c.kv != nil {
-			for _, item := range overlaps {
-				if err := c.kv.DeleteRegion(item); err != nil {
-					log.Errorf("[region %d] fail to delete region %v: %v", item.GetId(), item, err)
-				}
-			}
+			// for _, item := range overlaps {
+			// 	if err := c.kv.DeleteRegion(item); err != nil {
+			// 		log.Errorf("[region %d] fail to delete region %v: %v", item.GetId(), item, err)
+			// 	}
+			// }
 		}
 		for _, item := range overlaps {
 			if c.regionStats != nil {
