@@ -686,28 +686,32 @@ var _ = Suite(&testOperatorControllerSuite{})
 type testOperatorControllerSuite struct{}
 
 func (s *testOperatorControllerSuite) TestOperatorCount(c *C) {
-	oc := schedule.NewOperatorController(nil, nil)
+	_, opt := newTestScheduleConfig()
+	tc := newTestClusterInfo(opt)
+	hbStreams := schedule.NewMockHeartbeatStreams(tc.clusterInfo.getClusterID())
+
+	oc := schedule.NewOperatorController(tc.clusterInfo, hbStreams)
 	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(0))
 	c.Assert(oc.OperatorCount(schedule.OpRegion), Equals, uint64(0))
 
-	operators := make(map[uint64]*schedule.Operator)
-
-	operators[1] = newTestOperator(1, nil, schedule.OpLeader)
-	oc.UpdateCounts(operators)
+	tc.addLeaderRegion(1, 1)
+	tc.addLeaderRegion(2, 2)
+	op1 := newTestOperator(1, tc.GetRegion(1).GetRegionEpoch(), schedule.OpLeader)
+	oc.AddOperator(op1)
 	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(1)) // 1:leader
-	operators[2] = newTestOperator(2, nil, schedule.OpLeader)
-	oc.UpdateCounts(operators)
+	op2 := newTestOperator(2, tc.GetRegion(2).GetRegionEpoch(), schedule.OpLeader)
+	oc.AddOperator(op2)
 	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(2)) // 1:leader, 2:leader
-	delete(operators, 1)
-	oc.UpdateCounts(operators)
+	oc.RemoveOperator(op1)
 	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(1)) // 2:leader
 
-	operators[1] = newTestOperator(1, nil, schedule.OpRegion)
-	oc.UpdateCounts(operators)
+	op1 = newTestOperator(1, tc.GetRegion(1).GetRegionEpoch(), schedule.OpRegion)
+	oc.AddOperator(op1)
 	c.Assert(oc.OperatorCount(schedule.OpRegion), Equals, uint64(1)) // 1:region 2:leader
 	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(1))
-	operators[2] = newTestOperator(2, nil, schedule.OpRegion)
-	oc.UpdateCounts(operators)
+	op2 = newTestOperator(2, tc.GetRegion(2).GetRegionEpoch(), schedule.OpRegion)
+	op2.SetPriorityLevel(core.HighPriority)
+	oc.AddOperator(op2)
 	c.Assert(oc.OperatorCount(schedule.OpRegion), Equals, uint64(2)) // 1:region 2:region
 	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(0))
 }

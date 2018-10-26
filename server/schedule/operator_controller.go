@@ -129,7 +129,7 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 	}
 
 	oc.operators[regionID] = op
-	oc.UpdateCounts(oc.operators)
+	oc.updateCounts(oc.operators)
 
 	if region := oc.cluster.GetRegion(op.RegionID()); region != nil {
 		if step := op.Check(region); step != nil {
@@ -151,7 +151,7 @@ func (oc *OperatorController) RemoveOperator(op *Operator) {
 func (oc *OperatorController) removeOperatorLocked(op *Operator) {
 	regionID := op.RegionID()
 	delete(oc.operators, regionID)
-	oc.UpdateCounts(oc.operators)
+	oc.updateCounts(oc.operators)
 	operatorCounter.WithLabelValues(op.Desc(), "remove").Inc()
 }
 
@@ -294,8 +294,8 @@ func (oc *OperatorController) GetHistory(start time.Time) []OperatorHistory {
 	return histories
 }
 
-// UpdateCounts updates resource counts using current pending operators.
-func (oc *OperatorController) UpdateCounts(operators map[uint64]*Operator) {
+// updateCounts updates resource counts using current pending operators.
+func (oc *OperatorController) updateCounts(operators map[uint64]*Operator) {
 	for k := range oc.counts {
 		delete(oc.counts, k)
 	}

@@ -809,7 +809,8 @@ func (s *testRandomMergeSchedulerSuite) TestMerge(c *C) {
 	opt := schedule.NewMockSchedulerOptions()
 	opt.MergeScheduleLimit = 1
 	tc := schedule.NewMockCluster(opt)
-	oc := schedule.NewOperatorController(nil, nil)
+	hb := schedule.NewMockHeartbeatStreams(tc.ID)
+	oc := schedule.NewOperatorController(tc, hb)
 
 	mb, err := schedule.CreateScheduler("random-merge", oc)
 	c.Assert(err, IsNil)
@@ -826,7 +827,7 @@ func (s *testRandomMergeSchedulerSuite) TestMerge(c *C) {
 	c.Assert(ops[0].Kind()&schedule.OpMerge, Not(Equals), 0)
 	c.Assert(ops[1].Kind()&schedule.OpMerge, Not(Equals), 0)
 
-	oc.UpdateCounts(map[uint64]*schedule.Operator{ops[0].RegionID(): ops[0], ops[1].RegionID(): ops[1]})
+	oc.AddOperator(ops...)
 	c.Assert(mb.IsScheduleAllowed(tc), IsFalse)
 }
 
