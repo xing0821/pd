@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os/exec"
 	"strconv"
 
@@ -234,7 +233,8 @@ func showRegionWithTableCommandFunc(cmd *cobra.Command, args []string) {
 		fmt.Println("Error: unknown format")
 		return
 	}
-	prefix := regionKeyPrefix + "/" + url.QueryEscape(key)
+	// TODO: Deal with path escaped
+	prefix := regionKeyPrefix + "/" + key
 	r, err := doRequest(cmd, prefix, http.MethodGet)
 	if err != nil {
 		fmt.Printf("Failed to get region: %s\n", err)
@@ -324,7 +324,8 @@ func showRegionsFromStartKeyCommandFunc(cmd *cobra.Command, args []string) {
 		fmt.Println("Error: unknown format")
 		return
 	}
-	prefix := regionKeyPrefix + "/" + url.QueryEscape(key)
+	// TODO: Deal with path escaped
+	prefix := regionKeyPrefix + "/" + key
 	if len(args) == 2 {
 		if _, err = strconv.Atoi(args[1]); err != nil {
 			fmt.Println("limit should be a number")
