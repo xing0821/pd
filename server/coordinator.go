@@ -90,7 +90,6 @@ func (c *coordinator) patrolRegions() {
 	defer c.wg.Done()
 	timer := time.NewTimer(c.cluster.GetPatrolRegionInterval())
 	defer timer.Stop()
-
 	log.Info("coordinator: start patrol regions")
 	start := time.Now()
 	var key []byte
@@ -110,8 +109,8 @@ func (c *coordinator) patrolRegions() {
 		}
 
 		for _, region := range regions {
-			// Skips the region if there is already a pending operator.
-			if c.opController.GetOperator(region.GetID()) != nil {
+			// Skip the region if there is already a pending operator.
+			if c.opController.GetRunningOperator(region.GetID()) != nil || c.opController.GetWaitingOperator(region.GetID()) != nil {
 				continue
 			}
 
@@ -165,6 +164,7 @@ func (c *coordinator) checkRegion(region *core.RegionInfo) bool {
 			}
 		}
 	}
+
 	if c.cluster.IsFeatureSupported(RegionMerge) && opController.OperatorCount(schedule.OpMerge) < c.cluster.GetMergeScheduleLimit() {
 		if ops := c.mergeChecker.Check(region); ops != nil {
 			// It makes sure that two operators can be added successfully altogether.

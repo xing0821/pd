@@ -261,7 +261,11 @@ func (h *Handler) GetOperator(regionID uint64) (*schedule.Operator, error) {
 		return nil, err
 	}
 
-	op := c.opController.GetOperator(regionID)
+	op := c.opController.GetRunningOperator(regionID)
+	if op != nil {
+		return op, nil
+	}
+	op = c.opController.GetWaitingOperator(regionID)
 	if op == nil {
 		return nil, ErrOperatorNotFound
 	}
@@ -276,12 +280,16 @@ func (h *Handler) RemoveOperator(regionID uint64) error {
 		return err
 	}
 
-	op := c.opController.GetOperator(regionID)
+	op := c.opController.GetRunningOperator(regionID)
+	if op != nil {
+		c.opController.RemoveRunningOperator(op)
+		return nil
+	}
+	op = c.opController.GetWaitingOperator(regionID)
 	if op == nil {
 		return ErrOperatorNotFound
 	}
-
-	c.opController.RemoveOperator(op)
+	c.opController.RemoveWaitingOperator(op)
 	return nil
 }
 
@@ -291,7 +299,8 @@ func (h *Handler) GetOperators() ([]*schedule.Operator, error) {
 	if err != nil {
 		return nil, err
 	}
-	return c.opController.GetOperators(), nil
+	operators := append(c.opController.GetRunningOperators(), c.opController.GetWaitingOperators()...)
+	return operators, nil
 }
 
 // GetAdminOperators returns the running admin operators.

@@ -155,7 +155,7 @@ func (s *testCoordinatorSuite) TestBasic(c *C) {
 	op1 := newTestOperator(1, tc.GetRegion(1).GetRegionEpoch(), schedule.OpLeader)
 	oc.AddOperator(op1)
 	c.Assert(oc.OperatorCount(op1.Kind()), Equals, uint64(1))
-	c.Assert(oc.GetOperator(1).RegionID(), Equals, op1.RegionID())
+	c.Assert(oc.GetRunningOperator(1).RegionID(), Equals, op1.RegionID())
 
 	// Region 1 already has an operator, cannot add another one.
 	op2 := newTestOperator(1, tc.GetRegion(1).GetRegionEpoch(), schedule.OpRegion)
@@ -163,10 +163,10 @@ func (s *testCoordinatorSuite) TestBasic(c *C) {
 	c.Assert(oc.OperatorCount(op2.Kind()), Equals, uint64(0))
 
 	// Remove the operator manually, then we can add a new operator.
-	oc.RemoveOperator(op1)
+	oc.RemoveRunningOperator(op1)
 	oc.AddOperator(op2)
 	c.Assert(oc.OperatorCount(op2.Kind()), Equals, uint64(1))
-	c.Assert(oc.GetOperator(1).RegionID(), Equals, op2.RegionID())
+	c.Assert(oc.GetRunningOperator(1).RegionID(), Equals, op2.RegionID())
 }
 
 type mockHeartbeatStream struct {
@@ -225,10 +225,10 @@ func (s *testCoordinatorSuite) TestDispatch(c *C) {
 
 	// Wait for schedule and turn off balance.
 	waitOperator(c, co, 1)
-	testutil.CheckTransferPeer(c, co.opController.GetOperator(1), schedule.OpBalance, 4, 1)
+	testutil.CheckTransferPeer(c, co.opController.GetRunningOperator(1), schedule.OpBalance, 4, 1)
 	c.Assert(co.removeScheduler("balance-region-scheduler"), IsNil)
 	waitOperator(c, co, 2)
-	testutil.CheckTransferLeader(c, co.opController.GetOperator(2), schedule.OpBalance, 4, 2)
+	testutil.CheckTransferLeader(c, co.opController.GetRunningOperator(2), schedule.OpBalance, 4, 2)
 	c.Assert(co.removeScheduler("balance-leader-scheduler"), IsNil)
 
 	stream := newMockHeartbeatStream()
@@ -304,7 +304,7 @@ func (s *testCoordinatorSuite) TestCheckRegion(c *C) {
 	c.Assert(tc.addLeaderRegion(1, 2, 3), IsNil)
 	c.Assert(co.checkRegion(tc.GetRegion(1)), IsTrue)
 	waitOperator(c, co, 1)
-	testutil.CheckAddPeer(c, co.opController.GetOperator(1), schedule.OpReplica, 1)
+	testutil.CheckAddPeer(c, co.opController.GetRunningOperator(1), schedule.OpReplica, 1)
 	c.Assert(co.checkRegion(tc.GetRegion(1)), IsFalse)
 
 	r := tc.GetRegion(1)
@@ -336,7 +336,7 @@ func (s *testCoordinatorSuite) TestCheckRegion(c *C) {
 	c.Assert(tc.putRegion(r), IsNil)
 	c.Assert(co.checkRegion(tc.GetRegion(1)), IsTrue)
 	waitOperator(c, co, 1)
-	op := co.opController.GetOperator(1)
+	op := co.opController.GetRunningOperator(1)
 	c.Assert(op.Len(), Equals, 1)
 	c.Assert(op.Step(0).(schedule.PromoteLearner).ToStore, Equals, uint64(1))
 	c.Assert(co.checkRegion(tc.GetRegion(1)), IsFalse)
@@ -432,7 +432,7 @@ func (s *testCoordinatorSuite) TestPeerState(c *C) {
 
 	// Wait for schedule.
 	waitOperator(c, co, 1)
-	testutil.CheckTransferPeer(c, co.opController.GetOperator(1), schedule.OpBalance, 4, 1)
+	testutil.CheckTransferPeer(c, co.opController.GetRunningOperator(1), schedule.OpBalance, 4, 1)
 
 	region := tc.GetRegion(1).Clone()
 
@@ -446,7 +446,7 @@ func (s *testCoordinatorSuite) TestPeerState(c *C) {
 	region = region.Clone(core.WithPendingPeers(append(region.GetPendingPeers(), region.GetStorePeer(1))))
 	c.Assert(dispatchHeartbeat(c, co, region, stream), IsNil)
 	waitNoResponse(c, stream)
-	c.Assert(co.opController.GetOperator(region.GetID()), NotNil)
+	c.Assert(co.opController.GetRunningOperator(region.GetID()), NotNil)
 
 	// The new peer is not pending now, the operator will finish.
 	// And we will proceed to remove peer in store 4.
@@ -703,7 +703,7 @@ func (s *testCoordinatorSuite) TestRestart(c *C) {
 
 func waitOperator(c *C, co *coordinator, regionID uint64) {
 	testutil.WaitUntil(c, func(c *C) bool {
-		return co.opController.GetOperator(regionID) != nil
+		return co.opController.GetRunningOperator(regionID) != nil
 	})
 }
 
@@ -729,7 +729,7 @@ func (s *testOperatorControllerSuite) TestOperatorCount(c *C) {
 	op2 := newTestOperator(2, tc.GetRegion(2).GetRegionEpoch(), schedule.OpLeader)
 	oc.AddOperator(op2)
 	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(2)) // 1:leader, 2:leader
-	oc.RemoveOperator(op1)
+	oc.RemoveRunningOperator(op1)
 	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(1)) // 2:leader
 
 	op1 = newTestOperator(1, tc.GetRegion(1).GetRegionEpoch(), schedule.OpRegion)
@@ -797,7 +797,7 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	c.Assert(oc.AddOperator(op2), IsTrue)
 	// count = 2
 	c.Assert(sc.AllowSchedule(), IsFalse)
-	oc.RemoveOperator(op1)
+	oc.RemoveRunningOperator(op1)
 	// count = 1
 	c.Assert(sc.AllowSchedule(), IsTrue)
 
@@ -808,7 +808,7 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	c.Assert(sc.AllowSchedule(), IsFalse)
 	c.Assert(oc.AddOperator(op3), IsTrue)
 	c.Assert(sc.AllowSchedule(), IsTrue)
-	oc.RemoveOperator(op3)
+	oc.RemoveRunningOperator(op3)
 
 	// add a admin operator will remove old operator
 	c.Assert(oc.AddOperator(op2), IsTrue)
@@ -817,14 +817,14 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	op4.SetPriorityLevel(core.HighPriority)
 	c.Assert(oc.AddOperator(op4), IsTrue)
 	c.Assert(sc.AllowSchedule(), IsTrue)
-	oc.RemoveOperator(op4)
+	oc.RemoveRunningOperator(op4)
 
 	// test wrong region id.
 	op5 := newTestOperator(3, &metapb.RegionEpoch{}, schedule.OpHotRegion)
 	c.Assert(oc.AddOperator(op5), IsFalse)
 
 	// test wrong region epoch.
-	oc.RemoveOperator(op1)
+	oc.RemoveRunningOperator(op1)
 	epoch := &metapb.RegionEpoch{
 		Version: tc.GetRegion(1).GetRegionEpoch().GetVersion() + 1,
 		ConfVer: tc.GetRegion(1).GetRegionEpoch().GetConfVer(),
@@ -834,7 +834,7 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	epoch.Version--
 	op6 = newTestOperator(1, epoch, schedule.OpLeader)
 	c.Assert(oc.AddOperator(op6), IsTrue)
-	oc.RemoveOperator(op6)
+	oc.RemoveRunningOperator(op6)
 }
 
 func (s *testScheduleControllerSuite) TestInterval(c *C) {
