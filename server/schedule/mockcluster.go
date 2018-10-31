@@ -379,24 +379,74 @@ func (mc *MockCluster) GetOpt() NamespaceOptions {
 	return mc.MockSchedulerOptions
 }
 
-// GetLeaderScheduleLimit mocks method.
-func (mc *MockCluster) GetLeaderScheduleLimit() uint64 {
-	return mc.MockSchedulerOptions.GetLeaderScheduleLimit(namespace.DefaultNamespace)
+// GetMaxBalanceLeaderInflight mocks method.
+func (mc *MockCluster) GetMaxBalanceLeaderInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxBalanceLeaderInflight(namespace.DefaultNamespace)
 }
 
-// GetRegionScheduleLimit mocks method.
-func (mc *MockCluster) GetRegionScheduleLimit() uint64 {
-	return mc.MockSchedulerOptions.GetRegionScheduleLimit(namespace.DefaultNamespace)
+// GetMaxBalanceRegionInflight mocks method.
+func (mc *MockCluster) GetMaxBalanceRegionInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxBalanceRegionInflight(namespace.DefaultNamespace)
 }
 
-// GetReplicaScheduleLimit mocks method.
-func (mc *MockCluster) GetReplicaScheduleLimit() uint64 {
-	return mc.MockSchedulerOptions.GetReplicaScheduleLimit(namespace.DefaultNamespace)
+// GetMaxMakeupReplicaInflight mocks method.
+func (mc *MockCluster) GetMaxMakeupReplicaInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxMakeupReplicaInflight(namespace.DefaultNamespace)
 }
 
-// GetMergeScheduleLimit mocks method.
-func (mc *MockCluster) GetMergeScheduleLimit() uint64 {
-	return mc.MockSchedulerOptions.GetMergeScheduleLimit(namespace.DefaultNamespace)
+// GetMaxMergeRegionInflight mocks method.
+func (mc *MockCluster) GetMaxMergeRegionInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxMergeRegionInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxMakeNamespaceRelocationInflight mock method
+func (mc *MockCluster) GetMaxMakeNamespaceRelocationInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxMakeNamespaceRelocationInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxEvictLeaderInflight mock method
+func (mc *MockCluster) GetMaxEvictLeaderInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxEvictLeaderInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxGrantLeaderInflight mock method
+func (mc *MockCluster) GetMaxGrantLeaderInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxGrantLeaderInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxHotLeaderInflight mock method
+func (mc *MockCluster) GetMaxHotLeaderInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxHotLeaderInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxHotRegionInflight mock method
+func (mc *MockCluster) GetMaxHotRegionInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxHotRegionInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxLabelRejectLeaderInflight mock method
+func (mc *MockCluster) GetMaxLabelRejectLeaderInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxLabelRejectLeaderInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxRandomMergeInflight mock method
+func (mc *MockCluster) GetMaxRandomMergeInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxRandomMergeInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxScatterRangeInflight mock method
+func (mc *MockCluster) GetMaxScatterRangeInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxScatterRangeInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxShuffleLeaderInflight mock method
+func (mc *MockCluster) GetMaxShuffleLeaderInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxShuffleLeaderInflight(namespace.DefaultNamespace)
+}
+
+// GetMaxShuffleRegionInflight mock method
+func (mc *MockCluster) GetMaxShuffleRegionInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxShuffleRegionInflight(namespace.DefaultNamespace)
 }
 
 // GetMaxReplicas mocks method.
@@ -417,58 +467,79 @@ func (mc *MockCluster) CheckLabelProperty(typ string, labels []*metapb.StoreLabe
 }
 
 const (
-	defaultMaxReplicas          = 3
-	defaultMaxSnapshotCount     = 3
-	defaultMaxPendingPeerCount  = 16
-	defaultMaxMergeRegionSize   = 0
-	defaultMaxMergeRegionKeys   = 0
-	defaultSplitMergeInterval   = 0
-	defaultMaxStoreDownTime     = 30 * time.Minute
-	defaultLeaderScheduleLimit  = 4
-	defaultRegionScheduleLimit  = 4
-	defaultReplicaScheduleLimit = 8
-	defaultMergeScheduleLimit   = 8
-	defaultTolerantSizeRatio    = 2.5
-	defaultLowSpaceRatio        = 0.8
-	defaultHighSpaceRatio       = 0.6
+	defaultMaxReplicas                = 3
+	defaultMaxSnapshotCount           = 3
+	defaultMaxPendingPeerCount        = 16
+	defaultMaxMergeRegionSize         = 0
+	defaultMaxMergeRegionKeys         = 0
+	defaultSplitMergeInterval         = 0
+	defaultMaxStoreDownTime           = 30 * time.Minute
+	defaultMaxBalanceLeaderInflight   = 4
+	defaultMaxBalanceRegionInflight   = 4
+	defaultMaxMakeupReplicaInflight   = 8
+	defaultMaxMergeRegionInflight     = 8
+	defaultMaxDefaultScheduleInflight = 8
+	defaultTolerantSizeRatio          = 2.5
+	defaultLowSpaceRatio              = 0.8
+	defaultHighSpaceRatio             = 0.6
 )
 
 // MockSchedulerOptions is a mock of SchedulerOptions
 // which implements Options interface
 type MockSchedulerOptions struct {
-	RegionScheduleLimit          uint64
-	LeaderScheduleLimit          uint64
-	ReplicaScheduleLimit         uint64
-	MergeScheduleLimit           uint64
-	MaxSnapshotCount             uint64
-	MaxPendingPeerCount          uint64
-	MaxMergeRegionSize           uint64
-	MaxMergeRegionKeys           uint64
-	SplitMergeInterval           time.Duration
-	MaxStoreDownTime             time.Duration
-	MaxReplicas                  int
-	LocationLabels               []string
-	HotRegionLowThreshold        int
-	TolerantSizeRatio            float64
-	LowSpaceRatio                float64
-	HighSpaceRatio               float64
-	DisableLearner               bool
-	DisableRemoveDownReplica     bool
-	DisableReplaceOfflineReplica bool
-	DisableMakeUpReplica         bool
-	DisableRemoveExtraReplica    bool
-	DisableLocationReplacement   bool
-	DisableNamespaceRelocation   bool
-	LabelProperties              map[string][]*metapb.StoreLabel
+	MaxBalanceRegionInflight           uint64
+	MaxBalanceLeaderInflight           uint64
+	MaxMakeupReplicaInflight           uint64
+	MaxMergeRegionInflight             uint64
+	MaxMakeNamespaceRelocationInflight uint64
+	MaxEvictLeaderInflight             uint64
+	MaxGrantLeaderInflight             uint64
+	MaxHotLeaderInflight               uint64
+	MaxHotRegionInflight               uint64
+	MaxLabelRejectLeaderInflight       uint64
+	MaxRandomMergeInflight             uint64
+	MaxScatterRangeInflight            uint64
+	MaxShuffleLeaderInflight           uint64
+	MaxShuffleRegionInflight           uint64
+	MaxSnapshotCount                   uint64
+	MaxPendingPeerCount                uint64
+	MaxMergeRegionSize                 uint64
+	MaxMergeRegionKeys                 uint64
+	SplitMergeInterval                 time.Duration
+	MaxStoreDownTime                   time.Duration
+	MaxReplicas                        int
+	LocationLabels                     []string
+	HotRegionLowThreshold              int
+	TolerantSizeRatio                  float64
+	LowSpaceRatio                      float64
+	HighSpaceRatio                     float64
+	DisableLearner                     bool
+	DisableRemoveDownReplica           bool
+	DisableReplaceOfflineReplica       bool
+	DisableMakeUpReplica               bool
+	DisableRemoveExtraReplica          bool
+	DisableLocationReplacement         bool
+	DisableNamespaceRelocation         bool
+	LabelProperties                    map[string][]*metapb.StoreLabel
 }
 
 // NewMockSchedulerOptions creates a mock schedule option.
 func NewMockSchedulerOptions() *MockSchedulerOptions {
 	mso := &MockSchedulerOptions{}
-	mso.RegionScheduleLimit = defaultRegionScheduleLimit
-	mso.LeaderScheduleLimit = defaultLeaderScheduleLimit
-	mso.ReplicaScheduleLimit = defaultReplicaScheduleLimit
-	mso.MergeScheduleLimit = defaultMergeScheduleLimit
+	mso.MaxBalanceRegionInflight = defaultMaxBalanceRegionInflight
+	mso.MaxBalanceLeaderInflight = defaultMaxBalanceLeaderInflight
+	mso.MaxMakeupReplicaInflight = defaultMaxMakeupReplicaInflight
+	mso.MaxMergeRegionInflight = defaultMaxMergeRegionInflight
+	mso.MaxMakeNamespaceRelocationInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxEvictLeaderInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxGrantLeaderInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxHotLeaderInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxHotRegionInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxLabelRejectLeaderInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxRandomMergeInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxScatterRangeInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxShuffleLeaderInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxShuffleRegionInflight = defaultMaxDefaultScheduleInflight
 	mso.MaxSnapshotCount = defaultMaxSnapshotCount
 	mso.MaxMergeRegionSize = defaultMaxMergeRegionSize
 	mso.MaxMergeRegionKeys = defaultMaxMergeRegionKeys
@@ -483,24 +554,74 @@ func NewMockSchedulerOptions() *MockSchedulerOptions {
 	return mso
 }
 
-// GetLeaderScheduleLimit mock method
-func (mso *MockSchedulerOptions) GetLeaderScheduleLimit(name string) uint64 {
-	return mso.LeaderScheduleLimit
+// GetMaxBalanceLeaderInflight mock method
+func (mso *MockSchedulerOptions) GetMaxBalanceLeaderInflight(name string) uint64 {
+	return mso.MaxBalanceLeaderInflight
 }
 
-// GetRegionScheduleLimit mock method
-func (mso *MockSchedulerOptions) GetRegionScheduleLimit(name string) uint64 {
-	return mso.RegionScheduleLimit
+// GetMaxBalanceRegionInflight mock method
+func (mso *MockSchedulerOptions) GetMaxBalanceRegionInflight(name string) uint64 {
+	return mso.MaxBalanceRegionInflight
 }
 
-// GetReplicaScheduleLimit mock method
-func (mso *MockSchedulerOptions) GetReplicaScheduleLimit(name string) uint64 {
-	return mso.ReplicaScheduleLimit
+// GetMaxMakeupReplicaInflight mock method
+func (mso *MockSchedulerOptions) GetMaxMakeupReplicaInflight(name string) uint64 {
+	return mso.MaxMakeupReplicaInflight
 }
 
-// GetMergeScheduleLimit mock method
-func (mso *MockSchedulerOptions) GetMergeScheduleLimit(name string) uint64 {
-	return mso.MergeScheduleLimit
+// GetMaxMergeRegionInflight mock method
+func (mso *MockSchedulerOptions) GetMaxMergeRegionInflight(name string) uint64 {
+	return mso.MaxMergeRegionInflight
+}
+
+// GetMaxMakeNamespaceRelocationInflight mock method
+func (mso *MockSchedulerOptions) GetMaxMakeNamespaceRelocationInflight(name string) uint64 {
+	return mso.MaxMakeNamespaceRelocationInflight
+}
+
+// GetMaxEvictLeaderInflight mock method
+func (mso *MockSchedulerOptions) GetMaxEvictLeaderInflight(name string) uint64 {
+	return mso.MaxEvictLeaderInflight
+}
+
+// GetMaxGrantLeaderInflight mock method
+func (mso *MockSchedulerOptions) GetMaxGrantLeaderInflight(name string) uint64 {
+	return mso.MaxGrantLeaderInflight
+}
+
+// GetMaxHotLeaderInflight mock method
+func (mso *MockSchedulerOptions) GetMaxHotLeaderInflight(name string) uint64 {
+	return mso.MaxHotLeaderInflight
+}
+
+// GetMaxHotRegionInflight mock method
+func (mso *MockSchedulerOptions) GetMaxHotRegionInflight(name string) uint64 {
+	return mso.MaxHotRegionInflight
+}
+
+// GetMaxLabelRejectLeaderInflight mock method
+func (mso *MockSchedulerOptions) GetMaxLabelRejectLeaderInflight(name string) uint64 {
+	return mso.MaxLabelRejectLeaderInflight
+}
+
+// GetMaxRandomMergeInflight mock method
+func (mso *MockSchedulerOptions) GetMaxRandomMergeInflight(name string) uint64 {
+	return mso.MaxRandomMergeInflight
+}
+
+// GetMaxScatterRangeInflight mock method
+func (mso *MockSchedulerOptions) GetMaxScatterRangeInflight(name string) uint64 {
+	return mso.MaxScatterRangeInflight
+}
+
+// GetMaxShuffleLeaderInflight mock method
+func (mso *MockSchedulerOptions) GetMaxShuffleLeaderInflight(name string) uint64 {
+	return mso.MaxShuffleLeaderInflight
+}
+
+// GetMaxShuffleRegionInflight mock method
+func (mso *MockSchedulerOptions) GetMaxShuffleRegionInflight(name string) uint64 {
+	return mso.MaxShuffleRegionInflight
 }
 
 // GetMaxSnapshotCount mock method

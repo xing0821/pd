@@ -49,7 +49,7 @@ func (s *shuffleLeaderScheduler) GetType() string {
 }
 
 func (s *shuffleLeaderScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
+	return s.opController.OperatorInflight("shuffleLeader") < cluster.GetMaxShuffleLeaderInflight()
 }
 
 func (s *shuffleLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

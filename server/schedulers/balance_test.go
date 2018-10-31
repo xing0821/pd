@@ -815,7 +815,7 @@ type testRandomMergeSchedulerSuite struct{}
 
 func (s *testRandomMergeSchedulerSuite) TestMerge(c *C) {
 	opt := schedule.NewMockSchedulerOptions()
-	opt.MergeScheduleLimit = 1
+	opt.MaxRandomMergeInflight = 1
 	tc := schedule.NewMockCluster(opt)
 	hb := schedule.NewMockHeartbeatStreams(tc.ID)
 	oc := schedule.NewOperatorController(tc, hb)
@@ -1120,10 +1120,10 @@ func (s *testBalanceHotWriteRegionSchedulerSuite) TestBalance(c *C) {
 	}
 
 	// hot region scheduler is restricted by schedule limit.
-	opt.RegionScheduleLimit, opt.LeaderScheduleLimit = 0, 0
+	opt.MaxHotLeaderInflight, opt.MaxHotRegionInflight = 0, 0
 	c.Assert(hb.Schedule(tc), HasLen, 0)
-	opt.LeaderScheduleLimit = schedule.NewMockSchedulerOptions().LeaderScheduleLimit
-	opt.RegionScheduleLimit = schedule.NewMockSchedulerOptions().RegionScheduleLimit
+	opt.MaxHotLeaderInflight = schedule.NewMockSchedulerOptions().MaxHotLeaderInflight
+	opt.MaxHotRegionInflight = schedule.NewMockSchedulerOptions().MaxHotRegionInflight
 
 	// After transfer a hot region from store 1 to store 5
 	//| region_id | leader_store | follower_store | follower_store | written_bytes |
@@ -1149,9 +1149,9 @@ func (s *testBalanceHotWriteRegionSchedulerSuite) TestBalance(c *C) {
 	testutil.CheckTransferLeaderFrom(c, hb.Schedule(tc)[0], schedule.OpHotRegion, 1)
 
 	// hot region scheduler is restricted by schedule limit.
-	opt.LeaderScheduleLimit = 0
+	opt.MaxHotLeaderInflight = 0
 	c.Assert(hb.Schedule(tc), HasLen, 0)
-	opt.LeaderScheduleLimit = schedule.NewMockSchedulerOptions().LeaderScheduleLimit
+	opt.MaxHotLeaderInflight = schedule.NewMockSchedulerOptions().MaxHotLeaderInflight
 
 	// Should not panic if region not found.
 	for i := uint64(1); i <= 3; i++ {

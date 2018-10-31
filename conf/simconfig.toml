@@ -25,7 +25,8 @@ leader-priority-check-interval = "100ms"
 [server.schedule]
 split-merge-interval = "1ms"
 max-store-down-time = "30s"
-leader-schedule-limit = 32
-region-schedule-limit = 128
-replica-schedule-limit = 32
-merge-schedule-limit = 32
+max-balance-leader-inflight = 32
+max-balance-region-inflight = 128
+max-makeup-replica-inflight = 32
+max-merge-region-inflight = 32
+max-default-schedule-inflight = 32

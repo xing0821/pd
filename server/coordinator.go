@@ -146,9 +146,7 @@ func (c *coordinator) checkRegion(region *core.RegionInfo) bool {
 		}
 	}
 
-	if opController.OperatorCount(schedule.OpLeader) < c.cluster.GetLeaderScheduleLimit() &&
-		opController.OperatorCount(schedule.OpRegion) < c.cluster.GetRegionScheduleLimit() &&
-		opController.OperatorCount(schedule.OpReplica) < c.cluster.GetReplicaScheduleLimit() {
+	if opController.OperatorInflight("make-namespace-relocation") < c.cluster.GetMaxMakeNamespaceRelocationInflight() {
 		if op := c.namespaceChecker.Check(region); op != nil {
 			if opController.AddOperator(op) {
 				return true
@@ -156,7 +154,7 @@ func (c *coordinator) checkRegion(region *core.RegionInfo) bool {
 		}
 	}
 
-	if opController.OperatorCount(schedule.OpReplica) < c.cluster.GetReplicaScheduleLimit() {
+	if opController.OperatorInflight("makeup-replica") < c.cluster.GetMaxMakeupReplicaInflight() {
 		if op := c.replicaChecker.Check(region); op != nil {
 			if opController.AddOperator(op) {
 				return true
@@ -164,7 +162,7 @@ func (c *coordinator) checkRegion(region *core.RegionInfo) bool {
 		}
 	}
 
-	if c.cluster.IsFeatureSupported(RegionMerge) && opController.OperatorCount(schedule.OpMerge) < c.cluster.GetMergeScheduleLimit() {
+	if opController.OperatorInflight("merge-region") < c.cluster.GetMaxMergeRegionInflight() {
 		if ops := c.mergeChecker.Check(region); ops != nil {
 			// It makes sure that two operators can be added successfully altogether.
 			if opController.AddOperator(ops...) {

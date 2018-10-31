@@ -123,13 +123,13 @@ func (h *balanceHotRegionsScheduler) IsScheduleAllowed(cluster schedule.Cluster)
 }
 
 func (h *balanceHotRegionsScheduler) allowBalanceLeader(cluster schedule.Cluster) bool {
-	return h.opController.OperatorCount(schedule.OpHotRegion) < h.limit &&
-		h.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
+	hotLeaderInflight := h.opController.OperatorInflight("hot-read-leader") + h.opController.OperatorInflight("hotwrite-leader")
+	return hotLeaderInflight < h.limit && hotLeaderInflight < cluster.GetMaxHotLeaderInflight()
 }
 
 func (h *balanceHotRegionsScheduler) allowBalanceRegion(cluster schedule.Cluster) bool {
-	return h.opController.OperatorCount(schedule.OpHotRegion) < h.limit &&
-		h.opController.OperatorCount(schedule.OpRegion) < cluster.GetRegionScheduleLimit()
+	hotRegionInflight := h.opController.OperatorInflight("hot-read-region") + h.opController.OperatorInflight("hotwrite-region")
+	return hotRegionInflight < h.limit && hotRegionInflight < cluster.GetMaxHotRegionInflight()
 }
 
 func (h *balanceHotRegionsScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
@@ -158,14 +158,14 @@ func (h *balanceHotRegionsScheduler) balanceHotReadRegions(cluster schedule.Clus
 	if srcRegion != nil {
 		schedulerCounter.WithLabelValues(h.GetName(), "move_leader").Inc()
 		step := schedule.TransferLeader{FromStore: srcRegion.GetLeader().GetStoreId(), ToStore: newLeader.GetStoreId()}
-		return []*schedule.Operator{schedule.NewOperator("transferHotReadLeader", srcRegion.GetID(), srcRegion.GetRegionEpoch(), schedule.OpHotRegion|schedule.OpLeader, step)}
+		return []*schedule.Operator{schedule.NewOperator("hot-read-leader", srcRegion.GetID(), srcRegion.GetRegionEpoch(), schedule.OpHotRegion|schedule.OpLeader, step)}
 	}
 
 	// balance by peer
 	srcRegion, srcPeer, destPeer := h.balanceByPeer(cluster, h.stats.readStatAsLeader)
 	if srcRegion != nil {
 		schedulerCounter.WithLabelValues(h.GetName(), "move_peer").Inc()
-		return []*schedule.Operator{schedule.CreateMovePeerOperator("moveHotReadRegion", cluster, srcRegion, schedule.OpHotRegion, srcPeer.GetStoreId(), destPeer.GetStoreId(), destPeer.GetId())}
+		return []*schedule.Operator{schedule.CreateMovePeerOperator("hot-read-region", cluster, srcRegion, schedule.OpHotRegion, srcPeer.GetStoreId(), destPeer.GetStoreId(), destPeer.GetId())}
 	}
 	schedulerCounter.WithLabelValues(h.GetName(), "skip").Inc()
 	return nil
@@ -182,7 +182,7 @@ func (h *balanceHotRegionsScheduler) balanceHotWriteRegions(cluster schedule.Clu
 			srcRegion, srcPeer, destPeer := h.balanceByPeer(cluster, h.stats.writeStatAsPeer)
 			if srcRegion != nil {
 				schedulerCounter.WithLabelValues(h.GetName(), "move_peer").Inc()
-				return []*schedule.Operator{schedule.CreateMovePeerOperator("moveHotWriteRegion", cluster, srcRegion, schedule.OpHotRegion, srcPeer.GetStoreId(), destPeer.GetStoreId(), destPeer.GetId())}
+				return []*schedule.Operator{schedule.CreateMovePeerOperator("hotwrite-region", cluster, srcRegion, schedule.OpHotRegion, srcPeer.GetStoreId(), destPeer.GetStoreId(), destPeer.GetId())}
 			}
 		case 1:
 			// balance by leader
@@ -190,7 +190,7 @@ func (h *balanceHotRegionsScheduler) balanceHotWriteRegions(cluster schedule.Clu
 			if srcRegion != nil {
 				schedulerCounter.WithLabelValues(h.GetName(), "move_leader").Inc()
 				step := schedule.TransferLeader{FromStore: srcRegion.GetLeader().GetStoreId(), ToStore: newLeader.GetStoreId()}
-				return []*schedule.Operator{schedule.NewOperator("transferHotWriteLeader", srcRegion.GetID(), srcRegion.GetRegionEpoch(), schedule.OpHotRegion|schedule.OpLeader, step)}
+				return []*schedule.Operator{schedule.NewOperator("hotwrite-leader", srcRegion.GetID(), srcRegion.GetRegionEpoch(), schedule.OpHotRegion|schedule.OpLeader, step)}
 			}
 		}
 	}

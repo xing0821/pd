@@ -130,11 +130,11 @@ func (l *balanceAdjacentRegionScheduler) IsScheduleAllowed(cluster schedule.Clus
 }
 
 func (l *balanceAdjacentRegionScheduler) allowBalanceLeader() bool {
-	return l.opController.OperatorCount(schedule.OpAdjacent|schedule.OpLeader) < l.leaderLimit
+	return l.opController.OperatorInflight("balance-leader") < l.leaderLimit
 }
 
 func (l *balanceAdjacentRegionScheduler) allowBalancePeer() bool {
-	return l.opController.OperatorCount(schedule.OpAdjacent|schedule.OpRegion) < l.peerLimit
+	return l.opController.OperatorInflight("balance-region") < l.peerLimit
 }
 
 func (l *balanceAdjacentRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

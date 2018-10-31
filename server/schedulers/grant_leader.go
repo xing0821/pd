@@ -69,7 +69,7 @@ func (s *grantLeaderScheduler) Cleanup(cluster schedule.Cluster) {
 }
 
 func (s *grantLeaderScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
+	return s.opController.OperatorInflight("grant-leader") < cluster.GetMaxGrantLeaderInflight()
 }
 
 func (s *grantLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

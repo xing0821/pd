@@ -146,20 +146,60 @@ func scheduleByNamespace(cluster schedule.Cluster, classifier namespace.Classifi
 	return nil
 }
 
-func (c *namespaceCluster) GetLeaderScheduleLimit() uint64 {
-	return c.GetOpt().GetLeaderScheduleLimit(c.namespace)
+func (c *namespaceCluster) GetMaxBalanceLeaderInflight() uint64 {
+	return c.GetOpt().GetMaxBalanceLeaderInflight(c.namespace)
 }
 
-func (c *namespaceCluster) GetRegionScheduleLimit() uint64 {
-	return c.GetOpt().GetRegionScheduleLimit(c.namespace)
+func (c *namespaceCluster) GetMaxBalanceRegionInflight() uint64 {
+	return c.GetOpt().GetMaxBalanceRegionInflight(c.namespace)
 }
 
-func (c *namespaceCluster) GetReplicaScheduleLimit() uint64 {
-	return c.GetOpt().GetReplicaScheduleLimit(c.namespace)
+func (c *namespaceCluster) GetMaxMakeupReplicaInflight() uint64 {
+	return c.GetOpt().GetMaxMakeupReplicaInflight(c.namespace)
 }
 
-func (c *namespaceCluster) GetMergeScheduleLimit() uint64 {
-	return c.GetOpt().GetMergeScheduleLimit(c.namespace)
+func (c *namespaceCluster) GetMaxMergeRegionInflight() uint64 {
+	return c.GetOpt().GetMaxMergeRegionInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxMakeNamespaceRelocationInflight() uint64 {
+	return c.GetOpt().GetMaxMakeNamespaceRelocationInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxEvictLeaderInflight() uint64 {
+	return c.GetOpt().GetMaxEvictLeaderInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxGrantLeaderInflight() uint64 {
+	return c.GetOpt().GetMaxGrantLeaderInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxHotLeaderInflight() uint64 {
+	return c.GetOpt().GetMaxHotLeaderInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxHotRegionInflight() uint64 {
+	return c.GetOpt().GetMaxHotRegionInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxLabelRejectLeaderInflight() uint64 {
+	return c.GetOpt().GetMaxLabelRejectLeaderInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxRandomMergeInflight() uint64 {
+	return c.GetOpt().GetMaxRandomMergeInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxScatterRangeInflight() uint64 {
+	return c.GetOpt().GetMaxScatterRangeInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxShuffleLeaderInflight() uint64 {
+	return c.GetOpt().GetMaxShuffleLeaderInflight(c.namespace)
+}
+
+func (c *namespaceCluster) GetMaxShuffleRegionInflight() uint64 {
+	return c.GetOpt().GetMaxShuffleRegionInflight(c.namespace)
 }
 
 func (c *namespaceCluster) GetMaxReplicas() int {

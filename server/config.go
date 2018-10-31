@@ -448,14 +448,34 @@ type ScheduleConfig struct {
 	// MaxStoreDownTime is the max duration after which
 	// a store will be considered to be down if it hasn't reported heartbeats.
 	MaxStoreDownTime typeutil.Duration `toml:"max-store-down-time,omitempty" json:"max-store-down-time"`
-	// LeaderScheduleLimit is the max coexist leader schedules.
-	LeaderScheduleLimit uint64 `toml:"leader-schedule-limit,omitempty" json:"leader-schedule-limit"`
-	// RegionScheduleLimit is the max coexist region schedules.
-	RegionScheduleLimit uint64 `toml:"region-schedule-limit,omitempty" json:"region-schedule-limit"`
-	// ReplicaScheduleLimit is the max coexist replica schedules.
-	ReplicaScheduleLimit uint64 `toml:"replica-schedule-limit,omitempty" json:"replica-schedule-limit"`
-	// MergeScheduleLimit is the max coexist merge schedules.
-	MergeScheduleLimit uint64 `toml:"merge-schedule-limit,omitempty" json:"merge-schedule-limit"`
+	// MaxBalanceLeaderInflight is the maxinum of inflight operators for balance-leader.
+	MaxBalanceLeaderInflight uint64 `toml:"max-balance-leader-inflight,omitempty" json:"max-balance-leader-inflight"`
+	// MaxBalanceRegionInflight is the maxinum of inflight operators for balance-region.
+	MaxBalanceRegionInflight uint64 `toml:"max-balance-region-inflight,omitempty" json:"max-balance-region-inflight"`
+	// MaxMakeupReplicaInflight is the maxinum of inflight operators for make-replica.
+	MaxMakeupReplicaInflight uint64 `toml:"max-make-replica-inflight,omitempty" json:"max-make-replica-inflight"`
+	// MaxMergeRegionInflight is the maxinum of inflight operators for merge-region.
+	MaxMergeRegionInflight uint64 `toml:"max-merge-region-inflight,omitempty" json:"max-merge-region-inflight"`
+	// MaxMakeNamespaceRelocationInflight is the maxinum of inflight operators for make-namespace-relocation-inflight.
+	MaxMakeNamespaceRelocationInflight uint64 `toml:"max-make-namespace-relocation-inflight,omitempty" json:"max-make-namespace-relocation-inflight"`
+	// MaxEvictLeaderInflight is the maxinum of inflight operators for evict-leader.
+	MaxEvictLeaderInflight uint64 `toml:"max-evict-leader-inflight,omitempty" json:"max-evict-leader-inflight"`
+	// MaxGrantLeaderInflight is the maxinum of inflight operators for grant-leader.
+	MaxGrantLeaderInflight uint64 `toml:"max-grant-leader-inflight,omitempty" json:"max-grant-leader-inflight"`
+	// MaxHotLeaderInflight is the maxinum of inflight operators for hot-leader.
+	MaxHotLeaderInflight uint64 `toml:"max-hot-leader-inflight,omitempty" json:"max-hot-leader-inflight"`
+	// MaxHotRegionInflight is the maxinum of inflight operators for hot-region.
+	MaxHotRegionInflight uint64 `toml:"max-hot-region-inflight,omitempty" json:"max-hot-region-inflight"`
+	// MaxLabelRejectLeaderInflight is the maxinum of inflight operators for label-reject-leader.
+	MaxLabelRejectLeaderInflight uint64 `toml:"max-label-reject-leader-inflight,omitempty" json:"max-label-reject-leader-inflight"`
+	// MaxRandomMergeInflight is the maxinum of inflight operators for random-merge.
+	MaxRandomMergeInflight uint64 `toml:"max-random-merge-inflight,omitempty" json:"max-random-merge-inflight"`
+	// MaxScatterRangeInflight is the maxinum of inflight operators for scatter-range.
+	MaxScatterRangeInflight uint64 `toml:"max-scatter-range-inflight,omitempty" json:"max-scatter-range-inflight"`
+	// MaxShuffleLeaderInflight is the maxinum of inflight operators for shuffle-leader.
+	MaxShuffleLeaderInflight uint64 `toml:"max-shuffle-leader-inflight,omitempty" json:"max-shuffle-leader-inflight"`
+	// MaxShuffleRegionInflight is the maxinum of inflight operators for shuffle-region.
+	MaxShuffleRegionInflight uint64 `toml:"max-shuffle-region-inflight,omitempty" json:"max-shuffle-region-inflight"`
 	// TolerantSizeRatio is the ratio of buffer size for balance scheduler.
 	TolerantSizeRatio float64 `toml:"tolerant-size-ratio,omitempty" json:"tolerant-size-ratio"`
 	//
@@ -500,47 +520,58 @@ func (c *ScheduleConfig) clone() *ScheduleConfig {
 	schedulers := make(SchedulerConfigs, len(c.Schedulers))
 	copy(schedulers, c.Schedulers)
 	return &ScheduleConfig{
-		MaxSnapshotCount:             c.MaxSnapshotCount,
-		MaxPendingPeerCount:          c.MaxPendingPeerCount,
-		MaxMergeRegionSize:           c.MaxMergeRegionSize,
-		MaxMergeRegionKeys:           c.MaxMergeRegionKeys,
-		SplitMergeInterval:           c.SplitMergeInterval,
-		PatrolRegionInterval:         c.PatrolRegionInterval,
-		MaxStoreDownTime:             c.MaxStoreDownTime,
-		LeaderScheduleLimit:          c.LeaderScheduleLimit,
-		RegionScheduleLimit:          c.RegionScheduleLimit,
-		ReplicaScheduleLimit:         c.ReplicaScheduleLimit,
-		MergeScheduleLimit:           c.MergeScheduleLimit,
-		TolerantSizeRatio:            c.TolerantSizeRatio,
-		LowSpaceRatio:                c.LowSpaceRatio,
-		HighSpaceRatio:               c.HighSpaceRatio,
-		DisableLearner:               c.DisableLearner,
-		DisableRemoveDownReplica:     c.DisableRemoveDownReplica,
-		DisableReplaceOfflineReplica: c.DisableReplaceOfflineReplica,
-		DisableMakeUpReplica:         c.DisableMakeUpReplica,
-		DisableRemoveExtraReplica:    c.DisableRemoveExtraReplica,
-		DisableLocationReplacement:   c.DisableLocationReplacement,
-		DisableNamespaceRelocation:   c.DisableNamespaceRelocation,
-		Schedulers:                   schedulers,
+		MaxSnapshotCount:                   c.MaxSnapshotCount,
+		MaxPendingPeerCount:                c.MaxPendingPeerCount,
+		MaxMergeRegionSize:                 c.MaxMergeRegionSize,
+		MaxMergeRegionKeys:                 c.MaxMergeRegionKeys,
+		SplitMergeInterval:                 c.SplitMergeInterval,
+		PatrolRegionInterval:               c.PatrolRegionInterval,
+		MaxStoreDownTime:                   c.MaxStoreDownTime,
+		MaxBalanceLeaderInflight:           c.MaxBalanceLeaderInflight,
+		MaxBalanceRegionInflight:           c.MaxBalanceRegionInflight,
+		MaxMakeupReplicaInflight:           c.MaxMakeupReplicaInflight,
+		MaxMergeRegionInflight:             c.MaxMergeRegionInflight,
+		MaxMakeNamespaceRelocationInflight: c.MaxMakeNamespaceRelocationInflight,
+		MaxEvictLeaderInflight:             c.MaxEvictLeaderInflight,
+		MaxGrantLeaderInflight:             c.MaxGrantLeaderInflight,
+		MaxHotLeaderInflight:               c.MaxHotLeaderInflight,
+		MaxHotRegionInflight:               c.MaxHotRegionInflight,
+		MaxLabelRejectLeaderInflight:       c.MaxLabelRejectLeaderInflight,
+		MaxRandomMergeInflight:             c.MaxRandomMergeInflight,
+		MaxScatterRangeInflight:            c.MaxScatterRangeInflight,
+		MaxShuffleLeaderInflight:           c.MaxShuffleLeaderInflight,
+		MaxShuffleRegionInflight:           c.MaxShuffleRegionInflight,
+		TolerantSizeRatio:                  c.TolerantSizeRatio,
+		LowSpaceRatio:                      c.LowSpaceRatio,
+		HighSpaceRatio:                     c.HighSpaceRatio,
+		DisableLearner:                     c.DisableLearner,
+		DisableRemoveDownReplica:           c.DisableRemoveDownReplica,
+		DisableReplaceOfflineReplica:       c.DisableReplaceOfflineReplica,
+		DisableMakeUpReplica:               c.DisableMakeUpReplica,
+		DisableRemoveExtraReplica:          c.DisableRemoveExtraReplica,
+		DisableLocationReplacement:         c.DisableLocationReplacement,
+		DisableNamespaceRelocation:         c.DisableNamespaceRelocation,
+		Schedulers:                         schedulers,
 	}
 }
 
 const (
-	defaultMaxReplicas          = 3
-	defaultMaxSnapshotCount     = 3
-	defaultMaxPendingPeerCount  = 16
-	defaultMaxMergeRegionSize   = 20
-	defaultMaxMergeRegionKeys   = 200000
-	defaultSplitMergeInterval   = 1 * time.Hour
-	defaultPatrolRegionInterval = 100 * time.Millisecond
-	defaultMaxStoreDownTime     = 30 * time.Minute
-	defaultLeaderScheduleLimit  = 4
-	defaultRegionScheduleLimit  = 4
-	defaultReplicaScheduleLimit = 8
-	defaultMergeScheduleLimit   = 8
-	defaultTolerantSizeRatio    = 5
-	defaultLowSpaceRatio        = 0.8
-	defaultHighSpaceRatio       = 0.6
+	defaultMaxReplicas                = 3
+	defaultMaxSnapshotCount           = 3
+	defaultMaxPendingPeerCount        = 16
+	defaultMaxMergeRegionSize         = 20
+	defaultMaxMergeRegionKeys         = 200000
+	defaultSplitMergeInterval         = 1 * time.Hour
+	defaultPatrolRegionInterval       = 100 * time.Millisecond
+	defaultMaxStoreDownTime           = 30 * time.Minute
+	defaultMaxBalanceLeaderInflight   = 4
+	defaultMaxBalanceRegionInflight   = 4
+	defaultMaxMakeupReplicaInflight   = 8
+	defaultMaxMergeRegionInflight     = 8
+	defaultMaxDefaultScheduleInflight = 8
+	defaultTolerantSizeRatio          = 5
+	defaultLowSpaceRatio              = 0.8
+	defaultHighSpaceRatio             = 0.6
 )
 
 func (c *ScheduleConfig) adjust(meta *configMetaData) error {
@@ -559,21 +590,21 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	adjustDuration(&c.SplitMergeInterval, defaultSplitMergeInterval)
 	adjustDuration(&c.PatrolRegionInterval, defaultPatrolRegionInterval)
 	adjustDuration(&c.MaxStoreDownTime, defaultMaxStoreDownTime)
-	if !meta.IsDefined("leader-schedule-limit") {
-		adjustUint64(&c.LeaderScheduleLimit, defaultLeaderScheduleLimit)
-	}
-	if !meta.IsDefined("region-schedule-limit") {
-		adjustUint64(&c.RegionScheduleLimit, defaultRegionScheduleLimit)
-	}
-	if !meta.IsDefined("replica-schedule-limit") {
-		adjustUint64(&c.ReplicaScheduleLimit, defaultReplicaScheduleLimit)
-	}
-	if !meta.IsDefined("merge-schedule-limit") {
-		adjustUint64(&c.MergeScheduleLimit, defaultMergeScheduleLimit)
-	}
-	if !meta.IsDefined("tolerant-size-ratio") {
-		adjustFloat64(&c.TolerantSizeRatio, defaultTolerantSizeRatio)
-	}
+	adjustUint64(&c.MaxBalanceLeaderInflight, defaultMaxBalanceLeaderInflight)
+	adjustUint64(&c.MaxBalanceRegionInflight, defaultMaxBalanceRegionInflight)
+	adjustUint64(&c.MaxMakeupReplicaInflight, defaultMaxMakeupReplicaInflight)
+	adjustUint64(&c.MaxMergeRegionInflight, defaultMaxMergeRegionInflight)
+	adjustUint64(&c.MaxMakeNamespaceRelocationInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxEvictLeaderInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxGrantLeaderInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxHotLeaderInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxHotRegionInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxLabelRejectLeaderInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxRandomMergeInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxScatterRangeInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxShuffleLeaderInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxShuffleRegionInflight, defaultMaxDefaultScheduleInflight)
+	adjustFloat64(&c.TolerantSizeRatio, defaultTolerantSizeRatio)
 	adjustFloat64(&c.LowSpaceRatio, defaultLowSpaceRatio)
 	adjustFloat64(&c.HighSpaceRatio, defaultHighSpaceRatio)
 	adjustSchedulers(&c.Schedulers, defaultSchedulers)
@@ -660,25 +691,54 @@ func (c *ReplicationConfig) adjust(meta *configMetaData) error {
 	return c.validate()
 }
 
-// NamespaceConfig is to overwrite the global setting for specific namespace
+// NamespaceConfig is to overwrite the global setting for specific namespace.
 type NamespaceConfig struct {
-	// LeaderScheduleLimit is the max coexist leader schedules.
-	LeaderScheduleLimit uint64 `json:"leader-schedule-limit"`
-	// RegionScheduleLimit is the max coexist region schedules.
-	RegionScheduleLimit uint64 `json:"region-schedule-limit"`
-	// ReplicaScheduleLimit is the max coexist replica schedules.
-	ReplicaScheduleLimit uint64 `json:"replica-schedule-limit"`
-	// MergeScheduleLimit is the max coexist merge schedules.
-	MergeScheduleLimit uint64 `json:"merge-schedule-limit"`
+	// MaxBalanceLeaderInflight is the maxinum of inflight operators for balance-leader.
+	MaxBalanceLeaderInflight uint64 `json:"max-balance-leader-inflight"`
+	// MaxBalanceRegionInflight is the maxinum of inflight operators for balance-region.
+	MaxBalanceRegionInflight uint64 `json:"max-balance-region-inflight"`
+	// MaxMakeupReplicaInflight is the maxinum of inflight operators for make-replica.
+	MaxMakeupReplicaInflight uint64 `json:"max-make-replica-inflight"`
+	// MaxMergeRegionInflight is the maxinum of inflight operators for merge-region.
+	MaxMergeRegionInflight uint64 `json:"max-merge-region-inflight"`
+	// MaxMakeNamespaceRelocationInflight is the maxinum of inflight operators for make-namespace-relocation.
+	MaxMakeNamespaceRelocationInflight uint64 `json:"max-make-namespace-relocation-inflight"`
+	// MaxEvictLeaderInflight is the maxinum of inflight operators for evict-leader.
+	MaxEvictLeaderInflight uint64 `json:"max-evict-leader-inflight"`
+	// MaxGrantLeaderInflight is the maxinum of inflight operators for grant-leader.
+	MaxGrantLeaderInflight uint64 `json:"max-grant-leader-inflight"`
+	// MaxHotLeaderInflight is the maxinum of inflight operators for hot-leader.
+	MaxHotLeaderInflight uint64 `json:"max-hot-leader-inflight"`
+	// MaxHotRegionInflight is the maxinum of inflight operators for hot-region.
+	MaxHotRegionInflight uint64 `json:"max-hot-region-inflight"`
+	// MaxLabelRejectLeaderInflight is the maxinum of inflight operators for label-reject-leader.
+	MaxLabelRejectLeaderInflight uint64 `json:"max-label-reject-leader-inflight"`
+	// MaxRandomMergeInflight is the maxinum of inflight operators for random-merge.
+	MaxRandomMergeInflight uint64 `json:"max-random-merge-inflight"`
+	// MaxScatterRangeInflight is the maxinum of inflight operators for scatter-range.
+	MaxScatterRangeInflight uint64 `json:"max-scatter-range-inflight"`
+	// MaxShuffleLeaderInflight is the maxinum of inflight operators for shuffle-leader.
+	MaxShuffleLeaderInflight uint64 `json:"max-shuffle-leader-inflight"`
+	// MaxShuffleRegionInflight is the maxinum of inflight operators for shuffle-region.
+	MaxShuffleRegionInflight uint64 `json:"max-shuffle-region-inflight"`
 	// MaxReplicas is the number of replicas for each region.
 	MaxReplicas uint64 `json:"max-replicas"`
 }
 
 func (c *NamespaceConfig) adjust(opt *scheduleOption) {
-	adjustUint64(&c.LeaderScheduleLimit, opt.GetLeaderScheduleLimit(namespace.DefaultNamespace))
-	adjustUint64(&c.RegionScheduleLimit, opt.GetRegionScheduleLimit(namespace.DefaultNamespace))
-	adjustUint64(&c.ReplicaScheduleLimit, opt.GetReplicaScheduleLimit(namespace.DefaultNamespace))
-	adjustUint64(&c.MergeScheduleLimit, opt.GetMergeScheduleLimit(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxBalanceLeaderInflight, opt.GetMaxBalanceLeaderInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxBalanceRegionInflight, opt.GetMaxBalanceRegionInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxMakeupReplicaInflight, opt.GetMaxMakeupReplicaInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxMergeRegionInflight, opt.GetMaxMergeRegionInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxEvictLeaderInflight, opt.GetMaxEvictLeaderInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxGrantLeaderInflight, opt.GetMaxGrantLeaderInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxHotLeaderInflight, opt.GetMaxHotLeaderInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxHotRegionInflight, opt.GetMaxHotRegionInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxLabelRejectLeaderInflight, opt.GetMaxLabelRejectLeaderInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxRandomMergeInflight, opt.GetMaxRandomMergeInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxScatterRangeInflight, opt.GetMaxScatterRangeInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxShuffleLeaderInflight, opt.GetMaxShuffleLeaderInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxShuffleRegionInflight, opt.GetMaxShuffleRegionInflight(namespace.DefaultNamespace))
 	adjustUint64(&c.MaxReplicas, uint64(opt.GetMaxReplicas(namespace.DefaultNamespace)))
 }
 

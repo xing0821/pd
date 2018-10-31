@@ -104,32 +104,102 @@ func (o *scheduleOption) GetMaxStoreDownTime() time.Duration {
 	return o.load().MaxStoreDownTime.Duration
 }
 
-func (o *scheduleOption) GetLeaderScheduleLimit(name string) uint64 {
+func (o *scheduleOption) GetMaxBalanceLeaderInflight(name string) uint64 {
 	if n, ok := o.ns[name]; ok {
-		return n.GetLeaderScheduleLimit()
+		return n.GetMaxBalanceLeaderInflight()
 	}
-	return o.load().LeaderScheduleLimit
+	return o.load().MaxBalanceLeaderInflight
 }
 
-func (o *scheduleOption) GetRegionScheduleLimit(name string) uint64 {
+func (o *scheduleOption) GetMaxBalanceRegionInflight(name string) uint64 {
 	if n, ok := o.ns[name]; ok {
-		return n.GetRegionScheduleLimit()
+		return n.GetMaxBalanceRegionInflight()
 	}
-	return o.load().RegionScheduleLimit
+	return o.load().MaxBalanceRegionInflight
 }
 
-func (o *scheduleOption) GetReplicaScheduleLimit(name string) uint64 {
+func (o *scheduleOption) GetMaxMakeupReplicaInflight(name string) uint64 {
 	if n, ok := o.ns[name]; ok {
-		return n.GetReplicaScheduleLimit()
+		return n.GetMaxMakeupReplicaInflight()
 	}
-	return o.load().ReplicaScheduleLimit
+	return o.load().MaxMakeupReplicaInflight
 }
 
-func (o *scheduleOption) GetMergeScheduleLimit(name string) uint64 {
+func (o *scheduleOption) GetMaxMakeNamespaceRelocationInflight(name string) uint64 {
 	if n, ok := o.ns[name]; ok {
-		return n.GetMergeScheduleLimit()
+		return n.GetMaxMakeNamespaceRelocationInflight()
 	}
-	return o.load().MergeScheduleLimit
+	return o.load().MaxMakeNamespaceRelocationInflight
+}
+
+func (o *scheduleOption) GetMaxMergeRegionInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxMergeRegionInflight()
+	}
+	return o.load().MaxMergeRegionInflight
+}
+
+func (o *scheduleOption) GetMaxEvictLeaderInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxEvictLeaderInflight()
+	}
+	return o.load().MaxEvictLeaderInflight
+}
+
+func (o *scheduleOption) GetMaxGrantLeaderInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxGrantLeaderInflight()
+	}
+	return o.load().MaxGrantLeaderInflight
+}
+
+func (o *scheduleOption) GetMaxHotLeaderInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxHotLeaderInflight()
+	}
+	return o.load().MaxHotLeaderInflight
+}
+
+func (o *scheduleOption) GetMaxHotRegionInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxHotRegionInflight()
+	}
+	return o.load().MaxHotRegionInflight
+}
+
+func (o *scheduleOption) GetMaxLabelRejectLeaderInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxLabelRejectLeaderInflight()
+	}
+	return o.load().MaxLabelRejectLeaderInflight
+}
+
+func (o *scheduleOption) GetMaxRandomMergeInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxRandomMergeInflight()
+	}
+	return o.load().MaxRandomMergeInflight
+}
+
+func (o *scheduleOption) GetMaxScatterRangeInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxScatterRangeInflight()
+	}
+	return o.load().MaxScatterRangeInflight
+}
+
+func (o *scheduleOption) GetMaxShuffleLeaderInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxShuffleLeaderInflight()
+	}
+	return o.load().MaxShuffleLeaderInflight
+}
+
+func (o *scheduleOption) GetMaxShuffleRegionInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxShuffleRegionInflight()
+	}
+	return o.load().MaxShuffleRegionInflight
 }
 
 func (o *scheduleOption) GetTolerantSizeRatio() float64 {
@@ -419,22 +489,62 @@ func (n *namespaceOption) GetMaxReplicas() int {
 	return int(n.load().MaxReplicas)
 }
 
-// GetLeaderScheduleLimit returns the limit for leader schedule.
-func (n *namespaceOption) GetLeaderScheduleLimit() uint64 {
-	return n.load().LeaderScheduleLimit
+// GetMaxBalanceLeaderInflight returns the maxinum of inflight operators for balance-leader.
+func (n *namespaceOption) GetMaxBalanceLeaderInflight() uint64 {
+	return n.load().MaxBalanceLeaderInflight
 }
 
-// GetRegionScheduleLimit returns the limit for region schedule.
-func (n *namespaceOption) GetRegionScheduleLimit() uint64 {
-	return n.load().RegionScheduleLimit
+// GetMaxBalanceRegionInflight returns the maxinum of inflight operators for balance-region.
+func (n *namespaceOption) GetMaxBalanceRegionInflight() uint64 {
+	return n.load().MaxBalanceRegionInflight
 }
 
-// GetReplicaScheduleLimit returns the limit for replica schedule.
-func (n *namespaceOption) GetReplicaScheduleLimit() uint64 {
-	return n.load().ReplicaScheduleLimit
+// GetMaxMakeupReplicaInflight returns the maxinum of inflight operators for makeup-replica.
+func (n *namespaceOption) GetMaxMakeupReplicaInflight() uint64 {
+	return n.load().MaxMakeupReplicaInflight
 }
 
-// GetMergeScheduleLimit returns the limit for merge schedule.
-func (n *namespaceOption) GetMergeScheduleLimit() uint64 {
-	return n.load().MergeScheduleLimit
+// GetMaxMergeRegionInflight returns the maxinum of inflight operators for merge-region.
+func (n *namespaceOption) GetMaxMergeRegionInflight() uint64 {
+	return n.load().MaxMergeRegionInflight
+}
+
+func (n *namespaceOption) GetMaxMakeNamespaceRelocationInflight() uint64 {
+	return n.load().MaxMakeNamespaceRelocationInflight
+}
+
+func (n *namespaceOption) GetMaxEvictLeaderInflight() uint64 {
+	return n.load().MaxEvictLeaderInflight
+}
+
+func (n *namespaceOption) GetMaxGrantLeaderInflight() uint64 {
+	return n.load().MaxGrantLeaderInflight
+}
+
+func (n *namespaceOption) GetMaxHotLeaderInflight() uint64 {
+	return n.load().MaxHotLeaderInflight
+}
+
+func (n *namespaceOption) GetMaxHotRegionInflight() uint64 {
+	return n.load().MaxHotRegionInflight
+}
+
+func (n *namespaceOption) GetMaxLabelRejectLeaderInflight() uint64 {
+	return n.load().MaxLabelRejectLeaderInflight
+}
+
+func (n *namespaceOption) GetMaxRandomMergeInflight() uint64 {
+	return n.load().MaxRandomMergeInflight
+}
+
+func (n *namespaceOption) GetMaxScatterRangeInflight() uint64 {
+	return n.load().MaxScatterRangeInflight
+}
+
+func (n *namespaceOption) GetMaxShuffleLeaderInflight() uint64 {
+	return n.load().MaxShuffleLeaderInflight
+}
+
+func (n *namespaceOption) GetMaxShuffleRegionInflight() uint64 {
+	return n.load().MaxShuffleRegionInflight
 }

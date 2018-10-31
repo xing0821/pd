@@ -328,8 +328,8 @@ func (s *testCoordinatorSuite) TestCheckRegion(c *C) {
 func (s *testCoordinatorSuite) TestReplica(c *C) {
 	// Turn off balance.
 	cfg, opt := newTestScheduleConfig()
-	cfg.LeaderScheduleLimit = 0
-	cfg.RegionScheduleLimit = 0
+	cfg.MaxBalanceLeaderInflight = 0
+	cfg.MaxBalanceRegionInflight = 0
 
 	tc := newTestClusterInfo(opt)
 	hbStreams := newHeartbeatStreams(tc.getClusterID())
@@ -491,7 +491,7 @@ func (s *testCoordinatorSuite) TestShouldRun(c *C) {
 
 func (s *testCoordinatorSuite) TestAddScheduler(c *C) {
 	cfg, opt := newTestScheduleConfig()
-	cfg.ReplicaScheduleLimit = 0
+	cfg.MaxMakeupReplicaInflight = 0
 
 	tc := newTestClusterInfo(opt)
 	hbStreams := newHeartbeatStreams(tc.getClusterID())
@@ -549,7 +549,7 @@ func (s *testCoordinatorSuite) TestAddScheduler(c *C) {
 
 func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	cfg, opt := newTestScheduleConfig()
-	cfg.ReplicaScheduleLimit = 0
+	cfg.MaxMakeupReplicaInflight = 0
 
 	tc := newTestClusterInfo(opt)
 	hbStreams := newHeartbeatStreams(tc.getClusterID())
@@ -638,8 +638,8 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 func (s *testCoordinatorSuite) TestRestart(c *C) {
 	// Turn off balance, we test add replica only.
 	cfg, opt := newTestScheduleConfig()
-	cfg.LeaderScheduleLimit = 0
-	cfg.RegionScheduleLimit = 0
+	cfg.MaxBalanceLeaderInflight = 0
+	cfg.MaxBalanceRegionInflight = 0
 
 	tc := newTestClusterInfo(opt)
 	hbStreams := newHeartbeatStreams(tc.getClusterID())
