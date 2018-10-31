@@ -67,7 +67,7 @@ func (l *balanceLeaderScheduler) GetType() string {
 }
 
 func (l *balanceLeaderScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return l.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
+	return l.opController.OperatorInflight("balance-leader") < cluster.GetMaxBalanceLeaderInflight()
 }
 
 func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

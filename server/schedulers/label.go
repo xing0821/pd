@@ -51,7 +51,7 @@ func (s *labelScheduler) GetType() string {
 }
 
 func (s *labelScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
+	return s.opController.OperatorInflight("label-reject-leader") < cluster.GetMaxLabelRejectLeaderInflight()
 }
 
 func (s *labelScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

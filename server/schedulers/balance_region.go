@@ -68,7 +68,7 @@ func (s *balanceRegionScheduler) GetType() string {
 }
 
 func (s *balanceRegionScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.opController.OperatorCount(schedule.OpRegion) < cluster.GetRegionScheduleLimit()
+	return s.opController.OperatorInflight("balance-region") < cluster.GetMaxBalanceRegionInflight()
 }
 
 func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

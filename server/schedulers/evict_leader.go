@@ -72,7 +72,7 @@ func (s *evictLeaderScheduler) Cleanup(cluster schedule.Cluster) {
 }
 
 func (s *evictLeaderScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
+	return s.opController.OperatorInflight("evict-leader") < cluster.GetMaxEvictLeaderInflight()
 }
 
 func (s *evictLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

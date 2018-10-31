@@ -51,7 +51,7 @@ func (s *randomMergeScheduler) GetType() string {
 }
 
 func (s *randomMergeScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.opController.OperatorCount(schedule.OpMerge) < cluster.GetMergeScheduleLimit()
+	return s.opController.OperatorInflight("random-merge") < cluster.GetMaxRandomMergeInflight()
 }
 
 func (s *randomMergeScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

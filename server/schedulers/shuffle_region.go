@@ -52,7 +52,7 @@ func (s *shuffleRegionScheduler) GetType() string {
 }
 
 func (s *shuffleRegionScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.opController.OperatorCount(schedule.OpRegion) < cluster.GetRegionScheduleLimit()
+	return s.opController.OperatorInflight("shuffle-region") < cluster.GetMaxShuffleRegionInflight()
 }
 
 func (s *shuffleRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

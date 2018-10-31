@@ -70,7 +70,7 @@ func (l *scatterRangeScheduler) GetType() string {
 }
 
 func (l *scatterRangeScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return l.opController.OperatorCount(schedule.OpRange) < cluster.GetRegionScheduleLimit()
+	return l.opController.OperatorInflight(fmt.Sprintf("scatter-range-%s", l.rangeName)) < cluster.GetMaxScatterRangeInflight()
 }
 
 func (l *scatterRangeScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {

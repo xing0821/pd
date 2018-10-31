@@ -651,20 +651,60 @@ func (c *clusterInfo) GetOpt() schedule.NamespaceOptions {
 	return c.opt
 }
 
-func (c *clusterInfo) GetLeaderScheduleLimit() uint64 {
-	return c.opt.GetLeaderScheduleLimit(namespace.DefaultNamespace)
+func (c *clusterInfo) GetMaxBalanceLeaderInflight() uint64 {
+	return c.opt.GetMaxBalanceLeaderInflight(namespace.DefaultNamespace)
 }
 
-func (c *clusterInfo) GetRegionScheduleLimit() uint64 {
-	return c.opt.GetRegionScheduleLimit(namespace.DefaultNamespace)
+func (c *clusterInfo) GetMaxBalanceRegionInflight() uint64 {
+	return c.opt.GetMaxBalanceRegionInflight(namespace.DefaultNamespace)
 }
 
-func (c *clusterInfo) GetReplicaScheduleLimit() uint64 {
-	return c.opt.GetReplicaScheduleLimit(namespace.DefaultNamespace)
+func (c *clusterInfo) GetMaxMergeRegionInflight() uint64 {
+	return c.opt.GetMaxMergeRegionInflight(namespace.DefaultNamespace)
 }
 
-func (c *clusterInfo) GetMergeScheduleLimit() uint64 {
-	return c.opt.GetMergeScheduleLimit(namespace.DefaultNamespace)
+func (c *clusterInfo) GetMaxMakeNamespaceRelocationInflight() uint64 {
+	return c.opt.GetMaxMakeNamespaceRelocationInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxMakeupReplicaInflight() uint64 {
+	return c.opt.GetMaxMakeupReplicaInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxEvictLeaderInflight() uint64 {
+	return c.opt.GetMaxEvictLeaderInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxGrantLeaderInflight() uint64 {
+	return c.opt.GetMaxGrantLeaderInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxHotLeaderInflight() uint64 {
+	return c.opt.GetMaxHotLeaderInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxHotRegionInflight() uint64 {
+	return c.opt.GetMaxHotRegionInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxLabelRejectLeaderInflight() uint64 {
+	return c.opt.GetMaxLabelRejectLeaderInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxRandomMergeInflight() uint64 {
+	return c.opt.GetMaxRandomMergeInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxScatterRangeInflight() uint64 {
+	return c.opt.GetMaxScatterRangeInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxShuffleLeaderInflight() uint64 {
+	return c.opt.GetMaxShuffleLeaderInflight(namespace.DefaultNamespace)
+}
+
+func (c *clusterInfo) GetMaxShuffleRegionInflight() uint64 {
+	return c.opt.GetMaxShuffleRegionInflight(namespace.DefaultNamespace)
 }
 
 func (c *clusterInfo) GetHotRegionScheduleLimit() uint64 {

@@ -52,8 +52,8 @@ func (s *testConfigSuite) TestConfigAll(c *C) {
 	err = postJSON(addr, postData)
 	c.Assert(err, IsNil)
 	l := map[string]interface{}{
-		"location-labels":       "zone,rack",
-		"region-schedule-limit": 10,
+		"location-labels":             "zone,rack",
+		"max-balance-region-inflight": 10,
 	}
 	postData, err = json.Marshal(l)
 	c.Assert(err, IsNil)
@@ -67,7 +67,7 @@ func (s *testConfigSuite) TestConfigAll(c *C) {
 	c.Assert(err, IsNil)
 	cfg.Replication.MaxReplicas = 5
 	cfg.Replication.LocationLabels = []string{"zone", "rack"}
-	cfg.Schedule.RegionScheduleLimit = 10
+	cfg.Schedule.MaxBalanceRegionInflight = 10
 	c.Assert(cfg, DeepEquals, newCfg)
 }
 

@@ -45,7 +45,7 @@ type OperatorController struct {
 	hbStreams        HeartbeatStreams
 	histories        *list.List
 	counts           map[OperatorKind]uint64
-	opCountScheduler map[string]uint64
+	opInflight       map[string]uint64
 }
 
 // NewOperatorController creates a OperatorController.
@@ -57,7 +57,7 @@ func NewOperatorController(cluster Cluster, hbStreams HeartbeatStreams) *Operato
 		hbStreams:        hbStreams,
 		histories:        list.New(),
 		counts:           make(map[OperatorKind]uint64),
-		opCountScheduler: make(map[string]uint64),
+		opInflight:       make(map[string]uint64),
 	}
 }
 
@@ -155,6 +155,7 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 	log.Info("add operator", zap.Uint64("region-id", regionID), zap.Reflect("operator", op))
 	if len(oc.waitingOperators) == 0 && len(oc.runningOperators) <= maxRunningOperators {
 		oc.runningOperators[regionID] = op
+		oc.opInflight[op.Desc()]++
 		oc.updateCounts(oc.runningOperators)
 		operatorCounter.WithLabelValues(op.Desc(), "create").Inc()
 		if region := oc.cluster.GetRegion(op.RegionID()); region != nil {
@@ -188,6 +189,7 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 		oc.updateCounts(oc.waitingOperators)
 	} else {
 		oc.waitingOperators[regionID] = op
+		oc.opInflight[op.Desc()]++
 		oc.updateCounts(oc.waitingOperators)
 		operatorCounter.WithLabelValues(op.Desc(), "create").Inc()
 	}
@@ -204,6 +206,7 @@ func (oc *OperatorController) RemoveRunningOperator(op *Operator) {
 func (oc *OperatorController) removeRunningOperatorLocked(op *Operator) {
 	regionID := op.RegionID()
 	delete(oc.runningOperators, regionID)
+	oc.opInflight[op.Desc()]--
 	oc.updateCounts(oc.runningOperators)
 	operatorCounter.WithLabelValues(op.Desc(), "remove_running").Inc()
 }
@@ -218,6 +221,7 @@ func (oc *OperatorController) RemoveWaitingOperator(op *Operator) {
 func (oc *OperatorController) removeWaitingOperatorLocked(op *Operator) {
 	regionID := op.RegionID()
 	delete(oc.waitingOperators, regionID)
+	oc.opInflight[op.Desc()]--
 	oc.updateCounts(oc.waitingOperators)
 	operatorCounter.WithLabelValues(op.Desc(), "remove_waiting").Inc()
 }
@@ -266,6 +270,38 @@ func (oc *OperatorController) promoteOperator(op *Operator) {
 	oc.Lock()
 	defer oc.Unlock()
 	regionID := op.RegionID()
+	if op.Desc() == "merge-region" {
+		for _, step := range op.steps {
+			switch st := step.(type) {
+			case MergeRegion:
+				if st.IsPassive {
+					op1, ok := oc.waitingOperators[st.FromRegion.GetId()]
+					if !ok {
+						return
+					}
+					if op1.Desc() == "merge-region" {
+						if _, ok := oc.runningOperators[st.FromRegion.GetId()]; ok {
+							return
+						}
+						oc.runningOperators[st.FromRegion.GetId()] = op1
+						oc.removeWaitingOperatorLocked(op1)
+					}
+				} else {
+					op1, ok := oc.waitingOperators[st.ToRegion.GetId()]
+					if !ok {
+						return
+					}
+					if op1.Desc() == "merge-region" {
+						if _, ok := oc.runningOperators[st.ToRegion.GetId()]; ok {
+							return
+						}
+						oc.runningOperators[st.ToRegion.GetId()] = op1
+						oc.removeWaitingOperatorLocked(op1)
+					}
+				}
+			}
+		}
+	}
 	oc.runningOperators[regionID] = op
 	oc.updateCounts(oc.runningOperators)
 	operatorCounter.WithLabelValues(op.Desc(), "promote").Inc()
@@ -497,4 +533,11 @@ func (oc *OperatorController) SetOperator(op *Operator) {
 	oc.Lock()
 	defer oc.Unlock()
 	oc.operators[op.RegionID()] = op
+}
+
+// OperatorInflight gets the count of operators for a given scheduler or checker.
+func (oc *OperatorController) OperatorInflight(name string) uint64 {
+	oc.RLock()
+	defer oc.RUnlock()
+	return oc.opInflight[name]
 }

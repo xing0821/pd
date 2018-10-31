@@ -63,10 +63,11 @@ split-merge-interval = "1h"
 max-snapshot-count = 3
 max-pending-peer-count = 16
 max-store-down-time = "30m"
-leader-schedule-limit = 4
-region-schedule-limit = 4
-replica-schedule-limit = 8
-merge-schedule-limit = 8
+max-balance-leader-inflight = 4
+max-balance-region-inflight = 4
+max-makeup-replica-inflight = 8
+max-merge-region-inflight = 8
+max-default-schedule-inflight = 8
 tolerant-size-ratio = 5.0
 
 # customized schedulers, the format is as below
