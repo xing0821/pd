@@ -53,7 +53,7 @@ func newAddNodesDynamic() *Case {
 	}
 
 	numNodes := 8
-	e := &AddNodesInner{}
+	e := &AddNodesDescriptor{}
 	e.Step = func(tick int64) uint64 {
 		if tick%100 == 0 && numNodes < 16 {
 			numNodes++
@@ -63,7 +63,7 @@ func newAddNodesDynamic() *Case {
 		}
 		return 0
 	}
-	simCase.Events = []EventInner{e}
+	simCase.Events = []EventDescriptor{e}
 
 	simCase.Checker = func(regions *core.RegionsInfo) bool {
 		res := true

@@ -45,13 +45,13 @@ func newRegionSplit() *Case {
 	simCase.RegionSplitSize = 128 * MB
 	simCase.RegionSplitKeys = 10000
 	// Events description
-	e := &WriteFlowOnSpotInner{}
+	e := &WriteFlowOnSpotDescriptor{}
 	e.Step = func(tick int64) map[string]int64 {
 		return map[string]int64{
 			"foobar": 8 * MB,
 		}
 	}
-	simCase.Events = []EventInner{e}
+	simCase.Events = []EventDescriptor{e}
 
 	// Checker description
 	simCase.Checker = func(regions *core.RegionsInfo) bool {

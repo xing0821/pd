@@ -55,7 +55,7 @@ func newDeleteNodes() *Case {
 	}
 
 	numNodes := 8
-	e := &DeleteNodesInner{}
+	e := &DeleteNodesDescriptor{}
 	e.Step = func(tick int64) uint64 {
 		if numNodes > 7 && tick%100 == 0 {
 			idx := rand.Intn(numNodes)
@@ -66,7 +66,7 @@ func newDeleteNodes() *Case {
 		}
 		return 0
 	}
-	simCase.Events = []EventInner{e}
+	simCase.Events = []EventDescriptor{e}
 
 	simCase.Checker = func(regions *core.RegionsInfo) bool {
 		res := true

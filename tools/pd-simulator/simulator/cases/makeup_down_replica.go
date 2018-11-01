@@ -49,7 +49,7 @@ func newMakeupDownReplicas() *Case {
 
 	numNodes := 4
 	down := false
-	e := &DeleteNodesInner{}
+	e := &DeleteNodesDescriptor{}
 	e.Step = func(tick int64) uint64 {
 		if numNodes > 3 && tick%100 == 0 {
 			numNodes--
@@ -60,7 +60,7 @@ func newMakeupDownReplicas() *Case {
 		}
 		return 0
 	}
-	simCase.Events = []EventInner{e}
+	simCase.Events = []EventDescriptor{e}
 
 	simCase.Checker = func(regions *core.RegionsInfo) bool {
 		sum := 0

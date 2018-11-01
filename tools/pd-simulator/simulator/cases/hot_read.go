@@ -62,11 +62,11 @@ func newHotRead() *Case {
 			}
 		}
 	}
-	e := &ReadFlowOnRegionInner{}
+	e := &ReadFlowOnRegionDescriptor{}
 	e.Step = func(tick int64) map[uint64]int64 {
 		return readFlow
 	}
-	simCase.Events = []EventInner{e}
+	simCase.Events = []EventDescriptor{e}
 	// Checker description
 	simCase.Checker = func(regions *core.RegionsInfo) bool {
 		var leaderCount [5]int

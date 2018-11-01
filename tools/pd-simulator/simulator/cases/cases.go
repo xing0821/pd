@@ -48,7 +48,7 @@ type Case struct {
 	Regions         []Region
 	RegionSplitSize int64
 	RegionSplitKeys int64
-	Events          []EventInner
+	Events          []EventDescriptor
 
 	Checker CheckerFunc // To check the schedule is finished.
 }

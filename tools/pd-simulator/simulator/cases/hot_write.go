@@ -62,12 +62,12 @@ func newHotWrite() *Case {
 			}
 		}
 	}
-	e := &WriteFlowOnRegionInner{}
+	e := &WriteFlowOnRegionDescriptor{}
 	e.Step = func(tick int64) map[uint64]int64 {
 		return writeFlow
 	}
 
-	simCase.Events = []EventInner{e}
+	simCase.Events = []EventDescriptor{e}
 
 	// Checker description
 	simCase.Checker = func(regions *core.RegionsInfo) bool {
