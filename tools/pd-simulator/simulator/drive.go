@@ -75,18 +75,6 @@ func (d *Driver) Prepare() error {
 		simutil.Logger.Debug("Bootstrap success")
 	}
 
-	// Setup alloc id.
-	for {
-		var id uint64
-		id, err = d.client.AllocID(context.Background())
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if id > d.simCase.MaxID {
-			break
-		}
-	}
-
 	err = d.Start()
 	if err != nil {
 		return err

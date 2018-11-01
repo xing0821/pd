@@ -46,7 +46,6 @@ func newAddNodes() *Case {
 			Keys:   960000,
 		})
 	}
-	simCase.MaxID = id.maxID
 
 	simCase.Checker = func(regions *core.RegionsInfo) bool {
 		res := true

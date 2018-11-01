@@ -46,7 +46,6 @@ func newMakeupDownReplicas() *Case {
 			Keys:   960000,
 		})
 	}
-	simCase.MaxID = id.maxID
 
 	numNodes := 4
 	down := false

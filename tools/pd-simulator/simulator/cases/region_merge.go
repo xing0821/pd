@@ -50,7 +50,6 @@ func newRegionMerge() *Case {
 			Keys:   100000,
 		})
 	}
-	simCase.MaxID = id.maxID
 
 	// Checker description
 	simCase.Checker = func(regions *core.RegionsInfo) bool {

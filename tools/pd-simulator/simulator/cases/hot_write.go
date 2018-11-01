@@ -50,7 +50,6 @@ func newHotWrite() *Case {
 			Keys:   960000,
 		})
 	}
-	simCase.MaxID = id.maxID
 
 	// Events description
 	// select 5 regions on store 1 as hot write regions.

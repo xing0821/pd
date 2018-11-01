@@ -47,7 +47,7 @@ func newBalanceLeader() *Case {
 			Keys:   960000,
 		})
 	}
-	simCase.MaxID = id.maxID
+
 	simCase.Checker = func(regions *core.RegionsInfo) bool {
 		count1 := regions.GetStoreLeaderCount(1)
 		count2 := regions.GetStoreLeaderCount(2)

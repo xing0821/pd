@@ -41,7 +41,7 @@ func newRegionSplit() *Case {
 		Size:   1 * MB,
 		Keys:   10000,
 	})
-	simCase.MaxID = 5
+
 	simCase.RegionSplitSize = 128 * MB
 	simCase.RegionSplitKeys = 10000
 	// Events description

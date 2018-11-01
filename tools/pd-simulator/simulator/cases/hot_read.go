@@ -50,7 +50,6 @@ func newHotRead() *Case {
 			Keys:   960000,
 		})
 	}
-	simCase.MaxID = id.maxID
 
 	// Events description
 	// select 20 regions on store 1 as hot read regions.

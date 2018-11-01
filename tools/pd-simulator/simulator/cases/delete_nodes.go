@@ -48,7 +48,6 @@ func newDeleteNodes() *Case {
 			Keys:   960000,
 		})
 	}
-	simCase.MaxID = id.maxID
 
 	var ids []uint64
 	for _, store := range simCase.Stores {

@@ -51,7 +51,6 @@ func newAddNodesDynamic() *Case {
 			Keys:   960000,
 		})
 	}
-	simCase.MaxID = id.maxID
 
 	numNodes := 8
 	e := &AddNodesInner{}

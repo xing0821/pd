@@ -46,7 +46,6 @@ type CheckerFunc func(*core.RegionsInfo) bool
 type Case struct {
 	Stores          []*Store
 	Regions         []Region
-	MaxID           uint64
 	RegionSplitSize int64
 	RegionSplitKeys int64
 	Events          []EventInner
