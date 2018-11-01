@@ -20,11 +20,10 @@ import (
 
 func newMakeupDownReplicas() *Case {
 	var simCase Case
-	var id idAllocator
 
 	for i := 1; i <= 4; i++ {
 		simCase.Stores = append(simCase.Stores, &Store{
-			ID:        id.nextID(),
+			ID:        IDAllocator.nextID(),
 			Status:    metapb.StoreState_Up,
 			Capacity:  1 * TB,
 			Available: 900 * GB,
@@ -34,12 +33,12 @@ func newMakeupDownReplicas() *Case {
 
 	for i := 0; i < 400; i++ {
 		peers := []*metapb.Peer{
-			{Id: id.nextID(), StoreId: uint64(i)%4 + 1},
-			{Id: id.nextID(), StoreId: uint64(i+1)%4 + 1},
-			{Id: id.nextID(), StoreId: uint64(i+2)%4 + 1},
+			{Id: IDAllocator.nextID(), StoreId: uint64(i)%4 + 1},
+			{Id: IDAllocator.nextID(), StoreId: uint64(i+1)%4 + 1},
+			{Id: IDAllocator.nextID(), StoreId: uint64(i+2)%4 + 1},
 		}
 		simCase.Regions = append(simCase.Regions, Region{
-			ID:     id.nextID(),
+			ID:     IDAllocator.nextID(),
 			Peers:  peers,
 			Leader: peers[0],
 			Size:   96 * MB,
