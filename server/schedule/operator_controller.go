@@ -204,10 +204,12 @@ func (oc *OperatorController) RemoveRunningOperator(op *Operator) {
 
 func (oc *OperatorController) removeRunningOperatorLocked(op *Operator) {
 	regionID := op.RegionID()
-	delete(oc.runningOperators, regionID)
-	oc.opInflight[op.Desc()]--
-	oc.updateCounts(oc.runningOperators)
-	operatorCounter.WithLabelValues(op.Desc(), "remove_running").Inc()
+	if _, ok := oc.runningOperators[regionID]; ok {
+		delete(oc.runningOperators, regionID)
+		oc.opInflight[op.Desc()]--
+		oc.updateCounts(oc.runningOperators)
+		operatorCounter.WithLabelValues(op.Desc(), "remove_running").Inc()
+	}
 }
 
 // RemoveWaitingOperator removes an operator from waiting operators.
@@ -219,10 +221,12 @@ func (oc *OperatorController) RemoveWaitingOperator(op *Operator) {
 
 func (oc *OperatorController) removeWaitingOperatorLocked(op *Operator) {
 	regionID := op.RegionID()
-	delete(oc.waitingOperators, regionID)
-	oc.opInflight[op.Desc()]--
-	oc.updateCounts(oc.waitingOperators)
-	operatorCounter.WithLabelValues(op.Desc(), "remove_waiting").Inc()
+	if _, ok := oc.waitingOperators[regionID]; ok {
+		delete(oc.waitingOperators, regionID)
+		oc.opInflight[op.Desc()]--
+		oc.updateCounts(oc.waitingOperators)
+		operatorCounter.WithLabelValues(op.Desc(), "remove_waiting").Inc()
+	}
 }
 
 // GetRunningOperator gets an operator from the given region in running operators.
@@ -283,6 +287,7 @@ func (oc *OperatorController) promoteOperator(op *Operator) {
 							return
 						}
 						oc.runningOperators[st.FromRegion.GetId()] = op1
+						oc.opInflight[op1.Desc()]++
 						oc.removeWaitingOperatorLocked(op1)
 					}
 				} else {
@@ -295,16 +300,18 @@ func (oc *OperatorController) promoteOperator(op *Operator) {
 							return
 						}
 						oc.runningOperators[st.ToRegion.GetId()] = op1
+						oc.opInflight[op1.Desc()]++
 						oc.removeWaitingOperatorLocked(op1)
 					}
 				}
 			}
 		}
 	}
+	oc.opInflight[op.Desc()]++
 	oc.runningOperators[regionID] = op
+	oc.removeWaitingOperatorLocked(op)
 	oc.updateCounts(oc.runningOperators)
 	operatorCounter.WithLabelValues(op.Desc(), "promote").Inc()
-	oc.removeWaitingOperatorLocked(op)
 }
 
 // SendScheduleCommand sends a command to the region.
