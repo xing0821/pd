@@ -361,7 +361,7 @@ func (h *Handler) AddTransferLeaderOperator(regionID uint64, storeID uint64) err
 	}
 
 	step := schedule.TransferLeader{FromStore: region.GetLeader().GetStoreId(), ToStore: newLeader.GetStoreId()}
-	op := schedule.NewOperator("adminTransferLeader", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpLeader, step)
+	op := schedule.NewOperator("admin-transfer-leader", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpLeader, step)
 	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
@@ -416,7 +416,7 @@ func (h *Handler) AddTransferRegionOperator(regionID uint64, storeIDs map[uint64
 		steps = append(steps, schedule.RemovePeer{FromStore: peer.GetStoreId()})
 	}
 
-	op := schedule.NewOperator("adminMoveRegion", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpRegion, steps...)
+	op := schedule.NewOperator("admin-move-region", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpRegion, steps...)
 	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
@@ -510,7 +510,7 @@ func (h *Handler) AddAddPeerOperator(regionID uint64, toStoreID uint64) error {
 			schedule.AddPeer{ToStore: toStoreID, PeerID: newPeer.GetId()},
 		}
 	}
-	op := schedule.NewOperator("adminAddPeer", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpRegion, steps...)
+	op := schedule.NewOperator("admin-add-peer", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpRegion, steps...)
 	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
@@ -626,7 +626,7 @@ func (h *Handler) AddSplitRegionOperator(regionID uint64, policy string) error {
 		EndKey:   region.GetEndKey(),
 		Policy:   pdpb.CheckPolicy(pdpb.CheckPolicy_value[strings.ToUpper(policy)]),
 	}
-	op := schedule.NewOperator("adminSplitRegion", regionID, region.GetRegionEpoch(), schedule.OpAdmin, step)
+	op := schedule.NewOperator("admin-split-region", regionID, region.GetRegionEpoch(), schedule.OpAdmin, step)
 	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}

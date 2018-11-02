@@ -49,7 +49,7 @@ func (s *shuffleLeaderScheduler) GetType() string {
 }
 
 func (s *shuffleLeaderScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.opController.OperatorInflight("shuffleLeader") < cluster.GetMaxShuffleLeaderInflight()
+	return s.opController.OperatorInflight("shuffle-leader") < cluster.GetMaxShuffleLeaderInflight()
 }
 
 func (s *shuffleLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
@@ -69,8 +69,8 @@ func (s *shuffleLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 		return nil
 	}
 	schedulerCounter.WithLabelValues(s.GetName(), "new_operator").Inc()
-	step := schedule.TransferLeader{FromStore: region.GetLeader().GetStoreId(), ToStore: targetStore.GetID()}
-	op := schedule.NewOperator("shuffleLeader", region.GetID(), region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpLeader, step)
+	step := schedule.TransferLeader{FromStore: region.GetLeader().GetStoreId(), ToStore: targetStore.GetId()}
+	op := schedule.NewOperator("shuffle-leader", region.GetID(), region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpLeader, step)
 	op.SetPriorityLevel(core.HighPriority)
 	return []*schedule.Operator{op}
 }
