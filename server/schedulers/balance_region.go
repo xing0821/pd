@@ -35,24 +35,31 @@ const balanceRegionRetryLimit = 10
 
 type balanceRegionScheduler struct {
 	*baseScheduler
-	selector    *schedule.BalanceSelector
-	taintStores *cache.TTLUint64
+	selector     *schedule.BalanceSelector
+	taintStores  *cache.TTLUint64
+	opController *schedule.OperatorController
+	rangeName    string
 }
 
 // newBalanceRegionScheduler creates a scheduler that tends to keep regions on
 // each store balanced.
-func newBalanceRegionScheduler(opController *schedule.OperatorController) schedule.Scheduler {
+func newBalanceRegionScheduler(opController *schedule.OperatorController, rangeName ...string) schedule.Scheduler {
 	taintStores := newTaintCache()
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{MoveRegion: true},
 		schedule.NewCacheFilter(taintStores),
 	}
 	base := newBaseScheduler(opController)
-	return &balanceRegionScheduler{
+	s := &balanceRegionScheduler{
 		baseScheduler: base,
 		selector:      schedule.NewBalanceSelector(core.RegionKind, filters),
 		taintStores:   taintStores,
+		opController:  opController,
 	}
+	if len(rangeName) != 0 {
+		s.rangeName = rangeName[0]
+	}
+	return s
 }
 
 func (s *balanceRegionScheduler) GetName() string {
@@ -67,7 +74,7 @@ func (s *balanceRegionScheduler) IsScheduleAllowed(cluster schedule.Cluster) boo
 	return s.opController.OperatorCount(schedule.OpRegion) < cluster.GetRegionScheduleLimit()
 }
 
-func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
+func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
 	schedulerCounter.WithLabelValues(s.GetName(), "schedule").Inc()
 
 	stores := cluster.GetStores()
@@ -85,6 +92,13 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster, opInfluence 
 	log.Debugf("[%s] store%d has the max region score", s.GetName(), source.GetId())
 	sourceLabel := strconv.FormatUint(source.GetId(), 10)
 	balanceRegionCounter.WithLabelValues("source_store", sourceLabel).Inc()
+
+	var opInfluence schedule.OpInfluence
+	if s.rangeName != "" {
+		opInfluence = s.opController.GetOpInfluence(schedule.RangeFilter(s.opController, s.rangeName))
+	} else {
+		opInfluence = s.opController.GetOpInfluence()
+	}
 
 	var hasPotentialTarget bool
 	for i := 0; i < balanceRegionRetryLimit; i++ {

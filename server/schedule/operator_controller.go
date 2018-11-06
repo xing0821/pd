@@ -15,6 +15,7 @@ package schedule
 
 import (
 	"container/list"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,11 +36,12 @@ type HeartbeatStreams interface {
 // OperatorController is used to limit the speed of scheduling.
 type OperatorController struct {
 	sync.RWMutex
-	cluster   Cluster
-	operators map[uint64]*Operator
-	hbStreams HeartbeatStreams
-	histories *list.List
-	counts    map[OperatorKind]uint64
+	cluster     Cluster
+	operators   map[uint64]*Operator
+	hbStreams   HeartbeatStreams
+	histories   *list.List
+	counts      map[OperatorKind]uint64
+	opInfluence OpInfluence
 }
 
 // NewOperatorController creates a OperatorController.
@@ -315,4 +317,101 @@ func (oc *OperatorController) OperatorCount(mask OperatorKind) uint64 {
 		}
 	}
 	return total
+}
+
+// OpInfluenceFilterOption used to filter opInfluence.
+type OpInfluenceFilterOption func(opInfluence OpInfluence)
+
+// GetOpInfluence gets OpInfluence.
+func (oc *OperatorController) GetOpInfluence(opts ...OpInfluenceFilterOption) OpInfluence {
+	oc.RLock()
+	defer oc.RUnlock()
+	opInfluence := oc.opInfluence
+
+	for _, opt := range opts {
+		opt(opInfluence)
+	}
+	return opInfluence
+}
+
+// SetOpInfluence sets OpInfluence.
+func (oc *OperatorController) SetOpInfluence(operators []*Operator, cluster Cluster) {
+	oc.Lock()
+	defer oc.Unlock()
+	oc.opInfluence = NewOpInfluence(operators, cluster)
+}
+
+// RangeFilter filters the operators according to rangeName.
+func RangeFilter(oc *OperatorController, rangeName string) OpInfluenceFilterOption {
+	return func(opInfluence OpInfluence) {
+		var res []*Operator
+		ops := opInfluence.GetRegionsInfluence()
+		for _, op := range ops {
+			if strings.HasSuffix(op.Desc(), rangeName) {
+				res = append(res, op)
+			}
+		}
+		opInfluence = NewOpInfluence(res, oc.cluster)
+	}
+}
+
+// NewOpInfluence creates a OpInfluence.
+func NewOpInfluence(operators []*Operator, cluster Cluster) OpInfluence {
+	influence := OpInfluence{
+		storesInfluence:  make(map[uint64]*StoreInfluence),
+		regionsInfluence: make(map[uint64]*Operator),
+	}
+
+	for _, op := range operators {
+		if !op.IsTimeout() && !op.IsFinish() {
+			region := cluster.GetRegion(op.RegionID())
+			if region != nil {
+				op.Influence(influence, region)
+			}
+		}
+		influence.regionsInfluence[op.RegionID()] = op
+	}
+
+	return influence
+}
+
+// OpInfluence records the influence of the cluster.
+type OpInfluence struct {
+	storesInfluence  map[uint64]*StoreInfluence
+	regionsInfluence map[uint64]*Operator
+}
+
+// GetStoreInfluence get storeInfluence of specific store.
+func (m OpInfluence) GetStoreInfluence(id uint64) *StoreInfluence {
+	storeInfluence, ok := m.storesInfluence[id]
+	if !ok {
+		storeInfluence = &StoreInfluence{}
+		m.storesInfluence[id] = storeInfluence
+	}
+	return storeInfluence
+}
+
+// GetRegionsInfluence gets regionInfluence of specific region.
+func (m OpInfluence) GetRegionsInfluence() map[uint64]*Operator {
+	return m.regionsInfluence
+}
+
+// StoreInfluence records influences that pending operators will make.
+type StoreInfluence struct {
+	RegionSize  int64
+	RegionCount int64
+	LeaderSize  int64
+	LeaderCount int64
+}
+
+// ResourceSize returns delta size of leader/region by influence.
+func (s StoreInfluence) ResourceSize(kind core.ResourceKind) int64 {
+	switch kind {
+	case core.LeaderKind:
+		return s.LeaderSize
+	case core.RegionKind:
+		return s.RegionSize
+	default:
+		return 0
+	}
 }

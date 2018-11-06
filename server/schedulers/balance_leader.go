@@ -34,24 +34,31 @@ const balanceLeaderRetryLimit = 10
 
 type balanceLeaderScheduler struct {
 	*baseScheduler
-	selector    *schedule.BalanceSelector
-	taintStores *cache.TTLUint64
+	selector     *schedule.BalanceSelector
+	taintStores  *cache.TTLUint64
+	opController *schedule.OperatorController
+	rangeName    string
 }
 
 // newBalanceLeaderScheduler creates a scheduler that tends to keep leaders on
 // each store balanced.
-func newBalanceLeaderScheduler(opController *schedule.OperatorController) schedule.Scheduler {
+func newBalanceLeaderScheduler(opController *schedule.OperatorController, rangeName ...string) schedule.Scheduler {
 	taintStores := newTaintCache()
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{TransferLeader: true},
 		schedule.NewCacheFilter(taintStores),
 	}
 	base := newBaseScheduler(opController)
-	return &balanceLeaderScheduler{
+	s := &balanceLeaderScheduler{
 		baseScheduler: base,
 		selector:      schedule.NewBalanceSelector(core.LeaderKind, filters),
 		taintStores:   taintStores,
+		opController:  opController,
 	}
+	if len(rangeName) != 0 {
+		s.rangeName = rangeName[0]
+	}
+	return s
 }
 
 func (l *balanceLeaderScheduler) GetName() string {
@@ -66,7 +73,7 @@ func (l *balanceLeaderScheduler) IsScheduleAllowed(cluster schedule.Cluster) boo
 	return l.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
 }
 
-func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
+func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
 	schedulerCounter.WithLabelValues(l.GetName(), "schedule").Inc()
 
 	stores := cluster.GetStores()
@@ -92,6 +99,13 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster, opInfluence 
 	targetStoreLabel := strconv.FormatUint(target.GetId(), 10)
 	balanceLeaderCounter.WithLabelValues("high_score", sourceStoreLabel).Inc()
 	balanceLeaderCounter.WithLabelValues("low_score", targetStoreLabel).Inc()
+
+	var opInfluence schedule.OpInfluence
+	if l.rangeName != "" {
+		opInfluence = l.opController.GetOpInfluence(schedule.RangeFilter(l.opController, l.rangeName))
+	} else {
+		opInfluence = l.opController.GetOpInfluence()
+	}
 
 	for i := 0; i < balanceLeaderRetryLimit; i++ {
 		if op := l.transferLeaderOut(source, cluster, opInfluence); op != nil {
