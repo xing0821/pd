@@ -17,8 +17,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/pingcap/pd/pkg/tempurl"
+	"github.com/pingcap/pd/pkg/typeutil"
 	"github.com/pingcap/pd/server"
 )
 
@@ -61,6 +63,9 @@ func (c *serverConfig) Generate(opts ...ConfigOption) (*server.Config, error) {
 	}
 
 	cfg := server.NewConfig()
+	cfg.ElectionInterval = typeutil.NewDuration(1 * time.Second)
+	cfg.TickInterval = typeutil.NewDuration(100 * time.Millisecond)
+	cfg.LeaderLease = int64(1)
 	err := cfg.Parse(arguments)
 	if err != nil {
 		return nil, err
