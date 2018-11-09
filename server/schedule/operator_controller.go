@@ -36,12 +36,11 @@ type HeartbeatStreams interface {
 // OperatorController is used to limit the speed of scheduling.
 type OperatorController struct {
 	sync.RWMutex
-	cluster     Cluster
-	operators   map[uint64]*Operator
-	hbStreams   HeartbeatStreams
-	histories   *list.List
-	counts      map[OperatorKind]uint64
-	opInfluence OpInfluence
+	cluster   Cluster
+	operators map[uint64]*Operator
+	hbStreams HeartbeatStreams
+	histories *list.List
+	counts    map[OperatorKind]uint64
 }
 
 // NewOperatorController creates a OperatorController.
