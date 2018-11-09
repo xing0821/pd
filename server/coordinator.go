@@ -397,7 +397,6 @@ func (c *coordinator) runScheduler(s *scheduleController) {
 			if !s.AllowSchedule() {
 				continue
 			}
-			c.opController.SetOpInfluence(c.opController.GetOperators(), c.cluster)
 			if op := s.Schedule(); op != nil {
 				c.opController.AddOperator(op...)
 			}

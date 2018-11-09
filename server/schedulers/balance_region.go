@@ -93,13 +93,7 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 	sourceLabel := strconv.FormatUint(source.GetId(), 10)
 	balanceRegionCounter.WithLabelValues("source_store", sourceLabel).Inc()
 
-	var opInfluence schedule.OpInfluence
-	if s.rangeName != "" {
-		opInfluence = s.opController.GetOpInfluence(schedule.RangeFilter(s.opController, s.rangeName))
-	} else {
-		opInfluence = s.opController.GetOpInfluence()
-	}
-
+	opInfluence := s.opController.GetOpInfluence(cluster, s.rangeName)
 	var hasPotentialTarget bool
 	for i := 0; i < balanceRegionRetryLimit; i++ {
 		region := cluster.RandFollowerRegion(source.GetId(), core.HealthRegion())

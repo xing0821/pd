@@ -128,7 +128,6 @@ func (s *testNamespaceSuite) TestSchedulerBalanceRegion(c *C) {
 
 	oc := schedule.NewOperatorController(nil, nil)
 	sched, _ := schedule.CreateScheduler("balance-region", oc)
-	oc.SetOpInfluence(nil, s.tc)
 
 	// Balance is limited within a namespace.
 	s.tc.addLeaderRegion(1, 2)
@@ -170,7 +169,6 @@ func (s *testNamespaceSuite) TestSchedulerBalanceLeader(c *C) {
 
 	oc := schedule.NewOperatorController(nil, nil)
 	sched, _ := schedule.CreateScheduler("balance-leader", oc)
-	oc.SetOpInfluence(nil, s.tc)
 
 	// Balance is limited within a namespace.
 	s.tc.addLeaderRegion(1, 2, 1)

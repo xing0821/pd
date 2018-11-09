@@ -36,12 +36,11 @@ type HeartbeatStreams interface {
 // OperatorController is used to limit the speed of scheduling.
 type OperatorController struct {
 	sync.RWMutex
-	cluster     Cluster
-	operators   map[uint64]*Operator
-	hbStreams   HeartbeatStreams
-	histories   *list.List
-	counts      map[OperatorKind]uint64
-	opInfluence OpInfluence
+	cluster   Cluster
+	operators map[uint64]*Operator
+	hbStreams HeartbeatStreams
+	histories *list.List
+	counts    map[OperatorKind]uint64
 }
 
 // NewOperatorController creates a OperatorController.
@@ -319,40 +318,25 @@ func (oc *OperatorController) OperatorCount(mask OperatorKind) uint64 {
 	return total
 }
 
-// OpInfluenceFilterOption used to filter opInfluence.
-type OpInfluenceFilterOption func(opInfluence OpInfluence)
-
 // GetOpInfluence gets OpInfluence.
-func (oc *OperatorController) GetOpInfluence(opts ...OpInfluenceFilterOption) OpInfluence {
+func (oc *OperatorController) GetOpInfluence(cluster Cluster, rangeName string) OpInfluence {
 	oc.RLock()
 	defer oc.RUnlock()
-	opInfluence := oc.opInfluence
 
-	for _, opt := range opts {
-		opt(opInfluence)
-	}
-	return opInfluence
-}
-
-// SetOpInfluence sets OpInfluence.
-func (oc *OperatorController) SetOpInfluence(operators []*Operator, cluster Cluster) {
-	oc.Lock()
-	defer oc.Unlock()
-	oc.opInfluence = NewOpInfluence(operators, cluster)
-}
-
-// RangeFilter filters the operators according to rangeName.
-func RangeFilter(oc *OperatorController, rangeName string) OpInfluenceFilterOption {
-	return func(opInfluence OpInfluence) {
+	operators := oc.GetOperators()
+	if rangeName != "" {
 		var res []*Operator
-		ops := opInfluence.GetRegionsInfluence()
-		for _, op := range ops {
-			if strings.HasSuffix(op.Desc(), rangeName) {
-				res = append(res, op)
+		for _, op := range operators {
+			if !op.IsTimeout() && !op.IsFinish() {
+				region := cluster.GetRegion(op.RegionID())
+				if region != nil && strings.HasSuffix(op.Desc(), rangeName) {
+					res = append(res, op)
+				}
 			}
 		}
-		opInfluence = NewOpInfluence(res, oc.cluster)
+		return NewOpInfluence(res, cluster)
 	}
+	return NewOpInfluence(operators, cluster)
 }
 
 // NewOpInfluence creates a OpInfluence.
@@ -414,4 +398,11 @@ func (s StoreInfluence) ResourceSize(kind core.ResourceKind) int64 {
 	default:
 		return 0
 	}
+}
+
+// SetOperator is only used for test
+func (oc *OperatorController) SetOperator(op *Operator) {
+	oc.Lock()
+	defer oc.Unlock()
+	oc.operators[op.RegionID()] = op
 }

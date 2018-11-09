@@ -100,13 +100,7 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 	balanceLeaderCounter.WithLabelValues("high_score", sourceStoreLabel).Inc()
 	balanceLeaderCounter.WithLabelValues("low_score", targetStoreLabel).Inc()
 
-	var opInfluence schedule.OpInfluence
-	if l.rangeName != "" {
-		opInfluence = l.opController.GetOpInfluence(schedule.RangeFilter(l.opController, l.rangeName))
-	} else {
-		opInfluence = l.opController.GetOpInfluence()
-	}
-
+	opInfluence := l.opController.GetOpInfluence(cluster, l.rangeName)
 	for i := 0; i < balanceLeaderRetryLimit; i++ {
 		if op := l.transferLeaderOut(source, cluster, opInfluence); op != nil {
 			balanceLeaderCounter.WithLabelValues("transfer_out", sourceStoreLabel).Inc()

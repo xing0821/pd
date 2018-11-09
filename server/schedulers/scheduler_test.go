@@ -238,7 +238,6 @@ func (s *testRejectLeaderSuite) TestRejectLeader(c *C) {
 	oc := schedule.NewOperatorController(nil, nil)
 	sl, err := schedule.CreateScheduler("label", oc)
 	c.Assert(err, IsNil)
-	oc.SetOpInfluence(nil, tc)
 	op := sl.Schedule(tc)
 	testutil.CheckTransferLeader(c, op[0], schedule.OpLeader, 1, 3)
 
