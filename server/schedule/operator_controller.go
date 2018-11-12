@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	historyKeepTime     = 5 * time.Minute
-	maxRunningOperators = 30
+	historyKeepTime = 5 * time.Minute
+	maxScheduleCost = 200
 )
 
 // HeartbeatStreams is an interface of async region heartbeat.
@@ -153,7 +153,8 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 	regionID := op.RegionID()
 
 	log.Info("add operator", zap.Uint64("region-id", regionID), zap.Reflect("operator", op))
-	if len(oc.waitingOperators) == 0 && len(oc.runningOperators) <= maxRunningOperators {
+	if len(oc.waitingOperators) == 0 &&
+		oc.GetScheduleCost(oc.getRunningOperatorsLocked()...)+oc.GetScheduleCost(op) <= maxScheduleCost {
 		oc.runningOperators[regionID] = op
 		oc.opInflight[op.Desc()]++
 		oc.updateCounts(oc.runningOperators)
@@ -166,20 +167,7 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 		return true
 	}
 
-	// If there is an old operator in running operators, replace it.
-	// The priority should be checked already.
-	if old, ok := oc.runningOperators[regionID]; ok {
-		log.Infof("[region %v] replace old operator: %s in running operators", regionID, old)
-		operatorCounter.WithLabelValues(old.Desc(), "replaced_running").Inc()
-		oc.removeRunningOperatorLocked(old)
-		oc.runningOperators[regionID] = op
-		oc.updateCounts(oc.runningOperators)
-		if region := oc.cluster.GetRegion(op.RegionID()); region != nil {
-			if step := op.Check(region); step != nil {
-				oc.SendScheduleCommand(region, step)
-			}
-		}
-	} else if old, ok := oc.waitingOperators[regionID]; ok {
+	if old, ok := oc.waitingOperators[regionID]; ok {
 		// If there is an old operator in waiting operators, replace it.
 		// The priority should be checked already.
 		log.Infof("[region %v] replace old operator: %s in waiting operators", regionID, old)
@@ -248,12 +236,14 @@ func (oc *OperatorController) GetWaitingOperator(regionID uint64) *Operator {
 func (oc *OperatorController) GetRunningOperators() []*Operator {
 	oc.RLock()
 	defer oc.RUnlock()
+	return oc.getRunningOperatorsLocked()
+}
 
+func (oc *OperatorController) getRunningOperatorsLocked() []*Operator {
 	operators := make([]*Operator, 0, len(oc.runningOperators))
 	for _, op := range oc.runningOperators {
 		operators = append(operators, op)
 	}
-
 	return operators
 }
 
@@ -276,43 +266,39 @@ func (oc *OperatorController) promoteOperator(op *Operator) {
 	regionID := op.RegionID()
 	if op.Desc() == "merge-region" {
 		for _, step := range op.steps {
-			switch st := step.(type) {
-			case MergeRegion:
+			if st, ok := step.(MergeRegion); ok {
+				var id uint64
 				if st.IsPassive {
-					op1, ok := oc.waitingOperators[st.FromRegion.GetId()]
-					if !ok {
-						return
-					}
-					if op1.Desc() == "merge-region" {
-						if _, ok := oc.runningOperators[st.FromRegion.GetId()]; ok {
-							return
-						}
-						oc.runningOperators[st.FromRegion.GetId()] = op1
-						oc.opInflight[op1.Desc()]++
-						oc.removeWaitingOperatorLocked(op1)
-					}
+					id = st.FromRegion.GetId()
+
 				} else {
-					op1, ok := oc.waitingOperators[st.ToRegion.GetId()]
-					if !ok {
+					id = st.ToRegion.GetId()
+				}
+				op1, ok := oc.waitingOperators[id]
+				if !ok {
+					return
+				}
+				if op1.Desc() == "merge-region" &&
+					oc.GetScheduleCost(oc.getRunningOperatorsLocked()...)+oc.GetScheduleCost(op, op1) < maxScheduleCost {
+					if _, ok := oc.runningOperators[id]; ok {
 						return
 					}
-					if op1.Desc() == "merge-region" {
-						if _, ok := oc.runningOperators[st.ToRegion.GetId()]; ok {
-							return
-						}
-						oc.runningOperators[st.ToRegion.GetId()] = op1
-						oc.opInflight[op1.Desc()]++
-						oc.removeWaitingOperatorLocked(op1)
-					}
+					oc.premote(op1, id)
+				} else {
+					return
 				}
 			}
 		}
 	}
+	oc.premote(op, regionID)
+	oc.updateCounts(oc.runningOperators)
+	operatorCounter.WithLabelValues(op.Desc(), "promote").Inc()
+}
+
+func (oc *OperatorController) premote(op *Operator, regionID uint64) {
 	oc.opInflight[op.Desc()]++
 	oc.runningOperators[regionID] = op
 	oc.removeWaitingOperatorLocked(op)
-	oc.updateCounts(oc.runningOperators)
-	operatorCounter.WithLabelValues(op.Desc(), "promote").Inc()
 }
 
 // SendScheduleCommand sends a command to the region.
@@ -463,7 +449,8 @@ func (oc *OperatorController) GetOpInfluence(cluster Cluster) OpInfluence {
 	defer oc.RUnlock()
 
 	var res []*Operator
-	for _, op := range oc.operators {
+	operators := oc.getRunningOperatorsLocked()
+	for _, op := range operators {
 		if !op.IsTimeout() && !op.IsFinish() {
 			region := cluster.GetRegion(op.RegionID())
 			if region != nil {
@@ -521,6 +508,7 @@ type StoreInfluence struct {
 	RegionCount int64
 	LeaderSize  int64
 	LeaderCount int64
+	StepCost    uint64
 }
 
 // ResourceSize returns delta size of leader/region by influence.
@@ -539,7 +527,7 @@ func (s StoreInfluence) ResourceSize(kind core.ResourceKind) int64 {
 func (oc *OperatorController) SetOperator(op *Operator) {
 	oc.Lock()
 	defer oc.Unlock()
-	oc.operators[op.RegionID()] = op
+	oc.runningOperators[op.RegionID()] = op
 }
 
 // OperatorInflight gets the count of operators for a given scheduler or checker.
@@ -547,4 +535,14 @@ func (oc *OperatorController) OperatorInflight(name string) uint64 {
 	oc.RLock()
 	defer oc.RUnlock()
 	return oc.opInflight[name]
+}
+
+// GetScheduleCost gets the current running schedule cost.
+func (oc *OperatorController) GetScheduleCost(ops ...*Operator) uint64 {
+	var scheduleCost uint64
+	opInfluence := NewOpInfluence(ops, oc.cluster)
+	for storeID := range opInfluence.storesInfluence {
+		scheduleCost += opInfluence.GetStoreInfluence(storeID).StepCost
+	}
+	return scheduleCost
 }
