@@ -37,12 +37,11 @@ type balanceLeaderScheduler struct {
 	selector     *schedule.BalanceSelector
 	taintStores  *cache.TTLUint64
 	opController *schedule.OperatorController
-	rangeName    string
 }
 
 // newBalanceLeaderScheduler creates a scheduler that tends to keep leaders on
 // each store balanced.
-func newBalanceLeaderScheduler(opController *schedule.OperatorController, rangeName ...string) schedule.Scheduler {
+func newBalanceLeaderScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	taintStores := newTaintCache()
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{TransferLeader: true},
@@ -54,9 +53,6 @@ func newBalanceLeaderScheduler(opController *schedule.OperatorController, rangeN
 		selector:      schedule.NewBalanceSelector(core.LeaderKind, filters),
 		taintStores:   taintStores,
 		opController:  opController,
-	}
-	if len(rangeName) != 0 {
-		s.rangeName = rangeName[0]
 	}
 	return s
 }
@@ -100,7 +96,7 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 	balanceLeaderCounter.WithLabelValues("high_score", sourceStoreLabel).Inc()
 	balanceLeaderCounter.WithLabelValues("low_score", targetStoreLabel).Inc()
 
-	opInfluence := l.opController.GetOpInfluence(cluster, l.rangeName)
+	opInfluence := l.opController.GetOpInfluence(cluster)
 	for i := 0; i < balanceLeaderRetryLimit; i++ {
 		if op := l.transferLeaderOut(source, cluster, opInfluence); op != nil {
 			balanceLeaderCounter.WithLabelValues("transfer_out", sourceStoreLabel).Inc()

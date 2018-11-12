@@ -15,7 +15,6 @@ package schedule
 
 import (
 	"container/list"
-	"strings"
 	"sync"
 	"time"
 
@@ -319,24 +318,21 @@ func (oc *OperatorController) OperatorCount(mask OperatorKind) uint64 {
 }
 
 // GetOpInfluence gets OpInfluence.
-func (oc *OperatorController) GetOpInfluence(cluster Cluster, rangeName string) OpInfluence {
+func (oc *OperatorController) GetOpInfluence(cluster Cluster) OpInfluence {
 	oc.RLock()
 	defer oc.RUnlock()
 
+	var res []*Operator
 	operators := oc.GetOperators()
-	if rangeName != "" {
-		var res []*Operator
-		for _, op := range operators {
-			if !op.IsTimeout() && !op.IsFinish() {
-				region := cluster.GetRegion(op.RegionID())
-				if region != nil && strings.HasSuffix(op.Desc(), rangeName) {
-					res = append(res, op)
-				}
+	for _, op := range operators {
+		if !op.IsTimeout() && !op.IsFinish() {
+			region := cluster.GetRegion(op.RegionID())
+			if region != nil {
+				res = append(res, op)
 			}
 		}
-		return NewOpInfluence(res, cluster)
 	}
-	return NewOpInfluence(operators, cluster)
+	return NewOpInfluence(res, cluster)
 }
 
 // NewOpInfluence creates a OpInfluence.

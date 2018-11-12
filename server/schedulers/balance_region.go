@@ -38,12 +38,11 @@ type balanceRegionScheduler struct {
 	selector     *schedule.BalanceSelector
 	taintStores  *cache.TTLUint64
 	opController *schedule.OperatorController
-	rangeName    string
 }
 
 // newBalanceRegionScheduler creates a scheduler that tends to keep regions on
 // each store balanced.
-func newBalanceRegionScheduler(opController *schedule.OperatorController, rangeName ...string) schedule.Scheduler {
+func newBalanceRegionScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	taintStores := newTaintCache()
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{MoveRegion: true},
@@ -55,9 +54,6 @@ func newBalanceRegionScheduler(opController *schedule.OperatorController, rangeN
 		selector:      schedule.NewBalanceSelector(core.RegionKind, filters),
 		taintStores:   taintStores,
 		opController:  opController,
-	}
-	if len(rangeName) != 0 {
-		s.rangeName = rangeName[0]
 	}
 	return s
 }
@@ -93,7 +89,7 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 	sourceLabel := strconv.FormatUint(source.GetId(), 10)
 	balanceRegionCounter.WithLabelValues("source_store", sourceLabel).Inc()
 
-	opInfluence := s.opController.GetOpInfluence(cluster, s.rangeName)
+	opInfluence := s.opController.GetOpInfluence(cluster)
 	var hasPotentialTarget bool
 	for i := 0; i < balanceRegionRetryLimit; i++ {
 		region := cluster.RandFollowerRegion(source.GetId(), core.HealthRegion())
