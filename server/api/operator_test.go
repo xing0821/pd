@@ -103,7 +103,6 @@ func (s *testOperatorSuite) TestAddRemovePeer(c *C) {
 	c.Assert(err, NotNil)
 	err = postJSON(fmt.Sprintf("%s/operators", s.urlPrefix), []byte(`{"name":"transfer-region", "region_id": 1, "to_store_ids": [1, 2, 3]}`))
 	c.Assert(err, NotNil)
-
 }
 
 func mustPutStore(c *C, svr *server.Server, id uint64, state metapb.StoreState, labels []*metapb.StoreLabel) {
