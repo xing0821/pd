@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/metapb"
@@ -249,17 +250,23 @@ func (s *integrationTestSuite) TestLabel(c *C) {
 	c.Assert(err, IsNil)
 	labels := make([]*metapb.StoreLabel, 0, len(stores))
 	c.Assert(json.Unmarshal(output, &labels), IsNil)
-	l := []*metapb.StoreLabel{
-		{
-			Key:   "zone",
-			Value: "us-west",
-		},
-		{
-			Key:   "zone",
-			Value: "us-east",
-		},
+	got := make(map[string]struct{})
+	for _, l := range labels {
+		if _, ok := got[strings.ToLower(l.Key+l.Value)]; !ok {
+			got[strings.ToLower(l.Key+l.Value)] = struct{}{}
+		}
 	}
-	c.Assert(labels, DeepEquals, l)
+	expected := make(map[string]struct{})
+	ss := leaderServer.GetStores()
+	for _, s := range ss {
+		ls := s.GetLabels()
+		for _, l := range ls {
+			if _, ok := expected[strings.ToLower(l.Key+l.Value)]; !ok {
+				expected[strings.ToLower(l.Key+l.Value)] = struct{}{}
+			}
+		}
+	}
+	c.Assert(got, DeepEquals, expected)
 
 	// label store <name> command
 	args = []string{"-u", pdAddr, "label", "store", "zone", "us-west"}
@@ -267,7 +274,7 @@ func (s *integrationTestSuite) TestLabel(c *C) {
 	c.Assert(err, IsNil)
 	storesInfo := new(api.StoresInfo)
 	c.Assert(json.Unmarshal(output, &storesInfo), IsNil)
-	ss := append(stores[:1], stores[2:3]...)
+	ss = append(stores[:1], stores[2:3]...)
 	checkStoresInfo(c, storesInfo.Stores, ss)
 }
 
