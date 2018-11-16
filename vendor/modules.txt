@@ -86,8 +86,6 @@ github.com/coreos/pkg/capnslog
 github.com/dgrijalva/jwt-go
 # github.com/dustin/go-humanize v0.0.0-20180421182945-02af3965c54e
 github.com/dustin/go-humanize
-# github.com/etcd-io/gofail v0.0.0-20180808172546-51ce9a71510a
-github.com/etcd-io/gofail/runtime
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
 # github.com/gogo/protobuf v1.0.0
@@ -137,6 +135,8 @@ github.com/pingcap/check
 github.com/pingcap/errcode
 # github.com/pingcap/errors v0.10.1
 github.com/pingcap/errors
+# github.com/pingcap/gofail v0.0.0-20181115114620-e47081505b9c
+github.com/pingcap/gofail/runtime
 # github.com/pingcap/kvproto v0.0.0-20180930052200-fae11119f066
 github.com/pingcap/kvproto/pkg/metapb
 github.com/pingcap/kvproto/pkg/pdpb
