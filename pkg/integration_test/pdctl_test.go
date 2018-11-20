@@ -274,7 +274,7 @@ func (s *integrationTestSuite) TestLabel(c *C) {
 	c.Assert(err, IsNil)
 	storesInfo := new(api.StoresInfo)
 	c.Assert(json.Unmarshal(output, &storesInfo), IsNil)
-	ss = append(stores[:1], stores[2:3]...)
+	ss = []*metapb.Store{stores[0], stores[2]}
 	checkStoresInfo(c, storesInfo.Stores, ss)
 }
 
