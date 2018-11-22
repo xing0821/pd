@@ -286,15 +286,7 @@ func (s *integrationTestSuite) TestLabel(c *C) {
 
 func (s *integrationTestSuite) TestTSO(c *C) {
 	c.Parallel()
-
-	cluster, err := newTestCluster(1)
-	c.Assert(err, IsNil)
-	err = cluster.RunInitialServers()
-	c.Assert(err, IsNil)
-	cluster.WaitLeader()
-	pdAddr := cluster.config.GetClientURLs()
 	cmd := initCommand()
-	defer cluster.Destroy()
 
 	const (
 		physicalShiftBits = 18
@@ -303,7 +295,7 @@ func (s *integrationTestSuite) TestTSO(c *C) {
 
 	// tso command
 	ts := "395181938313123110"
-	args := []string{"-u", pdAddr, "tso", ts}
+	args := []string{"-u", "127.0.0.1", "tso", ts}
 	_, output, err := executeCommandC(cmd, args...)
 	c.Assert(err, IsNil)
 	t, e := strconv.ParseUint(ts, 10, 64)
