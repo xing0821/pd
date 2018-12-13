@@ -25,7 +25,7 @@ import (
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
-	"github.com/pingcap/pd/server/region_syncer"
+	syncer "github.com/pingcap/pd/server/region_syncer"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
