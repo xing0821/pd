@@ -444,6 +444,11 @@ func (c *RaftCluster) BuryStore(storeID uint64, force bool) error { // revive:di
 		return core.NewStoreNotFoundErr(storeID)
 	}
 
+	// Bury a tombstone store should be OK, nothing to do.
+	if store.IsTombstone() {
+		return nil
+	}
+
 	if store.IsUp() {
 		if !force {
 			return errors.New("store is still up, please remove store gracefully")
