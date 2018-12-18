@@ -22,7 +22,9 @@ import (
 
 var _ = Suite(&testClusterWorkerSuite{})
 
-type testClusterWorkerSuite struct{ baseCluster }
+type testClusterWorkerSuite struct {
+	baseCluster
+}
 
 func (s *testClusterWorkerSuite) TestReportSplit(c *C) {
 	var cluster RaftCluster
@@ -63,7 +65,7 @@ func (s *testClusterWorkerSuite) TestValidRequestRegion(c *C) {
 		Id:       1,
 		StartKey: []byte(""),
 		EndKey:   []byte("a"),
-		Peers: []*metapb.Peer{&metapb.Peer{
+		Peers: []*metapb.Peer{{
 			Id:      1,
 			StoreId: 1,
 		}},
