@@ -503,20 +503,21 @@ func (c *RaftCluster) checkStores() {
 	cluster := c.cachedCluster
 
 	for _, store := range cluster.GetStores() {
-		if store.GetState() != metapb.StoreState_Offline {
-			if store.GetState() == metapb.StoreState_Up && !store.IsLowSpace(cluster.GetLowSpaceRatio()) {
-				upStoreCount++
-				continue
-			}
+		// the store has already been tombstone
+		if store.IsTombstone() {
+			continue
 		}
+
+		if store.IsUp() && !store.IsLowSpace(cluster.GetLowSpaceRatio()) {
+			upStoreCount++
+			continue
+		}
+
 		offlineStore := store.Store
 		// If the store is empty, it can be buried.
 		if cluster.getStoreRegionCount(offlineStore.GetId()) == 0 {
-			err := c.BuryStore(offlineStore.GetId(), false)
-			if err != nil {
+			if err := c.BuryStore(offlineStore.GetId(), false); err != nil {
 				log.Errorf("bury store %v failed: %v", offlineStore, err)
-			} else {
-				log.Infof("buried store %v", offlineStore)
 			}
 		} else {
 			offlineStores = append(offlineStores, offlineStore)
