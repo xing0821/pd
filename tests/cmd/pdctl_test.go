@@ -28,6 +28,7 @@ import (
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
+	"github.com/pingcap/pd/pkg/etcdutil"
 	"github.com/pingcap/pd/server"
 	"github.com/pingcap/pd/server/api"
 	"github.com/pingcap/pd/server/core"
@@ -52,7 +53,7 @@ func (s *cmdTestSuite) SetUpSuite(c *C) {
 	server.EnableZap = true
 }
 
-func (s *cmdTestSuite) TestCluster(c *C) {
+func (s *cmdTestSuite) TestClusterAndPing(c *C) {
 	c.Parallel()
 
 	cluster, err := tests.NewTestCluster(1)
@@ -64,7 +65,7 @@ func (s *cmdTestSuite) TestCluster(c *C) {
 	cmd := initCommand()
 	defer cluster.Destroy()
 
-	// cluster command
+	// cluster
 	args := []string{"-u", pdAddr, "cluster"}
 	_, output, err := executeCommandC(cmd, args...)
 	c.Assert(err, IsNil)
@@ -72,12 +73,19 @@ func (s *cmdTestSuite) TestCluster(c *C) {
 	c.Assert(json.Unmarshal(output, ci), IsNil)
 	c.Assert(ci, DeepEquals, cluster.GetCluster())
 
+	// cluster status
 	args = []string{"-u", pdAddr, "cluster", "status"}
 	_, output, err = executeCommandC(cmd, args...)
 	c.Assert(err, IsNil)
 	ci = &metapb.Cluster{}
 	c.Assert(json.Unmarshal(output, ci), IsNil)
 	c.Assert(ci, DeepEquals, cluster.GetCluster())
+
+	// ping
+	args = []string{"-u", pdAddr, "ping"}
+	_, output, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	c.Assert(output, NotNil)
 }
 
 func (s *cmdTestSuite) TestHealth(c *C) {
@@ -995,6 +1003,84 @@ func (s *cmdTestSuite) TestOperator(c *C) {
 	args = []string{"-u", pdAddr, "operator", "remove", "3"}
 	_, _, err = executeCommandC(cmd, args...)
 	c.Assert(err, IsNil)
+
+	// operator add scatter-region <region_id>
+	args = []string{"-u", pdAddr, "operator", "add", "scatter-region", "3"}
+	_, _, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	args = []string{"-u", pdAddr, "operator", "add", "scatter-region", "1"}
+	_, _, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	args = []string{"-u", pdAddr, "operator", "show", "region"}
+	_, output, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	c.Assert(strings.Contains(string(output), "transfer leader from store 0 to store 3"), IsTrue)
+}
+
+func (s *integrationTestSuite) TestMember(c *C) {
+	c.Parallel()
+
+	cluster, err := newTestCluster(3)
+	c.Assert(err, IsNil)
+	err = cluster.RunInitialServers()
+	c.Assert(err, IsNil)
+	cluster.WaitLeader()
+	pdAddr := cluster.config.GetClientURLs()
+	c.Assert(err, IsNil)
+	cmd := initCommand()
+	svr := cluster.GetServer("pd2")
+	id := svr.GetServerID()
+	name := svr.server.Name()
+	client := cluster.GetServer("pd1").GetEtcdClient()
+	defer cluster.Destroy()
+
+	// member leader show
+	args := []string{"-u", pdAddr, "member", "leader", "show"}
+	_, output, err := executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	leader := pdpb.Member{}
+	c.Assert(json.Unmarshal(output, &leader), IsNil)
+	c.Assert(&leader, DeepEquals, svr.GetLeader())
+
+	// member leader transfer <member_name>
+	args = []string{"-u", pdAddr, "member", "leader", "transfer", "pd2"}
+	_, _, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	c.Assert("pd2", Equals, svr.GetLeader().GetName())
+
+	// member leader resign
+	args = []string{"-u", pdAddr, "member", "leader", "resign"}
+	_, _, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	c.Assert("pd2", Not(Equals), svr.GetLeader().GetName())
+
+	// member leader_priority <member_name> <priority>
+	args = []string{"-u", pdAddr, "member", "leader_priority", name, "100"}
+	_, _, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	priority, err := svr.server.GetMemberLeaderPriority(id)
+	c.Assert(err, IsNil)
+	c.Assert(priority, Equals, 100)
+
+	// member delete name <member_name>
+	svr.Destroy()
+	members, err := etcdutil.ListEtcdMembers(client)
+	c.Assert(err, IsNil)
+	c.Assert(len(members.Members), Equals, 3)
+	args = []string{"-u", pdAddr, "member", "delete", "name", name}
+	_, _, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	members, err = etcdutil.ListEtcdMembers(client)
+	c.Assert(err, IsNil)
+	c.Assert(len(members.Members), Equals, 2)
+
+	// member delete id <member_id>
+	args = []string{"-u", pdAddr, "member", "delete", "id", string(id)}
+	_, _, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	members, err = etcdutil.ListEtcdMembers(client)
+	c.Assert(err, IsNil)
+	c.Assert(len(members.Members), Equals, 2)
 }
 
 func initCommand() *cobra.Command {
