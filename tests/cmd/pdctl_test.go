@@ -883,7 +883,12 @@ func (s *cmdTestSuite) TestOperator(c *C) {
 	c.Parallel()
 
 	var err error
-	cluster, err := tests.NewTestCluster(3, func(conf *server.Config) { conf.Replication.MaxReplicas = 2 })
+	var t time.Time
+	t = t.Add(time.Hour)
+	cluster, err := tests.NewTestCluster(3,
+		func(conf *server.Config) { conf.Replication.MaxReplicas = 2 },
+		func(conf *server.Config) { conf.Schedule.MaxStoreDownTime.Duration = time.Since(t) },
+	)
 	c.Assert(err, IsNil)
 	err = cluster.RunInitialServers()
 	c.Assert(err, IsNil)
@@ -1017,20 +1022,20 @@ func (s *cmdTestSuite) TestOperator(c *C) {
 	c.Assert(strings.Contains(string(output), "transfer leader from store 0 to store 3"), IsTrue)
 }
 
-func (s *integrationTestSuite) TestMember(c *C) {
+func (s *cmdTestSuite) TestMember(c *C) {
 	c.Parallel()
 
-	cluster, err := newTestCluster(3)
+	cluster, err := tests.NewTestCluster(3)
 	c.Assert(err, IsNil)
 	err = cluster.RunInitialServers()
 	c.Assert(err, IsNil)
 	cluster.WaitLeader()
-	pdAddr := cluster.config.GetClientURLs()
+	pdAddr := cluster.GetConfig().GetClientURLs()
 	c.Assert(err, IsNil)
 	cmd := initCommand()
 	svr := cluster.GetServer("pd2")
 	id := svr.GetServerID()
-	name := svr.server.Name()
+	name := svr.GetServer().Name()
 	client := cluster.GetServer("pd1").GetEtcdClient()
 	defer cluster.Destroy()
 
@@ -1058,7 +1063,7 @@ func (s *integrationTestSuite) TestMember(c *C) {
 	args = []string{"-u", pdAddr, "member", "leader_priority", name, "100"}
 	_, _, err = executeCommandC(cmd, args...)
 	c.Assert(err, IsNil)
-	priority, err := svr.server.GetMemberLeaderPriority(id)
+	priority, err := svr.GetServer().GetMemberLeaderPriority(id)
 	c.Assert(err, IsNil)
 	c.Assert(priority, Equals, 100)
 
@@ -1081,6 +1086,58 @@ func (s *integrationTestSuite) TestMember(c *C) {
 	members, err = etcdutil.ListEtcdMembers(client)
 	c.Assert(err, IsNil)
 	c.Assert(len(members.Members), Equals, 2)
+}
+
+func (s *cmdTestSuite) TestHot(c *C) {
+	c.Parallel()
+
+	cluster, err := tests.NewTestCluster(1)
+	c.Assert(err, IsNil)
+	err = cluster.RunInitialServers()
+	c.Assert(err, IsNil)
+	cluster.WaitLeader()
+	pdAddr := cluster.GetConfig().GetClientURLs()
+	cmd := initCommand()
+
+	store := metapb.Store{
+		Id:      1,
+		Address: "tikv1",
+		State:   metapb.StoreState_Up,
+		Version: "2.0.0",
+	}
+
+	leaderServer := cluster.GetServer(cluster.GetLeader())
+	c.Assert(leaderServer.BootstrapCluster(), IsNil)
+	mustPutStore(c, leaderServer.GetServer(), store.Id, store.State, store.Labels)
+	defer cluster.Destroy()
+
+	ss, err := leaderServer.GetStore(1)
+	c.Assert(err, IsNil)
+	bytesWritten := uint64(8 * 1024 * 1024)
+	ss.Stats.BytesWritten = bytesWritten
+	now := time.Now().Second()
+	interval := &pdpb.TimeInterval{StartTimestamp: uint64(now - 10), EndTimestamp: uint64(now)}
+	ss.Stats.Interval = interval
+	ss.RollingStoreStats.Observe(ss.Stats)
+
+	// TODO: Provide a way to test the result of hot read and hot write commands
+	// hot read
+	args := []string{"-u", pdAddr, "hot", "read"}
+	_, _, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+
+	// hot write
+	args = []string{"-u", pdAddr, "hot", "write"}
+	_, _, err = executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+
+	// hot store
+	args = []string{"-u", pdAddr, "hot", "store"}
+	_, output, err := executeCommandC(cmd, args...)
+	c.Assert(err, IsNil)
+	hotStores := api.HotStoreStats{}
+	c.Assert(json.Unmarshal(output, &hotStores), IsNil)
+	c.Assert(hotStores.BytesWriteStats[1], Equals, bytesWritten/10)
 }
 
 func initCommand() *cobra.Command {
