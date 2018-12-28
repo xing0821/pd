@@ -72,9 +72,8 @@ func (s *shuffleHotRegionScheduler) GetType() string {
 }
 
 func (s *shuffleHotRegionScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.opController.OperatorCount(schedule.OpHotRegion) < s.limit &&
-		s.opController.OperatorCount(schedule.OpRegion) < cluster.GetRegionScheduleLimit() &&
-		s.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
+	hotRegionInflight := s.opController.OperatorInflight("hot-read-region") + s.opController.OperatorInflight("hot-write-region")
+	return hotRegionInflight < s.limit && s.opController.OperatorInflight("shuffle-hot-region") < cluster.GetMaxShuffleHotRegionInflight()
 }
 
 func (s *shuffleHotRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
@@ -143,7 +142,7 @@ func (s *shuffleHotRegionScheduler) randomSchedule(cluster schedule.Cluster, sto
 			schedule.TransferLeader{ToStore: destStoreID, FromStore: srcStoreID},
 			schedule.RemovePeer{FromStore: srcRegion.GetLeader().GetStoreId()},
 		}
-		return []*schedule.Operator{schedule.NewOperator("randomMoveHotRegion", srcRegion.GetID(), srcRegion.GetRegionEpoch(), schedule.OpRegion|schedule.OpLeader, st...)}
+		return []*schedule.Operator{schedule.NewOperator("shuffle-hot-region", srcRegion.GetID(), srcRegion.GetRegionEpoch(), schedule.OpRegion|schedule.OpLeader, st...)}
 	}
 	schedulerCounter.WithLabelValues(s.GetName(), "skip").Inc()
 	return nil

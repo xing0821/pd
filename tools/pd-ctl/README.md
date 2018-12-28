@@ -101,7 +101,7 @@ Usage:
   "max-balance-region-inflight": 4,
   "max-makeup-replica-inflight":8,
   "max-merge-region-inflight": 8,
-  "max-default-schedule-inflight": 8,
+  "max-default-schedule-inflight": 1,
   "tolerant-size-ratio": 5,
   "low-space-ratio": 0.8,
   "high-space-ratio": 0.6,
@@ -134,7 +134,7 @@ Usage:
   "max-balance-region-inflight": 4,
   "max-makeup-replica-inflight": 8,
   "max-merge-region-inflight": 8,
-  "max-default-schedule-inflight": 8,
+  "max-default-schedule-inflight": 1,
   "max-replicas": 3,
 }
 >> config show replication                    // Display the config information of replication
@@ -215,7 +215,7 @@ Usage:
 - `max-default-schedule-inflight` controls the number of other scheduling tasks at the same time. 
 
     ```bash
-    >> config set max-merge-region-inflight 8       // 8 tasks for each other scheduling at the same time at most
+    >> config set max-merge-region-inflight 1       // 1 tasks for each other scheduling at the same time at most
     ```
 
 The configuration above is global. You can also tune the configuration by configuring different namespaces. The global configuration is used if the corresponding configuration of the namespace is not set.

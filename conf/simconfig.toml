@@ -29,4 +29,4 @@ max-balance-leader-inflight = 32
 max-balance-region-inflight = 128
 max-makeup-replica-inflight = 32
 max-merge-region-inflight = 32
-max-default-schedule-inflight = 32
+max-default-schedule-inflight = 1

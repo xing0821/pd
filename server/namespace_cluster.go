@@ -202,6 +202,10 @@ func (c *namespaceCluster) GetMaxShuffleRegionInflight() uint64 {
 	return c.GetOpt().GetMaxShuffleRegionInflight(c.namespace)
 }
 
+func (c *namespaceCluster) GetMaxShuffleHotRegionInflight() uint64 {
+	return c.GetOpt().GetMaxShuffleHotRegionInflight(c.namespace)
+}
+
 func (c *namespaceCluster) GetMaxReplicas() int {
 	return c.GetOpt().GetMaxReplicas(c.namespace)
 }

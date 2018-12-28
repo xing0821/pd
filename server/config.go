@@ -485,6 +485,8 @@ type ScheduleConfig struct {
 	MaxShuffleLeaderInflight uint64 `toml:"max-shuffle-leader-inflight,omitempty" json:"max-shuffle-leader-inflight"`
 	// MaxShuffleRegionInflight is the maxinum of inflight operators for shuffle-region.
 	MaxShuffleRegionInflight uint64 `toml:"max-shuffle-region-inflight,omitempty" json:"max-shuffle-region-inflight"`
+	// MaxShuffleHotRegionInflight is the maxinum of inflight operators for shuffle-hot-region.
+	MaxShuffleHotRegionInflight uint64 `toml:"max-shuffle-hot-region-inflight,omitempty" json:"max-shuffle-hot-region-inflight"`
 	// HotRegionCacheHitThreshold is the cache hits threshold of the hot region.
 	// If the number of times a region hits the hot cache is greater than this
 	// threshold, it is considered a hot region.
@@ -554,6 +556,7 @@ func (c *ScheduleConfig) clone() *ScheduleConfig {
 		MaxScatterRangeInflight:            c.MaxScatterRangeInflight,
 		MaxShuffleLeaderInflight:           c.MaxShuffleLeaderInflight,
 		MaxShuffleRegionInflight:           c.MaxShuffleRegionInflight,
+		MaxShuffleHotRegionInflight:        c.MaxShuffleHotRegionInflight,
 		HotRegionCacheHitsThreshold:        c.HotRegionCacheHitsThreshold,
 		TolerantSizeRatio:                  c.TolerantSizeRatio,
 		LowSpaceRatio:                      c.LowSpaceRatio,
@@ -582,7 +585,7 @@ const (
 	defaultMaxBalanceRegionInflight   = 4
 	defaultMaxMakeupReplicaInflight   = 8
 	defaultMaxMergeRegionInflight     = 8
-	defaultMaxDefaultScheduleInflight = 4
+	defaultMaxDefaultScheduleInflight = 1
 	defaultTolerantSizeRatio          = 5
 	defaultLowSpaceRatio              = 0.8
 	defaultHighSpaceRatio             = 0.6
@@ -604,6 +607,25 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	if !meta.IsDefined("max-merge-region-keys") {
 		adjustUint64(&c.MaxMergeRegionKeys, defaultMaxMergeRegionKeys)
 	}
+	if !meta.IsDefined("max-balance-leader-inflight") {
+		adjustUint64(&c.MaxBalanceLeaderInflight, defaultMaxBalanceLeaderInflight)
+	}
+	if !meta.IsDefined("max-balance-region-inflight") {
+		adjustUint64(&c.MaxBalanceRegionInflight, defaultMaxBalanceRegionInflight)
+	}
+	if !meta.IsDefined("max-makeup-replica-inflight") {
+		adjustUint64(&c.MaxMakeupReplicaInflight, defaultMaxMakeupReplicaInflight)
+	}
+	if !meta.IsDefined("max-merge-region-inflight") {
+		adjustUint64(&c.MaxMergeRegionInflight, defaultMaxMergeRegionInflight)
+	}
+	if !meta.IsDefined("max-hot-leader-inflight") {
+		adjustUint64(&c.MaxHotLeaderInflight, defaultMaxDefaultScheduleInflight)
+	}
+	if !meta.IsDefined("max-hot-region-inflight") {
+		adjustUint64(&c.MaxHotRegionInflight, defaultMaxDefaultScheduleInflight)
+	}
+
 	adjustDuration(&c.SplitMergeInterval, defaultSplitMergeInterval)
 	adjustDuration(&c.PatrolRegionInterval, defaultPatrolRegionInterval)
 	adjustDuration(&c.MaxStoreDownTime, defaultMaxStoreDownTime)
@@ -619,22 +641,21 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	if !meta.IsDefined("max-merge-region-inflight") {
 		adjustUint64(&c.MaxMergeRegionInflight, defaultMaxMergeRegionInflight)
 	}
-	adjustUint64(&c.MaxMakeNamespaceRelocationInflight, defaultMaxDefaultScheduleInflight)
-	adjustUint64(&c.MaxEvictLeaderInflight, defaultMaxDefaultScheduleInflight)
-	adjustUint64(&c.MaxGrantLeaderInflight, defaultMaxDefaultScheduleInflight)
-	adjustUint64(&c.MaxHotLeaderInflight, defaultMaxDefaultScheduleInflight)
-	adjustUint64(&c.MaxHotRegionInflight, defaultMaxDefaultScheduleInflight)
-	adjustUint64(&c.MaxLabelRejectLeaderInflight, defaultMaxDefaultScheduleInflight)
-	adjustUint64(&c.MaxRandomMergeInflight, defaultMaxDefaultScheduleInflight)
-	adjustUint64(&c.MaxScatterRangeInflight, defaultMaxDefaultScheduleInflight)
-	adjustUint64(&c.MaxShuffleLeaderInflight, defaultMaxDefaultScheduleInflight)
-	adjustUint64(&c.MaxShuffleRegionInflight, defaultMaxDefaultScheduleInflight)
 	if !meta.IsDefined("hot-region-cache-hits-threshold") {
 		adjustUint64(&c.HotRegionCacheHitsThreshold, defautHotRegionCacheHitsThreshold)
 	}
 	if !meta.IsDefined("tolerant-size-ratio") {
 		adjustFloat64(&c.TolerantSizeRatio, defaultTolerantSizeRatio)
 	}
+	adjustUint64(&c.MaxMakeNamespaceRelocationInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxEvictLeaderInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxGrantLeaderInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxLabelRejectLeaderInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxRandomMergeInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxScatterRangeInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxShuffleLeaderInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxShuffleRegionInflight, defaultMaxDefaultScheduleInflight)
+	adjustUint64(&c.MaxShuffleHotRegionInflight, defaultMaxDefaultScheduleInflight)
 	adjustFloat64(&c.LowSpaceRatio, defaultLowSpaceRatio)
 	adjustFloat64(&c.HighSpaceRatio, defaultHighSpaceRatio)
 	adjustSchedulers(&c.Schedulers, defaultSchedulers)
@@ -751,6 +772,8 @@ type NamespaceConfig struct {
 	MaxShuffleLeaderInflight uint64 `json:"max-shuffle-leader-inflight"`
 	// MaxShuffleRegionInflight is the maxinum of inflight operators for shuffle-region.
 	MaxShuffleRegionInflight uint64 `json:"max-shuffle-region-inflight"`
+	// MaxShuffleHotRegionInflight is the maxinum of inflight operators for shuffle-hot-region.
+	MaxShuffleHotRegionInflight uint64 `json:"max-shuffle-hot-region-inflight"`
 	// MaxReplicas is the number of replicas for each region.
 	MaxReplicas uint64 `json:"max-replicas"`
 }
@@ -769,6 +792,7 @@ func (c *NamespaceConfig) adjust(opt *scheduleOption) {
 	adjustUint64(&c.MaxScatterRangeInflight, opt.GetMaxScatterRangeInflight(namespace.DefaultNamespace))
 	adjustUint64(&c.MaxShuffleLeaderInflight, opt.GetMaxShuffleLeaderInflight(namespace.DefaultNamespace))
 	adjustUint64(&c.MaxShuffleRegionInflight, opt.GetMaxShuffleRegionInflight(namespace.DefaultNamespace))
+	adjustUint64(&c.MaxShuffleHotRegionInflight, opt.GetMaxShuffleHotRegionInflight(namespace.DefaultNamespace))
 	adjustUint64(&c.MaxReplicas, uint64(opt.GetMaxReplicas(namespace.DefaultNamespace)))
 }
 

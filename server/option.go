@@ -202,11 +202,11 @@ func (o *scheduleOption) GetMaxShuffleRegionInflight(name string) uint64 {
 	return o.load().MaxShuffleRegionInflight
 }
 
-func (o *scheduleOption) GetHotRegionScheduleLimit(name string) uint64 {
+func (o *scheduleOption) GetMaxShuffleHotRegionInflight(name string) uint64 {
 	if n, ok := o.ns[name]; ok {
-		return n.GetHotRegionScheduleLimit()
+		return n.GetMaxShuffleHotRegionInflight()
 	}
-	return o.load().HotRegionScheduleLimit
+	return o.load().MaxShuffleHotRegionInflight
 }
 
 func (o *scheduleOption) GetTolerantSizeRatio() float64 {
@@ -555,7 +555,6 @@ func (n *namespaceOption) GetMaxShuffleRegionInflight() uint64 {
 	return n.load().MaxShuffleRegionInflight
 }
 
-// GetHotRegionScheduleLimit returns the limit for hot region schedule.
-func (n *namespaceOption) GetHotRegionScheduleLimit() uint64 {
-	return n.load().HotRegionScheduleLimit
+func (n *namespaceOption) GetMaxShuffleHotRegionInflight() uint64 {
+	return n.load().MaxShuffleHotRegionInflight
 }

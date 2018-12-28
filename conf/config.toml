@@ -67,7 +67,7 @@ max-balance-leader-inflight = 4
 max-balance-region-inflight = 4
 max-makeup-replica-inflight = 8
 max-merge-region-inflight = 8
-max-default-schedule-inflight = 8
+max-default-schedule-inflight = 1
 tolerant-size-ratio = 5.0
 
 # customized schedulers, the format is as below

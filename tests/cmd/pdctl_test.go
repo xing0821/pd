@@ -687,16 +687,16 @@ func (s *cmdTestSuite) TestConfig(c *C) {
 	_, output, err = executeCommandC(cmd, args1...)
 	c.Assert(err, IsNil)
 	namespaceCfg := server.NamespaceConfig{}
-	c.Assert(json.Unmarshal(output, &namespaceCfg), IsNil)
-	args2 = []string{"-u", pdAddr, "config", "set", "namespace", "ts1", "region-schedule-limit", "128"}
+	json.Unmarshal(output, &namespaceCfg)
+	args2 = []string{"-u", pdAddr, "config", "set", "namespace", "ts1", "max-balance-region-inflight", "128"}
 	_, _, err = executeCommandC(cmd, args2...)
 	c.Assert(err, IsNil)
-	c.Assert(namespaceCfg.RegionScheduleLimit, Not(Equals), svr.GetNamespaceConfig("ts1").RegionScheduleLimit)
+	c.Assert(namespaceCfg.MaxBalanceRegionInflight, Not(Equals), svr.GetNamespaceConfig("ts1").MaxBalanceRegionInflight)
 	_, output, err = executeCommandC(cmd, args1...)
 	c.Assert(err, IsNil)
 	namespaceCfg = server.NamespaceConfig{}
-	c.Assert(json.Unmarshal(output, &namespaceCfg), IsNil)
-	c.Assert(namespaceCfg.RegionScheduleLimit, Equals, svr.GetNamespaceConfig("ts1").RegionScheduleLimit)
+	json.Unmarshal(output, &namespaceCfg)
+	c.Assert(namespaceCfg.MaxBalanceRegionInflight, Equals, svr.GetNamespaceConfig("ts1").MaxBalanceRegionInflight)
 
 	// config delete namespace <name>
 	args3 := []string{"-u", pdAddr, "config", "delete", "namespace", "ts1"}
@@ -705,8 +705,8 @@ func (s *cmdTestSuite) TestConfig(c *C) {
 	_, output, err = executeCommandC(cmd, args1...)
 	c.Assert(err, IsNil)
 	namespaceCfg = server.NamespaceConfig{}
-	c.Assert(json.Unmarshal(output, &namespaceCfg), IsNil)
-	c.Assert(namespaceCfg.RegionScheduleLimit, Not(Equals), svr.GetNamespaceConfig("ts1").RegionScheduleLimit)
+	json.Unmarshal(output, &namespaceCfg)
+	c.Assert(namespaceCfg.MaxBalanceRegionInflight, Not(Equals), svr.GetNamespaceConfig("ts1").MaxBalanceRegionInflight)
 
 	// config show label-property
 	args1 = []string{"-u", pdAddr, "config", "show", "label-property"}
@@ -739,7 +739,7 @@ func (s *cmdTestSuite) TestConfig(c *C) {
 	c.Assert(labelPropertyCfg, DeepEquals, svr.GetLabelProperty())
 
 	// config set <option> <value>
-	args1 = []string{"-u", pdAddr, "config", "set", "leader-schedule-limit", "64"}
+	args1 = []string{"-u", pdAddr, "config", "set", "max-balance-leader-inflight", "64"}
 	_, _, err = executeCommandC(cmd, args1...)
 	c.Assert(err, IsNil)
 	args1 = []string{"-u", pdAddr, "config", "set", "hot-region-schedule-limit", "64"}
@@ -752,13 +752,13 @@ func (s *cmdTestSuite) TestConfig(c *C) {
 	_, output, err = executeCommandC(cmd, args2...)
 	c.Assert(err, IsNil)
 	scheduleCfg = server.ScheduleConfig{}
-	c.Assert(json.Unmarshal(output, &scheduleCfg), IsNil)
-	c.Assert(scheduleCfg.LeaderScheduleLimit, Equals, svr.GetScheduleConfig().LeaderScheduleLimit)
-	c.Assert(scheduleCfg.HotRegionScheduleLimit, Equals, svr.GetScheduleConfig().HotRegionScheduleLimit)
+	json.Unmarshal(output, &scheduleCfg)
+	c.Assert(scheduleCfg.MaxBalanceLeaderInflight, Equals, svr.GetScheduleConfig().MaxBalanceLeaderInflight)
+	c.Assert(scheduleCfg.MaxHotRegionInflight, Equals, svr.GetScheduleConfig().MaxHotRegionInflight)
 	c.Assert(scheduleCfg.HotRegionCacheHitsThreshold, Equals, svr.GetScheduleConfig().HotRegionCacheHitsThreshold)
 	c.Assert(scheduleCfg.HotRegionCacheHitsThreshold, Equals, uint64(5))
-	c.Assert(scheduleCfg.HotRegionScheduleLimit, Equals, uint64(64))
-	c.Assert(scheduleCfg.LeaderScheduleLimit, Equals, uint64(64))
+	c.Assert(scheduleCfg.MaxHotRegionInflight, Equals, uint64(64))
+	c.Assert(scheduleCfg.MaxBalanceLeaderInflight, Equals, uint64(64))
 	args1 = []string{"-u", pdAddr, "config", "set", "disable-raft-learner", "true"}
 	_, _, err = executeCommandC(cmd, args1...)
 	c.Assert(err, IsNil)

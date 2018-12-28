@@ -86,10 +86,10 @@ func newCoordinator(cluster *clusterInfo, hbStreams *heartbeatStreams, classifie
 // The checkers will check these regions to decide if they need to do some operations.
 func (c *coordinator) patrolRegions() {
 	defer logutil.LogPanic()
-
 	defer c.wg.Done()
 	timer := time.NewTimer(c.cluster.GetPatrolRegionInterval())
 	defer timer.Stop()
+
 	log.Info("coordinator: start patrol regions")
 	start := time.Now()
 	var key []byte
@@ -109,7 +109,7 @@ func (c *coordinator) patrolRegions() {
 		}
 
 		for _, region := range regions {
-			// Skip the region if there is already a pending operator.
+			// Skips the region if there is already a pending operator.
 			if c.opController.GetRunningOperator(region.GetID()) != nil || c.opController.GetWaitingOperator(region.GetID()) != nil {
 				continue
 			}

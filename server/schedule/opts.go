@@ -39,6 +39,7 @@ type Options interface {
 	GetMaxScatterRangeInflight() uint64
 	GetMaxShuffleLeaderInflight() uint64
 	GetMaxShuffleRegionInflight() uint64
+	GetMaxShuffleHotRegionInflight() uint64
 
 	GetMaxSnapshotCount() uint64
 	GetMaxPendingPeerCount() uint64
@@ -83,6 +84,7 @@ type NamespaceOptions interface {
 	GetMaxScatterRangeInflight(name string) uint64
 	GetMaxShuffleLeaderInflight(name string) uint64
 	GetMaxShuffleRegionInflight(name string) uint64
+	GetMaxShuffleHotRegionInflight(name string) uint64
 	GetMaxReplicas(name string) int
 }
 
