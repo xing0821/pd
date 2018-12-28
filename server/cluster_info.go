@@ -674,6 +674,10 @@ func (c *clusterInfo) GetMaxShuffleRegionInflight() uint64 {
 	return c.opt.GetMaxShuffleRegionInflight(namespace.DefaultNamespace)
 }
 
+func (c *clusterInfo) GetMaxShuffleHotRegionInflight() uint64 {
+	return c.opt.GetMaxShuffleHotRegionInflight(namespace.DefaultNamespace)
+}
+
 func (c *clusterInfo) GetTolerantSizeRatio() float64 {
 	return c.opt.GetTolerantSizeRatio()
 }

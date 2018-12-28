@@ -202,6 +202,13 @@ func (o *scheduleOption) GetMaxShuffleRegionInflight(name string) uint64 {
 	return o.load().MaxShuffleRegionInflight
 }
 
+func (o *scheduleOption) GetMaxShuffleHotRegionInflight(name string) uint64 {
+	if n, ok := o.ns[name]; ok {
+		return n.GetMaxShuffleHotRegionInflight()
+	}
+	return o.load().MaxShuffleHotRegionInflight
+}
+
 func (o *scheduleOption) GetTolerantSizeRatio() float64 {
 	return o.load().TolerantSizeRatio
 }
@@ -547,4 +554,8 @@ func (n *namespaceOption) GetMaxShuffleLeaderInflight() uint64 {
 
 func (n *namespaceOption) GetMaxShuffleRegionInflight() uint64 {
 	return n.load().MaxShuffleRegionInflight
+}
+
+func (n *namespaceOption) GetMaxShuffleHotRegionInflight() uint64 {
+	return n.load().MaxShuffleHotRegionInflight
 }

@@ -535,7 +535,7 @@ func (h *Handler) AddAddLearnerOperator(regionID uint64, toStoreID uint64) error
 	steps := []schedule.OperatorStep{
 		schedule.AddLearner{ToStore: toStoreID, PeerID: newPeer.GetId()},
 	}
-	op := schedule.NewOperator("adminAddPeer", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpRegion, steps...)
+	op := schedule.NewOperator("admin-add-peer", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpRegion, steps...)
 	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}

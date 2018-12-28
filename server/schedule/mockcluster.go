@@ -449,6 +449,11 @@ func (mc *MockCluster) GetMaxShuffleRegionInflight() uint64 {
 	return mc.MockSchedulerOptions.GetMaxShuffleRegionInflight(namespace.DefaultNamespace)
 }
 
+// GetMaxShuffleHotRegionInflight mock method
+func (mc *MockCluster) GetMaxShuffleHotRegionInflight() uint64 {
+	return mc.MockSchedulerOptions.GetMaxShuffleHotRegionInflight(namespace.DefaultNamespace)
+}
+
 // GetMaxReplicas mocks method.
 func (mc *MockCluster) GetMaxReplicas() int {
 	return mc.MockSchedulerOptions.GetMaxReplicas(namespace.DefaultNamespace)
@@ -501,6 +506,7 @@ type MockSchedulerOptions struct {
 	MaxScatterRangeInflight            uint64
 	MaxShuffleLeaderInflight           uint64
 	MaxShuffleRegionInflight           uint64
+	MaxShuffleHotRegionInflight        uint64
 	MaxSnapshotCount                   uint64
 	MaxPendingPeerCount                uint64
 	MaxMergeRegionSize                 uint64
@@ -540,6 +546,7 @@ func NewMockSchedulerOptions() *MockSchedulerOptions {
 	mso.MaxScatterRangeInflight = defaultMaxDefaultScheduleInflight
 	mso.MaxShuffleLeaderInflight = defaultMaxDefaultScheduleInflight
 	mso.MaxShuffleRegionInflight = defaultMaxDefaultScheduleInflight
+	mso.MaxShuffleHotRegionInflight = defaultMaxDefaultScheduleInflight
 	mso.MaxSnapshotCount = defaultMaxSnapshotCount
 	mso.MaxMergeRegionSize = defaultMaxMergeRegionSize
 	mso.MaxMergeRegionKeys = defaultMaxMergeRegionKeys
@@ -622,6 +629,11 @@ func (mso *MockSchedulerOptions) GetMaxShuffleLeaderInflight(name string) uint64
 // GetMaxShuffleRegionInflight mock method
 func (mso *MockSchedulerOptions) GetMaxShuffleRegionInflight(name string) uint64 {
 	return mso.MaxShuffleRegionInflight
+}
+
+// GetMaxShuffleHotRegionInflight mock method
+func (mso *MockSchedulerOptions) GetMaxShuffleHotRegionInflight(name string) uint64 {
+	return mso.MaxShuffleHotRegionInflight
 }
 
 // GetMaxSnapshotCount mock method

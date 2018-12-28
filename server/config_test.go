@@ -95,7 +95,7 @@ lease = 0
 
 [schedule]
 max-merge-region-size = 0
-leader-schedule-limit = 0
+max-balance-leader-inflight = 0
 `
 	cfg := NewConfig()
 	meta, err := toml.Decode(cfgData, &cfg)
@@ -110,7 +110,7 @@ leader-schedule-limit = 0
 	c.Assert(cfg.LeaderLease, Equals, defaultLeaderLease)
 	// When defined, use values from config file.
 	c.Assert(cfg.Schedule.MaxMergeRegionSize, Equals, uint64(0))
-	c.Assert(cfg.Schedule.LeaderScheduleLimit, Equals, uint64(0))
+	c.Assert(cfg.Schedule.MaxBalanceLeaderInflight, Equals, uint64(0))
 	// When undefined, use default values.
 	c.Assert(cfg.PreVote, IsTrue)
 	c.Assert(cfg.Schedule.MaxMergeRegionKeys, Equals, uint64(defaultMaxMergeRegionKeys))
