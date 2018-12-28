@@ -237,6 +237,11 @@ types:
   ShuffleRegionScheduler:
     type: Scheduler
     discriminatorValue: shuffle-region-scheduler
+  ShuffleHotRegionScheduler:
+    type: Scheduler
+    discriminatorValue: shuffle-hot-region-scheduler
+    properties:
+      limit: integer
   RandomMergeScheduler:
     type: Scheduler
     discriminatorValue: random-merge-scheduler
@@ -268,6 +273,12 @@ types:
   AddPeerOperator:
     type: Operator
     discriminatorValue: add-peer
+    properties:
+      region_id: integer
+      store_id: integer
+  AddLearnerOperator:
+    type: Operator
+    discriminatorValue: add-learner
     properties:
       region_id: integer
       store_id: integer
@@ -879,12 +890,12 @@ types:
             description: The input is invalid.
           500:
             description: PD server failed to proceed the request.
-  /key/{key}:
-        uriParameters:
-          key: string
+  /key:
         get:
-          description: List regions from a key.
+          description: List regions start from a key.
           queryParameters:
+            key:
+              type: string
             limit?:
               type: integer
               default: 16
@@ -1025,7 +1036,7 @@ types:
         500:
           description: PD server failed to proceed the request.
     delete:
-      description: Cancel a Region's pending operator.      
+      description: Cancel a Region's pending operator.
       responses:
         200:
           description: The pending operator is cancelled.

@@ -26,15 +26,15 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("hot-region", func(limiter *schedule.Limiter, args []string) (schedule.Scheduler, error) {
-		return newBalanceHotRegionsScheduler(limiter), nil
+	schedule.RegisterScheduler("hot-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+		return newBalanceHotRegionsScheduler(opController), nil
 	})
 	// FIXME: remove this two schedule after the balance test move in schedulers package
-	schedule.RegisterScheduler("hot-write-region", func(limiter *schedule.Limiter, args []string) (schedule.Scheduler, error) {
-		return newBalanceHotWriteRegionsScheduler(limiter), nil
+	schedule.RegisterScheduler("hot-write-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+		return newBalanceHotWriteRegionsScheduler(opController), nil
 	})
-	schedule.RegisterScheduler("hot-read-region", func(limiter *schedule.Limiter, args []string) (schedule.Scheduler, error) {
-		return newBalanceHotReadRegionsScheduler(limiter), nil
+	schedule.RegisterScheduler("hot-read-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+		return newBalanceHotReadRegionsScheduler(opController), nil
 	})
 }
 
@@ -77,8 +77,8 @@ type balanceHotRegionsScheduler struct {
 	r     *rand.Rand
 }
 
-func newBalanceHotRegionsScheduler(limiter *schedule.Limiter) *balanceHotRegionsScheduler {
-	base := newBaseScheduler(limiter)
+func newBalanceHotRegionsScheduler(opController *schedule.OperatorController) *balanceHotRegionsScheduler {
+	base := newBaseScheduler(opController)
 	return &balanceHotRegionsScheduler{
 		baseScheduler: base,
 		limit:         1,
@@ -88,8 +88,8 @@ func newBalanceHotRegionsScheduler(limiter *schedule.Limiter) *balanceHotRegions
 	}
 }
 
-func newBalanceHotReadRegionsScheduler(limiter *schedule.Limiter) *balanceHotRegionsScheduler {
-	base := newBaseScheduler(limiter)
+func newBalanceHotReadRegionsScheduler(opController *schedule.OperatorController) *balanceHotRegionsScheduler {
+	base := newBaseScheduler(opController)
 	return &balanceHotRegionsScheduler{
 		baseScheduler: base,
 		limit:         1,
@@ -99,8 +99,8 @@ func newBalanceHotReadRegionsScheduler(limiter *schedule.Limiter) *balanceHotReg
 	}
 }
 
-func newBalanceHotWriteRegionsScheduler(limiter *schedule.Limiter) *balanceHotRegionsScheduler {
-	base := newBaseScheduler(limiter)
+func newBalanceHotWriteRegionsScheduler(opController *schedule.OperatorController) *balanceHotRegionsScheduler {
+	base := newBaseScheduler(opController)
 	return &balanceHotRegionsScheduler{
 		baseScheduler: base,
 		limit:         1,
@@ -123,16 +123,16 @@ func (h *balanceHotRegionsScheduler) IsScheduleAllowed(cluster schedule.Cluster)
 }
 
 func (h *balanceHotRegionsScheduler) allowBalanceLeader(cluster schedule.Cluster) bool {
-	return h.limiter.OperatorCount(schedule.OpHotRegion) < h.limit &&
-		h.limiter.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
+	return h.opController.OperatorCount(schedule.OpHotRegion) < h.limit &&
+		h.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
 }
 
 func (h *balanceHotRegionsScheduler) allowBalanceRegion(cluster schedule.Cluster) bool {
-	return h.limiter.OperatorCount(schedule.OpHotRegion) < h.limit &&
-		h.limiter.OperatorCount(schedule.OpRegion) < cluster.GetRegionScheduleLimit()
+	return h.opController.OperatorCount(schedule.OpHotRegion) < h.limit &&
+		h.opController.OperatorCount(schedule.OpRegion) < cluster.GetRegionScheduleLimit()
 }
 
-func (h *balanceHotRegionsScheduler) Schedule(cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
+func (h *balanceHotRegionsScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
 	schedulerCounter.WithLabelValues(h.GetName(), "schedule").Inc()
 	return h.dispatch(h.types[h.r.Int()%len(h.types)], cluster)
 }
@@ -142,11 +142,11 @@ func (h *balanceHotRegionsScheduler) dispatch(typ BalanceType, cluster schedule.
 	defer h.Unlock()
 	switch typ {
 	case hotReadRegionBalance:
-		h.stats.readStatAsLeader = h.calcScore(cluster.RegionReadStats(), cluster, core.LeaderKind)
+		h.stats.readStatAsLeader = calcScore(cluster.RegionReadStats(), cluster, core.LeaderKind)
 		return h.balanceHotReadRegions(cluster)
 	case hotWriteRegionBalance:
-		h.stats.writeStatAsLeader = h.calcScore(cluster.RegionWriteStats(), cluster, core.LeaderKind)
-		h.stats.writeStatAsPeer = h.calcScore(cluster.RegionWriteStats(), cluster, core.RegionKind)
+		h.stats.writeStatAsLeader = calcScore(cluster.RegionWriteStats(), cluster, core.LeaderKind)
+		h.stats.writeStatAsPeer = calcScore(cluster.RegionWriteStats(), cluster, core.RegionKind)
 		return h.balanceHotWriteRegions(cluster)
 	}
 	return nil
@@ -199,9 +199,12 @@ func (h *balanceHotRegionsScheduler) balanceHotWriteRegions(cluster schedule.Clu
 	return nil
 }
 
-func (h *balanceHotRegionsScheduler) calcScore(items []*core.RegionStat, cluster schedule.Cluster, kind core.ResourceKind) core.StoreHotRegionsStat {
+func calcScore(items []*core.RegionStat, cluster schedule.Cluster, kind core.ResourceKind) core.StoreHotRegionsStat {
 	stats := make(core.StoreHotRegionsStat)
 	for _, r := range items {
+		// HotDegree is the update times on the hot cache. If the heartbeat report
+		// the flow of the region exceeds the threshold, the scheduler will update the region in
+		// the hot cache and the hotdegree of the region will increase.
 		if r.HotDegree < cluster.GetHotRegionLowThreshold() {
 			continue
 		}
@@ -247,6 +250,7 @@ func (h *balanceHotRegionsScheduler) calcScore(items []*core.RegionStat, cluster
 	return stats
 }
 
+// balanceByPeer balances the peer distribution of hot regions.
 func (h *balanceHotRegionsScheduler) balanceByPeer(cluster schedule.Cluster, storesStat core.StoreHotRegionsStat) (*core.RegionInfo, *metapb.Peer, *metapb.Peer) {
 	if !h.allowBalanceRegion(cluster) {
 		return nil, nil, nil
@@ -307,6 +311,7 @@ func (h *balanceHotRegionsScheduler) balanceByPeer(cluster schedule.Cluster, sto
 	return nil, nil, nil
 }
 
+// balanceByLeader balances the leader distribution of hot regions.
 func (h *balanceHotRegionsScheduler) balanceByLeader(cluster schedule.Cluster, storesStat core.StoreHotRegionsStat) (*core.RegionInfo, *metapb.Peer) {
 	if !h.allowBalanceLeader(cluster) {
 		return nil, nil

@@ -37,6 +37,7 @@ const (
 	zeroGrowth
 )
 
+// intervalGrow calculates the next interval of balance.
 func intervalGrow(x time.Duration, maxInterval time.Duration, typ intervalGrowthType) time.Duration {
 	switch typ {
 	case exponentailGrowth:
@@ -52,11 +53,11 @@ func intervalGrow(x time.Duration, maxInterval time.Duration, typ intervalGrowth
 }
 
 type baseScheduler struct {
-	limiter *schedule.Limiter
+	opController *schedule.OperatorController
 }
 
-func newBaseScheduler(limiter *schedule.Limiter) *baseScheduler {
-	return &baseScheduler{limiter: limiter}
+func newBaseScheduler(opController *schedule.OperatorController) *baseScheduler {
+	return &baseScheduler{opController: opController}
 }
 
 func (s *baseScheduler) GetMinInterval() time.Duration {

@@ -14,6 +14,7 @@
 package pd
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
@@ -27,7 +28,6 @@ import (
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -163,7 +163,9 @@ func (c *client) initClusterID() error {
 	defer cancel()
 	for i := 0; i < maxInitClusterRetries; i++ {
 		for _, u := range c.urls {
-			members, err := c.getMembers(ctx, u)
+			timeoutCtx, timeoutCancel := context.WithTimeout(ctx, pdTimeout)
+			members, err := c.getMembers(timeoutCtx, u)
+			timeoutCancel()
 			if err != nil || members.GetHeader() == nil {
 				log.Errorf("[pd] failed to get cluster id: %v", err)
 				continue

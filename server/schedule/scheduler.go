@@ -14,7 +14,6 @@
 package schedule
 
 import (
-	"sync"
 	"time"
 
 	"github.com/pingcap/kvproto/pkg/metapb"
@@ -64,12 +63,12 @@ type Scheduler interface {
 	GetNextInterval(interval time.Duration) time.Duration
 	Prepare(cluster Cluster) error
 	Cleanup(cluster Cluster)
-	Schedule(cluster Cluster, opInfluence OpInfluence) []*Operator
+	Schedule(cluster Cluster) []*Operator
 	IsScheduleAllowed(cluster Cluster) bool
 }
 
 // CreateSchedulerFunc is for creating scheudler.
-type CreateSchedulerFunc func(limiter *Limiter, args []string) (Scheduler, error)
+type CreateSchedulerFunc func(opController *OperatorController, args []string) (Scheduler, error)
 
 var schedulerMap = make(map[string]CreateSchedulerFunc)
 
@@ -83,48 +82,10 @@ func RegisterScheduler(name string, createFn CreateSchedulerFunc) {
 }
 
 // CreateScheduler creates a scheduler with registered creator func.
-func CreateScheduler(name string, limiter *Limiter, args ...string) (Scheduler, error) {
+func CreateScheduler(name string, opController *OperatorController, args ...string) (Scheduler, error) {
 	fn, ok := schedulerMap[name]
 	if !ok {
 		return nil, errors.Errorf("create func of %v is not registered", name)
 	}
-	return fn(limiter, args)
-}
-
-// Limiter a counter that limits the number of operators
-type Limiter struct {
-	sync.RWMutex
-	counts map[OperatorKind]uint64
-}
-
-// NewLimiter create a schedule limiter
-func NewLimiter() *Limiter {
-	return &Limiter{
-		counts: make(map[OperatorKind]uint64),
-	}
-}
-
-// UpdateCounts updates resouce counts using current pending operators.
-func (l *Limiter) UpdateCounts(operators map[uint64]*Operator) {
-	l.Lock()
-	defer l.Unlock()
-	for k := range l.counts {
-		delete(l.counts, k)
-	}
-	for _, op := range operators {
-		l.counts[op.Kind()]++
-	}
-}
-
-// OperatorCount gets the count of operators filtered by mask.
-func (l *Limiter) OperatorCount(mask OperatorKind) uint64 {
-	l.RLock()
-	defer l.RUnlock()
-	var total uint64
-	for k, count := range l.counts {
-		if k&mask != 0 {
-			total += count
-		}
-	}
-	return total
+	return fn(opController, args)
 }

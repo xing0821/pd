@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pingcap/errcode"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pingcap/pd/server/core"
@@ -65,6 +66,8 @@ func (h *Handler) getCoordinator() (*coordinator, error) {
 	if cluster == nil {
 		return nil, errors.WithStack(ErrNotBootstrapped)
 	}
+	cluster.RLock()
+	defer cluster.RUnlock()
 	return cluster.coordinator, nil
 }
 
@@ -119,6 +122,8 @@ func (h *Handler) GetHotBytesWriteStores() map[uint64]uint64 {
 	if cluster == nil {
 		return nil
 	}
+	cluster.RLock()
+	defer cluster.RUnlock()
 	return cluster.cachedCluster.getStoresBytesWriteStat()
 }
 
@@ -128,6 +133,8 @@ func (h *Handler) GetHotBytesReadStores() map[uint64]uint64 {
 	if cluster == nil {
 		return nil
 	}
+	cluster.RLock()
+	defer cluster.RUnlock()
 	return cluster.cachedCluster.getStoresBytesReadStat()
 }
 
@@ -137,6 +144,8 @@ func (h *Handler) GetHotKeysWriteStores() map[uint64]uint64 {
 	if cluster == nil {
 		return nil
 	}
+	cluster.RLock()
+	defer cluster.RUnlock()
 	return cluster.cachedCluster.getStoresKeysWriteStat()
 }
 
@@ -146,6 +155,8 @@ func (h *Handler) GetHotKeysReadStores() map[uint64]uint64 {
 	if cluster == nil {
 		return nil
 	}
+	cluster.RLock()
+	defer cluster.RUnlock()
 	return cluster.cachedCluster.getStoresKeysReadStat()
 }
 
@@ -155,7 +166,7 @@ func (h *Handler) AddScheduler(name string, args ...string) error {
 	if err != nil {
 		return err
 	}
-	s, err := schedule.CreateScheduler(name, c.limiter, args...)
+	s, err := schedule.CreateScheduler(name, c.opController, args...)
 	if err != nil {
 		return err
 	}
@@ -232,6 +243,11 @@ func (h *Handler) AddShuffleRegionScheduler() error {
 	return h.AddScheduler("shuffle-region")
 }
 
+// AddShuffleHotRegionScheduler adds a shuffle-hot-region-scheduler.
+func (h *Handler) AddShuffleHotRegionScheduler(limit uint64) error {
+	return h.AddScheduler("shuffle-hot-region", strconv.FormatUint(limit, 10))
+}
+
 // AddRandomMergeScheduler adds a random-merge-scheduler.
 func (h *Handler) AddRandomMergeScheduler() error {
 	return h.AddScheduler("random-merge")
@@ -244,7 +260,7 @@ func (h *Handler) GetOperator(regionID uint64) (*schedule.Operator, error) {
 		return nil, err
 	}
 
-	op := c.getOperator(regionID)
+	op := c.opController.GetOperator(regionID)
 	if op == nil {
 		return nil, ErrOperatorNotFound
 	}
@@ -259,12 +275,12 @@ func (h *Handler) RemoveOperator(regionID uint64) error {
 		return err
 	}
 
-	op := c.getOperator(regionID)
+	op := c.opController.GetOperator(regionID)
 	if op == nil {
 		return ErrOperatorNotFound
 	}
 
-	c.removeOperator(op)
+	c.opController.RemoveOperator(op)
 	return nil
 }
 
@@ -274,7 +290,7 @@ func (h *Handler) GetOperators() ([]*schedule.Operator, error) {
 	if err != nil {
 		return nil, err
 	}
-	return c.getOperators(), nil
+	return c.opController.GetOperators(), nil
 }
 
 // GetAdminOperators returns the running admin operators.
@@ -313,7 +329,7 @@ func (h *Handler) GetHistory(start time.Time) ([]schedule.OperatorHistory, error
 	if err != nil {
 		return nil, err
 	}
-	return c.getHistory(start), nil
+	return c.opController.GetHistory(start), nil
 }
 
 var errAddOperator = errors.New("failed to add operator, maybe already have one")
@@ -336,7 +352,7 @@ func (h *Handler) AddTransferLeaderOperator(regionID uint64, storeID uint64) err
 
 	step := schedule.TransferLeader{FromStore: region.GetLeader().GetStoreId(), ToStore: newLeader.GetStoreId()}
 	op := schedule.NewOperator("adminTransferLeader", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpLeader, step)
-	if ok := c.addOperator(op); !ok {
+	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
 	return nil
@@ -358,11 +374,15 @@ func (h *Handler) AddTransferRegionOperator(regionID uint64, storeIDs map[uint64
 
 	// Add missing peers.
 	for id := range storeIDs {
-		if c.cluster.GetStore(id) == nil {
+		store := c.cluster.GetStore(id)
+		if store == nil {
 			return core.NewStoreNotFoundErr(id)
 		}
 		if region.GetStorePeer(id) != nil {
 			continue
+		}
+		if store.IsTombstone() {
+			return errcode.Op("operator.add").AddTo(core.StoreTombstonedErr{StoreID: id})
 		}
 		peer, err := c.cluster.AllocPeer(id)
 		if err != nil {
@@ -387,7 +407,7 @@ func (h *Handler) AddTransferRegionOperator(regionID uint64, storeIDs map[uint64
 	}
 
 	op := schedule.NewOperator("adminMoveRegion", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpRegion, steps...)
-	if ok := c.addOperator(op); !ok {
+	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
 	return nil
@@ -410,40 +430,60 @@ func (h *Handler) AddTransferPeerOperator(regionID uint64, fromStoreID, toStoreI
 		return errors.Errorf("region has no peer in store %v", fromStoreID)
 	}
 
-	if c.cluster.GetStore(toStoreID) == nil {
+	toStore := c.cluster.GetStore(toStoreID)
+	if toStore == nil {
 		return core.NewStoreNotFoundErr(toStoreID)
 	}
+	if toStore.IsTombstone() {
+		return errcode.Op("operator.add").AddTo(core.StoreTombstonedErr{StoreID: toStoreID})
+	}
+
 	newPeer, err := c.cluster.AllocPeer(toStoreID)
 	if err != nil {
 		return err
 	}
 
 	op := schedule.CreateMovePeerOperator("adminMovePeer", c.cluster, region, schedule.OpAdmin, fromStoreID, toStoreID, newPeer.GetId())
-	if ok := c.addOperator(op); !ok {
+	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
 	return nil
 }
 
-// AddAddPeerOperator adds an operator to add peer.
-func (h *Handler) AddAddPeerOperator(regionID uint64, toStoreID uint64) error {
+// checkAdminAddPeerOperator checks adminAddPeer operator with given region ID and store ID.
+func (h *Handler) checkAdminAddPeerOperator(regionID uint64, toStoreID uint64) (*coordinator, *core.RegionInfo, error) {
 	c, err := h.getCoordinator()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	region := c.cluster.GetRegion(regionID)
 	if region == nil {
-		return ErrRegionNotFound(regionID)
+		return nil, nil, ErrRegionNotFound(regionID)
 	}
 
 	if region.GetStorePeer(toStoreID) != nil {
-		return errors.Errorf("region already has peer in store %v", toStoreID)
+		return nil, nil, errors.Errorf("region already has peer in store %v", toStoreID)
 	}
 
-	if c.cluster.GetStore(toStoreID) == nil {
-		return core.NewStoreNotFoundErr(toStoreID)
+	toStore := c.cluster.GetStore(toStoreID)
+	if toStore == nil {
+		return nil, nil, core.NewStoreNotFoundErr(toStoreID)
 	}
+	if toStore.IsTombstone() {
+		return nil, nil, errcode.Op("operator.add").AddTo(core.StoreTombstonedErr{StoreID: toStoreID})
+	}
+
+	return c, region, nil
+}
+
+// AddAddPeerOperator adds an operator to add peer.
+func (h *Handler) AddAddPeerOperator(regionID uint64, toStoreID uint64) error {
+	c, region, err := h.checkAdminAddPeerOperator(regionID, toStoreID)
+	if err != nil {
+		return err
+	}
+
 	newPeer, err := c.cluster.AllocPeer(toStoreID)
 	if err != nil {
 		return err
@@ -461,7 +501,33 @@ func (h *Handler) AddAddPeerOperator(regionID uint64, toStoreID uint64) error {
 		}
 	}
 	op := schedule.NewOperator("adminAddPeer", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpRegion, steps...)
-	if ok := c.addOperator(op); !ok {
+	if ok := c.opController.AddOperator(op); !ok {
+		return errors.WithStack(errAddOperator)
+	}
+	return nil
+}
+
+// AddAddLearnerOperator adds an operator to add learner.
+func (h *Handler) AddAddLearnerOperator(regionID uint64, toStoreID uint64) error {
+	c, region, err := h.checkAdminAddPeerOperator(regionID, toStoreID)
+	if err != nil {
+		return err
+	}
+
+	if !c.cluster.IsRaftLearnerEnabled() {
+		return ErrOperatorNotFound
+	}
+
+	newPeer, err := c.cluster.AllocPeer(toStoreID)
+	if err != nil {
+		return err
+	}
+
+	steps := []schedule.OperatorStep{
+		schedule.AddLearner{ToStore: toStoreID, PeerID: newPeer.GetId()},
+	}
+	op := schedule.NewOperator("adminAddPeer", regionID, region.GetRegionEpoch(), schedule.OpAdmin|schedule.OpRegion, steps...)
+	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
 	return nil
@@ -484,7 +550,7 @@ func (h *Handler) AddRemovePeerOperator(regionID uint64, fromStoreID uint64) err
 	}
 
 	op := schedule.CreateRemovePeerOperator("adminRemovePeer", c.cluster, schedule.OpAdmin, region, fromStoreID)
-	if ok := c.addOperator(op); !ok {
+	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
 	return nil
@@ -523,11 +589,11 @@ func (h *Handler) AddMergeRegionOperator(regionID uint64, targetID uint64) error
 		return ErrRegionNotAdjacent
 	}
 
-	op1, op2, err := schedule.CreateMergeRegionOperator("adminMergeRegion", c.cluster, region, target, schedule.OpAdmin)
+	ops, err := schedule.CreateMergeRegionOperator("adminMergeRegion", c.cluster, region, target, schedule.OpAdmin)
 	if err != nil {
 		return err
 	}
-	if ok := c.addOperator(op1, op2); !ok {
+	if ok := c.opController.AddOperator(ops...); !ok {
 		return errors.WithStack(ErrAddOperator)
 	}
 	return nil
@@ -551,7 +617,7 @@ func (h *Handler) AddSplitRegionOperator(regionID uint64, policy string) error {
 		Policy:   pdpb.CheckPolicy(pdpb.CheckPolicy_value[strings.ToUpper(policy)]),
 	}
 	op := schedule.NewOperator("adminSplitRegion", regionID, region.GetRegionEpoch(), schedule.OpAdmin, step)
-	if ok := c.addOperator(op); !ok {
+	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
 	return nil
@@ -573,7 +639,7 @@ func (h *Handler) AddScatterRegionOperator(regionID uint64) error {
 	if op == nil {
 		return nil
 	}
-	if ok := c.addOperator(op); !ok {
+	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
 	return nil
@@ -585,6 +651,8 @@ func (h *Handler) GetDownPeerRegions() ([]*core.RegionInfo, error) {
 	if c == nil {
 		return nil, ErrNotBootstrapped
 	}
+	c.RLock()
+	defer c.RUnlock()
 	return c.cachedCluster.GetRegionStatsByType(downPeer), nil
 }
 
@@ -594,6 +662,8 @@ func (h *Handler) GetExtraPeerRegions() ([]*core.RegionInfo, error) {
 	if c == nil {
 		return nil, ErrNotBootstrapped
 	}
+	c.RLock()
+	defer c.RUnlock()
 	return c.cachedCluster.GetRegionStatsByType(extraPeer), nil
 }
 
@@ -603,6 +673,8 @@ func (h *Handler) GetMissPeerRegions() ([]*core.RegionInfo, error) {
 	if c == nil {
 		return nil, ErrNotBootstrapped
 	}
+	c.RLock()
+	defer c.RUnlock()
 	return c.cachedCluster.GetRegionStatsByType(missPeer), nil
 }
 
@@ -612,6 +684,8 @@ func (h *Handler) GetPendingPeerRegions() ([]*core.RegionInfo, error) {
 	if c == nil {
 		return nil, ErrNotBootstrapped
 	}
+	c.RLock()
+	defer c.RUnlock()
 	return c.cachedCluster.GetRegionStatsByType(pendingPeer), nil
 }
 
@@ -621,5 +695,7 @@ func (h *Handler) GetIncorrectNamespaceRegions() ([]*core.RegionInfo, error) {
 	if c == nil {
 		return nil, ErrNotBootstrapped
 	}
+	c.RLock()
+	defer c.RUnlock()
 	return c.cachedCluster.GetRegionStatsByType(incorrectNamespace), nil
 }

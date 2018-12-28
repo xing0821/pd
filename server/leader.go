@@ -30,7 +30,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// IsLeader returns whether server is leader or not.
+// IsLeader returns whether the server is leader or not.
 func (s *Server) IsLeader() bool {
 	// If server is not started. Both leaderID and ID could be 0.
 	return !s.isClosed() && s.GetLeaderID() == s.ID()
@@ -41,7 +41,7 @@ func (s *Server) GetLeaderID() uint64 {
 	return s.GetLeader().GetMemberId()
 }
 
-// GetLeader returns current leader of pd cluster.
+// GetLeader returns current leader of PD cluster.
 func (s *Server) GetLeader() *pdpb.Member {
 	leader := s.leader.Load()
 	if leader == nil {
@@ -82,7 +82,7 @@ func (s *Server) leaderLoop() {
 			continue
 		}
 
-		leader, err := getLeader(s.client, s.getLeaderPath())
+		leader, rev, err := getLeader(s.client, s.getLeaderPath())
 		if err != nil {
 			log.Errorf("get leader err %v", err)
 			time.Sleep(200 * time.Millisecond)
@@ -100,7 +100,7 @@ func (s *Server) leaderLoop() {
 				}
 			} else {
 				log.Infof("leader is %s, watch it", leader)
-				s.watchLeader(leader)
+				s.watchLeader(leader, rev)
 				log.Info("leader changed, try to campaign leader")
 			}
 		}
@@ -126,7 +126,7 @@ func (s *Server) etcdLeaderLoop() {
 	defer cancel()
 	for {
 		select {
-		case <-time.After(s.cfg.leaderPriorityCheckInterval.Duration):
+		case <-time.After(s.cfg.LeaderPriorityCheckInterval.Duration):
 			etcdLeader := s.GetEtcdLeader()
 			if etcdLeader == s.ID() || etcdLeader == 0 {
 				break
@@ -157,17 +157,17 @@ func (s *Server) etcdLeaderLoop() {
 }
 
 // getLeader gets server leader from etcd.
-func getLeader(c *clientv3.Client, leaderPath string) (*pdpb.Member, error) {
+func getLeader(c *clientv3.Client, leaderPath string) (*pdpb.Member, int64, error) {
 	leader := &pdpb.Member{}
-	ok, err := getProtoMsg(c, leaderPath, leader)
+	ok, rev, err := getProtoMsgWithModRev(c, leaderPath, leader)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if !ok {
-		return nil, nil
+		return nil, 0, nil
 	}
 
-	return leader, nil
+	return leader, rev, nil
 }
 
 // GetEtcdLeader returns the etcd leader ID.
@@ -284,12 +284,14 @@ func (s *Server) campaignLeader() error {
 				return nil
 			}
 		case <-ctx.Done():
-			return errors.New("server closed")
+			// Server is closed and it should return nil.
+			log.Info("server is closed")
+			return nil
 		}
 	}
 }
 
-func (s *Server) watchLeader(leader *pdpb.Member) {
+func (s *Server) watchLeader(leader *pdpb.Member, revision int64) {
 	s.leader.Store(leader)
 	defer s.leader.Store(&pdpb.Member{})
 
@@ -303,15 +305,23 @@ func (s *Server) watchLeader(leader *pdpb.Member) {
 		log.Error("reload config failed:", err)
 		return
 	}
-	if s.scheduleOpt.loadPDServerConfig().EnableRegionStorage {
-		s.cluster.regionSyncer.startSyncWithLeader(leader.GetClientUrls()[0])
-		defer s.cluster.regionSyncer.stopSyncWithLeader()
+	if s.scheduleOpt.loadPDServerConfig().UseRegionStorage {
+		s.cluster.regionSyncer.StartSyncWithLeader(leader.GetClientUrls()[0])
+		defer s.cluster.regionSyncer.StopSyncWithLeader()
 	}
 
 	for {
-		rch := watcher.Watch(ctx, s.getLeaderPath())
+		// gofail: var delayWatcher struct{}
+		rch := watcher.Watch(ctx, s.getLeaderPath(), clientv3.WithRev(revision))
 		for wresp := range rch {
+			// meet compacted error, use current revision.
+			if wresp.CompactRevision != 0 {
+				log.Warnf("required revision %d has been compacted, use current revision", revision)
+				revision = 0
+				break
+			}
 			if wresp.Canceled {
+				log.Errorf("leader watcher is canceled with revision: %d, error: %s", revision, wresp.Err())
 				return
 			}
 
@@ -379,7 +389,7 @@ func (s *Server) reloadConfigFromKV() error {
 	if err != nil {
 		return err
 	}
-	if s.scheduleOpt.loadPDServerConfig().EnableRegionStorage {
+	if s.scheduleOpt.loadPDServerConfig().UseRegionStorage {
 		s.kv.SwitchToRegionStorage()
 		log.Info("server enable region storage")
 	} else {

@@ -24,8 +24,8 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("balance-leader", func(limiter *schedule.Limiter, args []string) (schedule.Scheduler, error) {
-		return newBalanceLeaderScheduler(limiter), nil
+	schedule.RegisterScheduler("balance-leader", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+		return newBalanceLeaderScheduler(opController), nil
 	})
 }
 
@@ -34,24 +34,27 @@ const balanceLeaderRetryLimit = 10
 
 type balanceLeaderScheduler struct {
 	*baseScheduler
-	selector    *schedule.BalanceSelector
-	taintStores *cache.TTLUint64
+	selector     *schedule.BalanceSelector
+	taintStores  *cache.TTLUint64
+	opController *schedule.OperatorController
 }
 
 // newBalanceLeaderScheduler creates a scheduler that tends to keep leaders on
 // each store balanced.
-func newBalanceLeaderScheduler(limiter *schedule.Limiter) schedule.Scheduler {
+func newBalanceLeaderScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	taintStores := newTaintCache()
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{TransferLeader: true},
 		schedule.NewCacheFilter(taintStores),
 	}
-	base := newBaseScheduler(limiter)
-	return &balanceLeaderScheduler{
+	base := newBaseScheduler(opController)
+	s := &balanceLeaderScheduler{
 		baseScheduler: base,
 		selector:      schedule.NewBalanceSelector(core.LeaderKind, filters),
 		taintStores:   taintStores,
+		opController:  opController,
 	}
+	return s
 }
 
 func (l *balanceLeaderScheduler) GetName() string {
@@ -63,10 +66,10 @@ func (l *balanceLeaderScheduler) GetType() string {
 }
 
 func (l *balanceLeaderScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return l.limiter.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
+	return l.opController.OperatorCount(schedule.OpLeader) < cluster.GetLeaderScheduleLimit()
 }
 
-func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
+func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
 	schedulerCounter.WithLabelValues(l.GetName(), "schedule").Inc()
 
 	stores := cluster.GetStores()
@@ -93,6 +96,7 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster, opInfluence 
 	balanceLeaderCounter.WithLabelValues("high_score", sourceStoreLabel).Inc()
 	balanceLeaderCounter.WithLabelValues("low_score", targetStoreLabel).Inc()
 
+	opInfluence := l.opController.GetOpInfluence(cluster)
 	for i := 0; i < balanceLeaderRetryLimit; i++ {
 		if op := l.transferLeaderOut(source, cluster, opInfluence); op != nil {
 			balanceLeaderCounter.WithLabelValues("transfer_out", sourceStoreLabel).Inc()
@@ -113,6 +117,9 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster, opInfluence 
 	return nil
 }
 
+// transferLeaderOut transfers leader from the source store.
+// It randomly selects a health region from the source store, then picks
+// the best follower peer and transfers the leader.
 func (l *balanceLeaderScheduler) transferLeaderOut(source *core.StoreInfo, cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
 	region := cluster.RandLeaderRegion(source.GetId(), core.HealthRegion())
 	if region == nil {
@@ -129,6 +136,9 @@ func (l *balanceLeaderScheduler) transferLeaderOut(source *core.StoreInfo, clust
 	return l.createOperator(region, source, target, cluster, opInfluence)
 }
 
+// transferLeaderIn transfers leader to the target store.
+// It randomly selects a health region from the target store, then picks
+// the worst follower peer and transfers the leader.
 func (l *balanceLeaderScheduler) transferLeaderIn(target *core.StoreInfo, cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
 	region := cluster.RandFollowerRegion(target.GetId(), core.HealthRegion())
 	if region == nil {
@@ -145,6 +155,10 @@ func (l *balanceLeaderScheduler) transferLeaderIn(target *core.StoreInfo, cluste
 	return l.createOperator(region, source, target, cluster, opInfluence)
 }
 
+// createOperator creates the operator according to the source and target store.
+// If the region is hot or the difference between the two stores is tolerable, then
+// no new operator need to be created, otherwise create an operator that transfers
+// the leader from the source store to the target store for the region.
 func (l *balanceLeaderScheduler) createOperator(region *core.RegionInfo, source, target *core.StoreInfo, cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
 	if cluster.IsRegionHot(region.GetID()) {
 		log.Debugf("[%s] region %d is hot region, ignore it", l.GetName(), region.GetID())

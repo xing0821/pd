@@ -30,6 +30,7 @@ import (
 	"github.com/coreos/etcd/embed"
 	"github.com/coreos/etcd/pkg/types"
 	"github.com/coreos/go-semver/semver"
+	"github.com/golang/protobuf/proto"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pingcap/pd/pkg/etcdutil"
@@ -43,6 +44,7 @@ import (
 
 const (
 	etcdTimeout           = time.Second * 3
+	etcdStartTimeout      = time.Minute * 5
 	serverMetricsInterval = time.Minute
 	// pdRootPath for all pd servers.
 	pdRootPath      = "/pd"
@@ -134,6 +136,9 @@ func CreateServer(cfg *Config, apiRegister func(*Server) http.Handler) (*Server,
 
 func (s *Server) startEtcd(ctx context.Context) error {
 	log.Info("start embed etcd")
+	ctx, cancel := context.WithTimeout(ctx, etcdStartTimeout)
+	defer cancel()
+
 	etcd, err := embed.StartEtcd(s.etcdCfg)
 	if err != nil {
 		return errors.WithStack(err)
@@ -300,6 +305,11 @@ func (s *Server) Run(ctx context.Context) error {
 	return nil
 }
 
+// Context returns the loop context of server.
+func (s *Server) Context() context.Context {
+	return s.serverLoopCtx
+}
+
 func (s *Server) startServerLoop() {
 	s.serverLoopCtx, s.serverLoopCancel = context.WithCancel(context.Background())
 	s.serverLoopWg.Add(3)
@@ -429,6 +439,11 @@ func (s *Server) GetAddr() string {
 	return s.cfg.AdvertiseClientUrls
 }
 
+// GetMemberInfo returns the server member information.
+func (s *Server) GetMemberInfo() *pdpb.Member {
+	return proto.Clone(s.member).(*pdpb.Member)
+}
+
 // GetHandler returns the handler for API.
 func (s *Server) GetHandler() *Handler {
 	return s.handler
@@ -444,6 +459,11 @@ func (s *Server) GetClient() *clientv3.Client {
 	return s.client
 }
 
+// GetStorage returns the backend storage of server.
+func (s *Server) GetStorage() *core.KV {
+	return s.kv
+}
+
 // ID returns the unique etcd ID for this server in etcd cluster.
 func (s *Server) ID() uint64 {
 	return s.id
@@ -457,6 +477,11 @@ func (s *Server) Name() string {
 // ClusterID returns the cluster ID of this server.
 func (s *Server) ClusterID() uint64 {
 	return s.clusterID
+}
+
+// GetClassifier returns the classifier of this server.
+func (s *Server) GetClassifier() namespace.Classifier {
+	return s.classifier
 }
 
 // txn returns an etcd client transaction wrapper.
@@ -483,6 +508,7 @@ func (s *Server) GetConfig() *Config {
 	cfg.Namespace = namespaces
 	cfg.LabelProperty = s.scheduleOpt.loadLabelPropertyConfig().clone()
 	cfg.ClusterVersion = s.scheduleOpt.loadClusterVersion()
+	cfg.PDServerCfg = *s.scheduleOpt.loadPDServerConfig()
 	return cfg
 }
 
@@ -521,7 +547,17 @@ func (s *Server) SetReplicationConfig(cfg ReplicationConfig) error {
 	}
 	old := s.scheduleOpt.rep.load()
 	s.scheduleOpt.rep.store(&cfg)
-	s.scheduleOpt.persist(s.kv)
+	if err := s.scheduleOpt.persist(s.kv); err != nil {
+		return err
+	}
+	log.Infof("replication config is updated: %+v, old: %+v", cfg, old)
+	return nil
+}
+
+// SetPDServerConfig sets the server config.
+func (s *Server) SetPDServerConfig(cfg PDServerConfig) error {
+	old := s.scheduleOpt.loadPDServerConfig()
+	s.scheduleOpt.pdServerConfig.Store(&cfg)
 	if err := s.scheduleOpt.persist(s.kv); err != nil {
 		return err
 	}
@@ -637,7 +673,7 @@ func (s *Server) getClusterRootPath() string {
 	return path.Join(s.rootPath, "raft")
 }
 
-// GetRaftCluster gets raft cluster.
+// GetRaftCluster gets Raft cluster.
 // If cluster has not been bootstrapped, return nil.
 func (s *Server) GetRaftCluster() *RaftCluster {
 	if s.isClosed() || !s.cluster.isRunning() {
@@ -719,7 +755,7 @@ func (s *Server) SetLogLevel(level string) {
 
 var healthURL = "/pd/ping"
 
-// CheckHealth checks if members are healthy
+// CheckHealth checks if members are healthy.
 func (s *Server) CheckHealth(members []*pdpb.Member) map[uint64]*pdpb.Member {
 	unhealthMembers := make(map[uint64]*pdpb.Member)
 	for _, member := range members {

@@ -25,8 +25,8 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("balance-region", func(limiter *schedule.Limiter, args []string) (schedule.Scheduler, error) {
-		return newBalanceRegionScheduler(limiter), nil
+	schedule.RegisterScheduler("balance-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+		return newBalanceRegionScheduler(opController), nil
 	})
 }
 
@@ -35,24 +35,27 @@ const balanceRegionRetryLimit = 10
 
 type balanceRegionScheduler struct {
 	*baseScheduler
-	selector    *schedule.BalanceSelector
-	taintStores *cache.TTLUint64
+	selector     *schedule.BalanceSelector
+	taintStores  *cache.TTLUint64
+	opController *schedule.OperatorController
 }
 
 // newBalanceRegionScheduler creates a scheduler that tends to keep regions on
 // each store balanced.
-func newBalanceRegionScheduler(limiter *schedule.Limiter) schedule.Scheduler {
+func newBalanceRegionScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	taintStores := newTaintCache()
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{MoveRegion: true},
 		schedule.NewCacheFilter(taintStores),
 	}
-	base := newBaseScheduler(limiter)
-	return &balanceRegionScheduler{
+	base := newBaseScheduler(opController)
+	s := &balanceRegionScheduler{
 		baseScheduler: base,
 		selector:      schedule.NewBalanceSelector(core.RegionKind, filters),
 		taintStores:   taintStores,
+		opController:  opController,
 	}
+	return s
 }
 
 func (s *balanceRegionScheduler) GetName() string {
@@ -64,10 +67,10 @@ func (s *balanceRegionScheduler) GetType() string {
 }
 
 func (s *balanceRegionScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.limiter.OperatorCount(schedule.OpRegion) < cluster.GetRegionScheduleLimit()
+	return s.opController.OperatorCount(schedule.OpRegion) < cluster.GetRegionScheduleLimit()
 }
 
-func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
+func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
 	schedulerCounter.WithLabelValues(s.GetName(), "schedule").Inc()
 
 	stores := cluster.GetStores()
@@ -86,10 +89,13 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster, opInfluence 
 	sourceLabel := strconv.FormatUint(source.GetId(), 10)
 	balanceRegionCounter.WithLabelValues("source_store", sourceLabel).Inc()
 
+	opInfluence := s.opController.GetOpInfluence(cluster)
 	var hasPotentialTarget bool
 	for i := 0; i < balanceRegionRetryLimit; i++ {
+		// Priority the region that has a follower in the source store.
 		region := cluster.RandFollowerRegion(source.GetId(), core.HealthRegion())
 		if region == nil {
+			// Then the region has the leader in the source store
 			region = cluster.RandLeaderRegion(source.GetId(), core.HealthRegion())
 		}
 		if region == nil {
@@ -134,6 +140,7 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster, opInfluence 
 	return nil
 }
 
+// transferPeer selects the best store to create a new peer to replace the old peer.
 func (s *balanceRegionScheduler) transferPeer(cluster schedule.Cluster, region *core.RegionInfo, oldPeer *metapb.Peer, opInfluence schedule.OpInfluence) *schedule.Operator {
 	// scoreGuard guarantees that the distinct score will not decrease.
 	stores := cluster.GetRegionStores(region)

@@ -103,9 +103,8 @@ func (h *schedulerHandler) Post(w http.ResponseWriter, r *http.Request) {
 		peerLimit, ok := input["peer_limit"].(string)
 		if ok {
 			args = append(args, peerLimit)
-		} else {
-			args = args[:0]
 		}
+
 		if err := h.AddAdjacentRegionScheduler(args...); err != nil {
 			h.r.JSON(w, http.StatusInternalServerError, err.Error())
 			return
@@ -142,6 +141,16 @@ func (h *schedulerHandler) Post(w http.ResponseWriter, r *http.Request) {
 		}
 	case "random-merge-scheduler":
 		if err := h.AddRandomMergeScheduler(); err != nil {
+			h.r.JSON(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	case "shuffle-hot-region-scheduler":
+		limit := uint64(1)
+		l, ok := input["limit"].(float64)
+		if ok {
+			limit = uint64(l)
+		}
+		if err := h.AddShuffleHotRegionScheduler(limit); err != nil {
 			h.r.JSON(w, http.StatusInternalServerError, err.Error())
 			return
 		}
