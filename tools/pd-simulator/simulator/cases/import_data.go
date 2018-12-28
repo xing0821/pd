@@ -26,11 +26,10 @@ import (
 
 func newImportData() *Case {
 	var simCase Case
-	var id idAllocator
 	// Initialize the cluster
 	for i := 1; i <= 10; i++ {
 		simCase.Stores = append(simCase.Stores, &Store{
-			ID:        id.nextID(),
+			ID:        IDAllocator.nextID(),
 			Status:    metapb.StoreState_Up,
 			Capacity:  1 * TB,
 			Available: 900 * GB,
@@ -41,24 +40,24 @@ func newImportData() *Case {
 	storeIDs := rand.Perm(3)
 	for i := 0; i < 40; i++ {
 		peers := []*metapb.Peer{
-			{Id: id.nextID(), StoreId: uint64(storeIDs[0] + 1)},
-			{Id: id.nextID(), StoreId: uint64(storeIDs[1] + 1)},
-			{Id: id.nextID(), StoreId: uint64(storeIDs[2] + 1)},
+			{Id: IDAllocator.nextID(), StoreId: uint64(storeIDs[0] + 1)},
+			{Id: IDAllocator.nextID(), StoreId: uint64(storeIDs[1] + 1)},
+			{Id: IDAllocator.nextID(), StoreId: uint64(storeIDs[2] + 1)},
 		}
 		simCase.Regions = append(simCase.Regions, Region{
-			ID:     id.nextID(),
+			ID:     IDAllocator.nextID(),
 			Peers:  peers,
 			Leader: peers[0],
 			Size:   32 * MB,
 			Keys:   320000,
 		})
 	}
-	simCase.MaxID = id.maxID
+
 	simCase.RegionSplitSize = 64 * MB
 	simCase.RegionSplitKeys = 640000
 	simCase.TableNumber = 10
 	// Events description
-	e := &WriteFlowOnSpotInner{}
+	e := &WriteFlowOnSpotDescriptor{}
 	table2 := string(table.EncodeBytes(table.GenerateTableKey(2)))
 	table3 := string(table.EncodeBytes(table.GenerateTableKey(3)))
 	table5 := string(table.EncodeBytes(table.GenerateTableKey(5)))
@@ -75,7 +74,7 @@ func newImportData() *Case {
 			table5: 16 * MB,
 		}
 	}
-	simCase.Events = []EventInner{e}
+	simCase.Events = []EventDescriptor{e}
 
 	// Checker description
 	simCase.Checker = func(regions *core.RegionsInfo) bool {
