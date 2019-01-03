@@ -59,7 +59,8 @@ type testLeaderServerSuite struct {
 func (s *testLeaderServerSuite) SetUpSuite(c *C) {
 	s.svrs = make(map[string]*Server)
 
-	cfgs := NewTestMultiConfig(3)
+	cfgs, err := NewTestMultiConfig(3)
+	c.Assert(err, IsNil)
 
 	ch := make(chan *Server, 3)
 	for i := 0; i < 3; i++ {
@@ -124,7 +125,8 @@ func newTestServersWithCfgs(c *C, cfgs []*Config) ([]*Server, CleanupFunc) {
 }
 
 func (s *testServerSuite) TestCheckClusterID(c *C) {
-	cfgs := NewTestMultiConfig(2)
+	cfgs, err := NewTestMultiConfig(2)
+	c.Assert(err, IsNil)
 	for i, cfg := range cfgs {
 		cfg.DataDir = fmt.Sprintf("/tmp/test_pd_check_clusterID_%d", i)
 		// Clean up before testing.

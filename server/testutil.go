@@ -39,7 +39,10 @@ func cleanServer(cfg *Config) {
 
 // NewTestServer creates a pd server for testing.
 func NewTestServer() (*Config, *Server, CleanupFunc, error) {
-	cfg := NewTestSingleConfig()
+	cfg, err := NewTestSingleConfig()
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	s, err := CreateServer(cfg, nil)
 	if err != nil {
 		return nil, nil, nil, err
@@ -57,7 +60,7 @@ func NewTestServer() (*Config, *Server, CleanupFunc, error) {
 
 // NewTestSingleConfig is only for test to create one pd.
 // Because PD client also needs this, so export here.
-func NewTestSingleConfig() *Config {
+func NewTestSingleConfig() (*Config, error) {
 	cfg := &Config{
 		Name:       "pd",
 		ClientUrls: tempurl.Alloc(),
@@ -78,19 +81,24 @@ func NewTestSingleConfig() *Config {
 	cfg.ElectionInterval = typeutil.NewDuration(3 * time.Second)
 	cfg.LeaderPriorityCheckInterval = typeutil.NewDuration(100 * time.Millisecond)
 
-	cfg.Adjust(nil)
+	if err := cfg.Adjust(nil); err != nil {
+		return nil, err
+	}
 
-	return cfg
+	return cfg, nil
 }
 
 // NewTestMultiConfig is only for test to create multiple pd configurations.
 // Because PD client also needs this, so export here.
-func NewTestMultiConfig(count int) []*Config {
+func NewTestMultiConfig(count int) ([]*Config, error) {
 	cfgs := make([]*Config, count)
 
 	clusters := []string{}
 	for i := 1; i <= count; i++ {
-		cfg := NewTestSingleConfig()
+		cfg, err := NewTestSingleConfig()
+		if err != nil {
+			return nil, err
+		}
 		cfg.Name = fmt.Sprintf("pd%d", i)
 
 		clusters = append(clusters, fmt.Sprintf("%s=%s", cfg.Name, cfg.PeerUrls))
@@ -103,5 +111,5 @@ func NewTestMultiConfig(count int) []*Config {
 		cfg.InitialCluster = initialCluster
 	}
 
-	return cfgs
+	return cfgs, nil
 }

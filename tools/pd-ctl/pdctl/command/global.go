@@ -116,9 +116,13 @@ func getAddressFromCmd(cmd *cobra.Command, prefix string) string {
 	return s
 }
 
-func printResponseError(r *http.Response) {
+func printResponseError(r *http.Response) error {
 	fmt.Printf("[%d]:", r.StatusCode)
-	io.Copy(os.Stdout, r.Body)
+	_, err := io.Copy(os.Stdout, r.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func postJSON(cmd *cobra.Command, prefix string, input map[string]interface{}) {
@@ -137,7 +141,9 @@ func postJSON(cmd *cobra.Command, prefix string, input map[string]interface{}) {
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		printResponseError(r)
+		if err := printResponseError(r); err != nil {
+			cmd.Println(err)
+		}
 	}
 }
 
