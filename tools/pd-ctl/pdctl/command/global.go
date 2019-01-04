@@ -119,10 +119,7 @@ func getAddressFromCmd(cmd *cobra.Command, prefix string) string {
 func printResponseError(r *http.Response) error {
 	fmt.Printf("[%d]:", r.StatusCode)
 	_, err := io.Copy(os.Stdout, r.Body)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func postJSON(cmd *cobra.Command, prefix string, input map[string]interface{}) {
