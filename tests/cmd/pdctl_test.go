@@ -742,7 +742,7 @@ func (s *cmdTestSuite) TestConfig(c *C) {
 	args1 = []string{"-u", pdAddr, "config", "set", "max-balance-leader-inflight", "64"}
 	_, _, err = executeCommandC(cmd, args1...)
 	c.Assert(err, IsNil)
-	args1 = []string{"-u", pdAddr, "config", "set", "hot-region-schedule-limit", "64"}
+	args1 = []string{"-u", pdAddr, "config", "set", "max-hot-region-inflight", "64"}
 	_, _, err = executeCommandC(cmd, args1...)
 	c.Assert(err, IsNil)
 	args1 = []string{"-u", pdAddr, "config", "set", "hot-region-cache-hits-threshold", "5"}

@@ -123,13 +123,6 @@ func (h *balanceHotRegionsScheduler) IsScheduleAllowed(cluster schedule.Cluster)
 	return h.allowBalanceLeader(cluster) || h.allowBalanceRegion(cluster)
 }
 
-func min(a, b uint64) uint64 {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func (h *balanceHotRegionsScheduler) allowBalanceLeader(cluster schedule.Cluster) bool {
 	hotLeaderInflight := h.opController.OperatorInflight("hot-read-leader") + h.opController.OperatorInflight("hot-write-leader")
 	return hotLeaderInflight < h.limit && hotLeaderInflight < cluster.GetMaxHotLeaderInflight()

@@ -513,6 +513,7 @@ func (s *testCoordinatorSuite) TestAddScheduler(c *C) {
 	cfg, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
 	cfg.MaxMakeupReplicaInflight = 0
+	cfg.MaxGrantLeaderInflight = 2
 
 	tc := newTestClusterInfo(opt)
 	hbStreams := newHeartbeatStreams(tc.getClusterID())

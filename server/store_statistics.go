@@ -122,10 +122,10 @@ func (s *storeStatistics) Collect() {
 
 	// Current scheduling configurations of the cluster
 	configs := make(map[string]float64)
-	configs["leader_schedule_limit"] = float64(s.opt.GetLeaderScheduleLimit(s.namespace))
-	configs["region_schedule_limit"] = float64(s.opt.GetRegionScheduleLimit(s.namespace))
-	configs["merge_schedule_limit"] = float64(s.opt.GetMergeScheduleLimit(s.namespace))
-	configs["replica_schedule_limit"] = float64(s.opt.GetReplicaScheduleLimit(s.namespace))
+	configs["balance_leader_inflight"] = float64(s.opt.GetMaxBalanceLeaderInflight(s.namespace))
+	configs["balance_region_inflight"] = float64(s.opt.GetMaxBalanceRegionInflight(s.namespace))
+	configs["merge_region_inflight"] = float64(s.opt.GetMaxMergeRegionInflight(s.namespace))
+	configs["makeup_replica_inflight"] = float64(s.opt.GetMaxMakeupReplicaInflight(s.namespace))
 	configs["max_replicas"] = float64(s.opt.GetMaxReplicas(s.namespace))
 	configs["high_space_ratio"] = float64(s.opt.GetHighSpaceRatio())
 	configs["low_space_ratio"] = float64(s.opt.GetLowSpaceRatio())

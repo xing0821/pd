@@ -625,28 +625,16 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	if !meta.IsDefined("max-hot-region-inflight") {
 		adjustUint64(&c.MaxHotRegionInflight, defaultMaxDefaultScheduleInflight)
 	}
-
-	adjustDuration(&c.SplitMergeInterval, defaultSplitMergeInterval)
-	adjustDuration(&c.PatrolRegionInterval, defaultPatrolRegionInterval)
-	adjustDuration(&c.MaxStoreDownTime, defaultMaxStoreDownTime)
-	if !meta.IsDefined("max-balance-leader-inflight") {
-		adjustUint64(&c.MaxBalanceLeaderInflight, defaultMaxBalanceLeaderInflight)
-	}
-	if !meta.IsDefined("max-balance-region-inflight") {
-		adjustUint64(&c.MaxBalanceRegionInflight, defaultMaxBalanceRegionInflight)
-	}
-	if !meta.IsDefined("max-makeup-replica-inflight") {
-		adjustUint64(&c.MaxMakeupReplicaInflight, defaultMaxMakeupReplicaInflight)
-	}
-	if !meta.IsDefined("max-merge-region-inflight") {
-		adjustUint64(&c.MaxMergeRegionInflight, defaultMaxMergeRegionInflight)
-	}
 	if !meta.IsDefined("hot-region-cache-hits-threshold") {
 		adjustUint64(&c.HotRegionCacheHitsThreshold, defautHotRegionCacheHitsThreshold)
 	}
 	if !meta.IsDefined("tolerant-size-ratio") {
 		adjustFloat64(&c.TolerantSizeRatio, defaultTolerantSizeRatio)
 	}
+
+	adjustDuration(&c.SplitMergeInterval, defaultSplitMergeInterval)
+	adjustDuration(&c.PatrolRegionInterval, defaultPatrolRegionInterval)
+	adjustDuration(&c.MaxStoreDownTime, defaultMaxStoreDownTime)
 	adjustUint64(&c.MaxMakeNamespaceRelocationInflight, defaultMaxDefaultScheduleInflight)
 	adjustUint64(&c.MaxEvictLeaderInflight, defaultMaxDefaultScheduleInflight)
 	adjustUint64(&c.MaxGrantLeaderInflight, defaultMaxDefaultScheduleInflight)

@@ -27,8 +27,9 @@ import (
 )
 
 const (
-	historyKeepTime = 5 * time.Minute
-	maxScheduleCost = 200
+	historyKeepTime      = 5 * time.Minute
+	maxScheduleCost      = 200
+	storeMaxScheduleCost = 10
 )
 
 // HeartbeatStreams is an interface of async region heartbeat.
@@ -46,6 +47,7 @@ type OperatorController struct {
 	histories        *list.List
 	counts           map[OperatorKind]uint64
 	opInflight       map[string]uint64
+	storesCost       map[uint64]uint64
 }
 
 // NewOperatorController creates a OperatorController.
@@ -58,6 +60,7 @@ func NewOperatorController(cluster Cluster, hbStreams HeartbeatStreams) *Operato
 		histories:        list.New(),
 		counts:           make(map[OperatorKind]uint64),
 		opInflight:       make(map[string]uint64),
+		storesCost:       make(map[uint64]uint64),
 	}
 }
 
@@ -190,7 +193,7 @@ func (oc *OperatorController) createOperator(operators map[uint64]*Operator, op 
 
 func (oc *OperatorController) replaceOperator(operators map[uint64]*Operator, op *Operator, old *Operator) {
 	regionID := op.RegionID()
-	log.Infof("[region %v] replace old operator: %s", regionID, old)
+	log.Info("replace old operator", zap.Uint64("region-id", regionID), zap.Reflect("operator", old))
 	operatorCounter.WithLabelValues(old.Desc(), "replaced").Inc()
 	oc.removeOperatorLocked(operators, old)
 	operators[regionID] = op
@@ -199,6 +202,10 @@ func (oc *OperatorController) replaceOperator(operators map[uint64]*Operator, op
 
 func (oc *OperatorController) removeOperatorLocked(operators map[uint64]*Operator, op *Operator) {
 	regionID := op.RegionID()
+	opInfluence := NewOpInfluence([]*Operator{op}, oc.cluster)
+	for storeID := range opInfluence.storesInfluence {
+		oc.storesCost[storeID] -= opInfluence.GetStoreInfluence(storeID).StepCost
+	}
 	if _, ok := operators[regionID]; ok {
 		delete(operators, regionID)
 		oc.opInflight[op.Desc()]--
@@ -278,20 +285,20 @@ func (oc *OperatorController) promoteOperator(op *Operator) bool {
 				}
 				if op1, ok := oc.waitingOperators[id]; ok &&
 					op1.Desc() == "merge-region" && oc.allowSchedule(op, op1) {
-					oc.premote(op, op1)
+					oc.promote(op, op1)
 					return true
 				}
 				return false
 			}
 		}
 	} else if oc.allowSchedule(op) {
-		oc.premote(op)
+		oc.promote(op)
 		return true
 	}
 	return false
 }
 
-func (oc *OperatorController) premote(ops ...*Operator) {
+func (oc *OperatorController) promote(ops ...*Operator) {
 	for _, op := range ops {
 		regionID := op.RegionID()
 		oc.opInflight[op.Desc()]++
@@ -299,11 +306,21 @@ func (oc *OperatorController) premote(ops ...*Operator) {
 		oc.removeOperatorLocked(oc.waitingOperators, op)
 		operatorCounter.WithLabelValues(op.Desc(), "promote").Inc()
 	}
+	opInfluence := NewOpInfluence(ops, oc.cluster)
+	for storeID := range opInfluence.storesInfluence {
+		oc.storesCost[storeID] += opInfluence.GetStoreInfluence(storeID).StepCost
+	}
 	oc.updateCounts(oc.runningOperators)
 }
 
 func (oc *OperatorController) allowSchedule(ops ...*Operator) bool {
-	return oc.GetScheduleCost(oc.getRunningOperatorsLocked()...)+oc.GetScheduleCost(ops...) <= maxScheduleCost
+	if oc.getScheduleCost() > maxScheduleCost {
+		return false
+	}
+	if oc.exceedStoreCost(ops...) {
+		return false
+	}
+	return true
 }
 
 // SendScheduleCommand sends a command to the region.
@@ -474,11 +491,9 @@ func NewOpInfluence(operators []*Operator, cluster Cluster) OpInfluence {
 	}
 
 	for _, op := range operators {
-		if !op.IsTimeout() && !op.IsFinish() {
-			region := cluster.GetRegion(op.RegionID())
-			if region != nil {
-				op.Influence(influence, region)
-			}
+		region := cluster.GetRegion(op.RegionID())
+		if region != nil {
+			op.Influence(influence, region)
 		}
 		influence.regionsInfluence[op.RegionID()] = op
 	}
@@ -542,12 +557,21 @@ func (oc *OperatorController) OperatorInflight(name string) uint64 {
 	return oc.opInflight[name]
 }
 
-// GetScheduleCost gets the current running schedule cost.
-func (oc *OperatorController) GetScheduleCost(ops ...*Operator) uint64 {
-	var scheduleCost uint64
+// exceedStoreCost return true if store exceeds the cost after adding the operator. Otherwise, return false.
+func (oc *OperatorController) exceedStoreCost(ops ...*Operator) bool {
 	opInfluence := NewOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
-		scheduleCost += opInfluence.GetStoreInfluence(storeID).StepCost
+		if oc.storesCost[storeID]+opInfluence.GetStoreInfluence(storeID).StepCost > storeMaxScheduleCost {
+			return true
+		}
+	}
+	return false
+}
+
+func (oc *OperatorController) getScheduleCost() uint64 {
+	var scheduleCost uint64
+	for _, cost := range oc.storesCost {
+		scheduleCost += cost
 	}
 	return scheduleCost
 }

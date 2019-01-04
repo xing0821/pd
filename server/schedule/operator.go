@@ -36,9 +36,9 @@ const (
 	// longer than it, the operator will be considered timeout.
 	RegionOperatorWaitTime = 10 * time.Minute
 	// RegionWeight reflects the influence which is caused by a region related step in an operator.
-	RegionWeight = 1
+	RegionWeight = 2
 	// LeaderWeight reflects the influence which is caused by a leader related step in an operator.
-	LeaderWeight = 2
+	LeaderWeight = 1
 )
 
 // OperatorStep describes the basic scheduling steps that can not be subdivided.
@@ -395,9 +395,7 @@ func (o *Operator) IsTimeout() bool {
 // Influence calculates the store difference which unfinished operator steps make
 func (o *Operator) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
 	for step := atomic.LoadInt32(&o.currentStep); int(step) < len(o.steps); step++ {
-		if !o.steps[int(step)].IsFinish(region) {
-			o.steps[int(step)].Influence(opInfluence, region)
-		}
+		o.steps[int(step)].Influence(opInfluence, region)
 	}
 }
 
