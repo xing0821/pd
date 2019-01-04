@@ -2,7 +2,7 @@
 
 [tick]
 # the tick interval when starting PD inside (default: "100ms")
-sim-tick-interval = "100ms"
+sim-tick-interval = "1s"
 
 [store]
 # the capacity size of a new store in GB (default: 1024)
