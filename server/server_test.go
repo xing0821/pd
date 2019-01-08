@@ -29,7 +29,7 @@ func TestServer(t *testing.T) {
 
 func mustRunTestServer(c *C) (*Server, CleanupFunc) {
 	var err error
-	_, server, cleanup, err := NewTestServer()
+	_, server, cleanup, err := NewTestServer(c)
 	c.Assert(err, IsNil)
 	mustWaitLeader(c, []*Server{server})
 	return server, cleanup
@@ -59,8 +59,7 @@ type testLeaderServerSuite struct {
 func (s *testLeaderServerSuite) SetUpSuite(c *C) {
 	s.svrs = make(map[string]*Server)
 
-	cfgs, err := NewTestMultiConfig(3)
-	c.Assert(err, IsNil)
+	cfgs := NewTestMultiConfig(c, 3)
 
 	ch := make(chan *Server, 3)
 	for i := 0; i < 3; i++ {
@@ -125,8 +124,7 @@ func newTestServersWithCfgs(c *C, cfgs []*Config) ([]*Server, CleanupFunc) {
 }
 
 func (s *testServerSuite) TestCheckClusterID(c *C) {
-	cfgs, err := NewTestMultiConfig(2)
-	c.Assert(err, IsNil)
+	cfgs := NewTestMultiConfig(c, 2)
 	for i, cfg := range cfgs {
 		cfg.DataDir = fmt.Sprintf("/tmp/test_pd_check_clusterID_%d", i)
 		// Clean up before testing.

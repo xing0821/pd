@@ -60,8 +60,7 @@ func (s *testStoreNsSuite) SetUpSuite(c *C) {
 		},
 	}
 
-	cfg, err := server.NewTestSingleConfig()
-	c.Assert(err, IsNil)
+	cfg := server.NewTestSingleConfig(c)
 	cfg.NamespaceClassifier = "table"
 	svr, err := server.CreateServer(cfg, NewHandler)
 	c.Assert(err, IsNil)

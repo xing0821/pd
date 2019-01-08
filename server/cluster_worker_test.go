@@ -51,7 +51,7 @@ func (s *testClusterWorkerSuite) TestReportBatchSplit(c *C) {
 func (s *testClusterWorkerSuite) TestValidRequestRegion(c *C) {
 	var err error
 	var cleanup func()
-	_, s.svr, cleanup, err = NewTestServer()
+	_, s.svr, cleanup, err = NewTestServer(c)
 	c.Assert(err, IsNil)
 	mustWaitLeader(c, []*Server{s.svr})
 	s.grpcPDClient = mustNewGrpcClient(c, s.svr.GetAddr())

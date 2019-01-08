@@ -31,9 +31,7 @@ type testGetLeaderSuite struct {
 }
 
 func (s *testGetLeaderSuite) SetUpSuite(c *C) {
-	cfg, err := NewTestSingleConfig()
-	c.Assert(err, IsNil)
-
+	cfg := NewTestSingleConfig(c)
 	s.wg.Add(1)
 	s.done = make(chan bool)
 	svr, err := CreateServer(cfg, nil)

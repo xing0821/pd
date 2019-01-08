@@ -117,7 +117,7 @@ func (s *baseCluster) newRegion(c *C, regionID uint64, startKey []byte,
 func (s *testClusterSuite) TestBootstrap(c *C) {
 	var err error
 	var cleanup func()
-	_, s.svr, cleanup, err = NewTestServer()
+	_, s.svr, cleanup, err = NewTestServer(c)
 	c.Assert(err, IsNil)
 	mustWaitLeader(c, []*Server{s.svr})
 	s.grpcPDClient = mustNewGrpcClient(c, s.svr.GetAddr())
@@ -237,7 +237,7 @@ func (s *baseCluster) getClusterConfig(c *C, clusterID uint64) *metapb.Cluster {
 func (s *testClusterSuite) TestGetPutConfig(c *C) {
 	var err error
 	var cleanup func()
-	_, s.svr, cleanup, err = NewTestServer()
+	_, s.svr, cleanup, err = NewTestServer(c)
 	c.Assert(err, IsNil)
 	mustWaitLeader(c, []*Server{s.svr})
 	s.grpcPDClient = mustNewGrpcClient(c, s.svr.GetAddr())
@@ -414,7 +414,7 @@ func (s *baseCluster) testRemoveStore(c *C, clusterID uint64, store *metapb.Stor
 func (s *testClusterSuite) TestRaftClusterRestart(c *C) {
 	var err error
 	var cleanup func()
-	_, s.svr, cleanup, err = NewTestServer()
+	_, s.svr, cleanup, err = NewTestServer(c)
 	c.Assert(err, IsNil)
 	defer cleanup()
 	mustWaitLeader(c, []*Server{s.svr})
@@ -437,7 +437,7 @@ func (s *testClusterSuite) TestRaftClusterRestart(c *C) {
 func (s *testClusterSuite) TestRaftClusterMultipleRestart(c *C) {
 	var err error
 	var cleanup func()
-	_, s.svr, cleanup, err = NewTestServer()
+	_, s.svr, cleanup, err = NewTestServer(c)
 	defer cleanup()
 	c.Assert(err, IsNil)
 	mustWaitLeader(c, []*Server{s.svr})
@@ -466,7 +466,7 @@ func (s *testClusterSuite) TestRaftClusterMultipleRestart(c *C) {
 func (s *testClusterSuite) TestGetPDMembers(c *C) {
 	var err error
 	var cleanup func()
-	_, s.svr, cleanup, err = NewTestServer()
+	_, s.svr, cleanup, err = NewTestServer(c)
 	c.Assert(err, IsNil)
 	mustWaitLeader(c, []*Server{s.svr})
 	s.grpcPDClient = mustNewGrpcClient(c, s.svr.GetAddr())
@@ -483,7 +483,7 @@ func (s *testClusterSuite) TestGetPDMembers(c *C) {
 
 func (s *testClusterSuite) TestConcurrentHandleRegion(c *C) {
 	var err error
-	_, s.svr, _, err = NewTestServer()
+	_, s.svr, _, err = NewTestServer(c)
 	c.Assert(err, IsNil)
 	mustWaitLeader(c, []*Server{s.svr})
 	s.grpcPDClient = mustNewGrpcClient(c, s.svr.GetAddr())
