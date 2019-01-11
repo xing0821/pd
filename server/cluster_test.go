@@ -335,8 +335,8 @@ func (s *baseCluster) resetStoreState(c *C, storeID uint64, state metapb.StoreSt
 	c.Assert(cluster, NotNil)
 	store := cluster.GetStore(storeID)
 	c.Assert(store, NotNil)
-	store.State = state
-	c.Assert(cluster.putStore(store), IsNil)
+	newStore := store.Clone(core.SetStoreState(state))
+	c.Assert(cluster.putStore(newStore), IsNil)
 }
 
 func (s *baseCluster) testRemoveStore(c *C, clusterID uint64, store *metapb.Store) {
