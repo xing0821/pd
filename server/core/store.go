@@ -449,13 +449,11 @@ func (s *StoreInfo) MergeLabels(labels []*metapb.StoreLabel) []*metapb.StoreLabe
 L:
 	for _, newLabel := range labels {
 		for _, label := range storeLabels {
-			fmt.Println("newLabel label", newLabel, label, strings.EqualFold(label.Key, newLabel.Key))
 			if strings.EqualFold(label.Key, newLabel.Key) {
 				label.Value = newLabel.Value
 				continue L
 			}
 		}
-		fmt.Println("append", newLabel)
 		storeLabels = append(storeLabels, newLabel)
 	}
 	return storeLabels
