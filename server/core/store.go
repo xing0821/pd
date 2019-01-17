@@ -81,16 +81,6 @@ func (s *StoreInfo) Clone(opts ...StoreCreateOption) *StoreInfo {
 	return store
 }
 
-// Block stops balancer from selecting the store.
-func (s *StoreInfo) Block() {
-	s.blocked = true
-}
-
-// Unblock allows balancer to select the store.
-func (s *StoreInfo) Unblock() {
-	s.blocked = false
-}
-
 // IsBlocked returns if the store is blocked.
 func (s *StoreInfo) IsBlocked() bool {
 	return s.blocked
@@ -531,7 +521,7 @@ func (s *StoresInfo) BlockStore(storeID uint64) errcode.ErrorCode {
 	if store.IsBlocked() {
 		return op.AddTo(StoreBlockedErr{StoreID: storeID})
 	}
-	store.Block()
+	s.stores[storeID] = store.Clone(SetStoreBlock())
 	return nil
 }
 
@@ -541,7 +531,7 @@ func (s *StoresInfo) UnblockStore(storeID uint64) {
 	if !ok {
 		log.Fatalf("store %d is unblocked, but it is not found", storeID)
 	}
-	store.Unblock()
+	s.stores[storeID] = store.Clone(SetStoreUnBlock())
 }
 
 // GetStores gets a complete set of StoreInfo.
@@ -570,35 +560,35 @@ func (s *StoresInfo) GetStoreCount() int {
 // SetLeaderCount sets the leader count to a storeInfo.
 func (s *StoresInfo) SetLeaderCount(storeID uint64, leaderCount int) {
 	if store, ok := s.stores[storeID]; ok {
-		store.Clone(SetLeaderCount(leaderCount))
+		s.stores[storeID] = store.Clone(SetLeaderCount(leaderCount))
 	}
 }
 
 // SetRegionCount sets the region count to a storeInfo.
 func (s *StoresInfo) SetRegionCount(storeID uint64, regionCount int) {
 	if store, ok := s.stores[storeID]; ok {
-		store.Clone(SetRegionCount(regionCount))
+		s.stores[storeID] = store.Clone(SetRegionCount(regionCount))
 	}
 }
 
 // SetPendingPeerCount sets the pending count to a storeInfo.
 func (s *StoresInfo) SetPendingPeerCount(storeID uint64, pendingPeerCount int) {
 	if store, ok := s.stores[storeID]; ok {
-		store.Clone(SetPendingPeerCount(pendingPeerCount))
+		s.stores[storeID] = store.Clone(SetPendingPeerCount(pendingPeerCount))
 	}
 }
 
 // SetLeaderSize sets the leader size to a storeInfo.
 func (s *StoresInfo) SetLeaderSize(storeID uint64, leaderSize int64) {
 	if store, ok := s.stores[storeID]; ok {
-		store.Clone(SetLeaderSize(leaderSize))
+		s.stores[storeID] = store.Clone(SetLeaderSize(leaderSize))
 	}
 }
 
 // SetRegionSize sets the region size to a storeInfo.
 func (s *StoresInfo) SetRegionSize(storeID uint64, regionSize int64) {
 	if store, ok := s.stores[storeID]; ok {
-		store.Clone(SetRegionSize(regionSize))
+		s.stores[storeID] = store.Clone(SetRegionSize(regionSize))
 	}
 }
 

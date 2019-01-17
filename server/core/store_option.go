@@ -51,6 +51,20 @@ func SetStoreState(state metapb.StoreState) StoreCreateOption {
 	}
 }
 
+// SetStoreBlock stops balancer from selecting the store.
+func SetStoreBlock() StoreCreateOption {
+	return func(store *StoreInfo) {
+		store.blocked = true
+	}
+}
+
+// SetStoreUnBlock allows balancer to select the store.
+func SetStoreUnBlock() StoreCreateOption {
+	return func(store *StoreInfo) {
+		store.blocked = false
+	}
+}
+
 // SetLeaderCount sets the leader count for the store.
 func SetLeaderCount(leaderCount int) StoreCreateOption {
 	return func(store *StoreInfo) {
