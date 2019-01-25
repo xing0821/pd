@@ -16,6 +16,7 @@ package simulator
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -79,6 +80,7 @@ func NewNode(s *cases.Store, pdAddr string, ioRate int64) (*Node, error) {
 		tasks:                    make(map[uint64]Task),
 		receiveRegionHeartbeatCh: receiveRegionHeartbeatCh,
 		ioRate:                   ioRate * cases.MB,
+		tick:                     uint64(rand.Intn(10)),
 	}, nil
 }
 
