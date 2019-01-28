@@ -68,12 +68,11 @@ func newTestRegionMeta(regionID uint64) *metapb.Region {
 func (c *testClusterInfo) addRegionStore(storeID uint64, regionCount int) error {
 	stats := &pdpb.StoreStats{}
 	stats.Capacity = 1000 * (1 << 20)
-	regionSize := int64(regionCount) * 10
-	stats.Available = stats.Capacity - uint64(regionSize)
+	stats.Available = stats.Capacity - uint64(regionCount)*10
 	store := core.NewStoreInfo(&metapb.Store{Id: storeID},
 		core.SetStoreStats(stats),
 		core.SetRegionCount(regionCount),
-		core.SetRegionSize(regionSize),
+		core.SetRegionSize(int64(regionCount)*10),
 		core.SetLastHeartbeatTS(time.Now()),
 	)
 	return c.putStore(store)
