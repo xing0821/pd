@@ -19,10 +19,12 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/pingcap/kvproto/pkg/metapb"
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
-	log "github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -307,7 +309,7 @@ func (h *balanceHotRegionsScheduler) balanceByPeer(cluster schedule.Cluster, sto
 			// because it doesn't exist in the system right now.
 			destPeer, err := cluster.AllocPeer(destStoreID)
 			if err != nil {
-				log.Errorf("failed to allocate peer: %v", err)
+				log.L().Error("failed to allocate peer", zap.Error(err))
 				return nil, nil, nil
 			}
 

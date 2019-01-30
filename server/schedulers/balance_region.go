@@ -17,11 +17,13 @@ import (
 	"fmt"
 	"strconv"
 
+	"go.uber.org/zap"
+
 	"github.com/pingcap/kvproto/pkg/metapb"
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/cache"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
-	log "github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -85,7 +87,7 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 		return nil
 	}
 
-	log.Debugf("[%s] store%d has the max region score", s.GetName(), source.GetID())
+	log.L().Debug("store has the max region score", zap.String("scheduler", s.GetName()), zap.Uint64("store", source.GetID()))
 	sourceLabel := strconv.FormatUint(source.GetID(), 10)
 	balanceRegionCounter.WithLabelValues("source_store", sourceLabel).Inc()
 
@@ -102,18 +104,18 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 			schedulerCounter.WithLabelValues(s.GetName(), "no_region").Inc()
 			continue
 		}
-		log.Debugf("[%s] select region%d", s.GetName(), region.GetID())
+		log.L().Debug("select region", zap.String("scheduler", s.GetName()), zap.Uint64("region", region.GetID()))
 
 		// We don't schedule region with abnormal number of replicas.
 		if len(region.GetPeers()) != cluster.GetMaxReplicas() {
-			log.Debugf("[%s] region%d has abnormal replica count", s.GetName(), region.GetID())
+			log.L().Debug("region has abnormal replica count", zap.String("scheduler", s.GetName()), zap.Uint64("region", region.GetID()))
 			schedulerCounter.WithLabelValues(s.GetName(), "abnormal_replica").Inc()
 			continue
 		}
 
 		// Skip hot regions.
 		if cluster.IsRegionHot(region.GetID()) {
-			log.Debugf("[%s] region%d is hot", s.GetName(), region.GetID())
+			log.L().Debug("region is hot", zap.String("scheduler", s.GetName()), zap.Uint64("region", region.GetID()))
 			schedulerCounter.WithLabelValues(s.GetName(), "region_hot").Inc()
 			continue
 		}
@@ -132,7 +134,7 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 
 	if !hasPotentialTarget {
 		// If no potential target store can be found for the selected store, ignore it for a while.
-		log.Debugf("[%s] no operator created for selected store%d", s.GetName(), source.GetID())
+		log.L().Debug("no operator created for selected store", zap.String("scheduler", s.GetName()), zap.Uint64("store", source.GetID()))
 		balanceRegionCounter.WithLabelValues("add_taint", sourceLabel).Inc()
 		s.taintStores.Put(source.GetID())
 	}
@@ -155,16 +157,16 @@ func (s *balanceRegionScheduler) transferPeer(cluster schedule.Cluster, region *
 	}
 
 	target := cluster.GetStore(storeID)
-	log.Debugf("[region %d] source store id is %v, target store id is %v", region.GetID(), source.GetID(), target.GetID())
+	log.L().Debug("", zap.Uint64("region", region.GetID()), zap.Uint64("source-store", source.GetID()), zap.Uint64("target-store", target.GetID()))
 
 	if !shouldBalance(cluster, source, target, region, core.RegionKind, opInfluence) {
-		log.Debugf("[%s] skip balance region %d, source %d to target %d ,source size: %v, source score: %v, source influence: %v, target size: %v, target score: %v, target influence: %v, average region size: %v",
-			s.GetName(), region.GetID(), source.GetID(), target.GetID(),
-			source.GetRegionSize(), source.RegionScore(cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), 0),
-			opInfluence.GetStoreInfluence(source.GetID()).ResourceSize(core.RegionKind),
-			target.GetRegionSize(), target.RegionScore(cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), 0),
-			opInfluence.GetStoreInfluence(target.GetID()).ResourceSize(core.RegionKind),
-			cluster.GetAverageRegionSize())
+		log.L().Debug("skip balance region",
+			zap.String("scheduler", s.GetName()), zap.Uint64("region", region.GetID()), zap.Uint64("source-store", source.GetID()), zap.Uint64("target-store", target.GetID()),
+			zap.Int64("source-size", source.GetRegionSize()), zap.Float64("source-score", source.RegionScore(cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), 0)),
+			zap.Int64("source-influence", opInfluence.GetStoreInfluence(source.GetID()).ResourceSize(core.RegionKind)),
+			zap.Int64("target-size", target.GetRegionSize()), zap.Float64("target-score", target.RegionScore(cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), 0)),
+			zap.Int64("target-influence", opInfluence.GetStoreInfluence(target.GetID()).ResourceSize(core.RegionKind)),
+			zap.Int64("average-region-size", cluster.GetAverageRegionSize()))
 		schedulerCounter.WithLabelValues(s.GetName(), "skip").Inc()
 		return nil
 	}

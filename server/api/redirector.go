@@ -14,13 +14,16 @@
 package api
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"go.uber.org/zap"
+
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -48,7 +51,7 @@ func (h *redirector) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 
 	// Prevent more than one redirection.
 	if name := r.Header.Get(redirectorHeader); len(name) != 0 {
-		log.Errorf("redirect from %v, but %v is not leader", name, h.s.Name())
+		log.L().Error("redirect but server is not leader", zap.String("from", name), zap.String("server", h.s.Name()))
 		http.Error(w, errRedirectToNotLeader, http.StatusInternalServerError)
 		return
 	}
@@ -93,21 +96,21 @@ func (p *customReverseProxies) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 		resp, err := p.client.Do(r)
 		if err != nil {
-			log.Error(err)
+			log.L().Error(fmt.Sprintf("%+v", err))
 			continue
 		}
 
 		b, err := ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
-			log.Error(err)
+			log.L().Error(fmt.Sprintf("%+v", err))
 			continue
 		}
 
 		copyHeader(w.Header(), resp.Header)
 		w.WriteHeader(resp.StatusCode)
 		if _, err := w.Write(b); err != nil {
-			log.Error(err)
+			log.L().Error(fmt.Sprintf("%+v", err))
 			continue
 		}
 
