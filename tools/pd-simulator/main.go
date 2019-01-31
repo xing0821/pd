@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server"
 	"github.com/pingcap/pd/server/api"
@@ -30,7 +31,7 @@ import (
 	"github.com/pingcap/pd/tools/pd-simulator/simulator"
 	"github.com/pingcap/pd/tools/pd-simulator/simulator/cases"
 	"github.com/pingcap/pd/tools/pd-simulator/simulator/simutil"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	// Register schedulers.
 	_ "github.com/pingcap/pd/server/schedulers"
@@ -97,7 +98,7 @@ func run(simCase string) {
 func NewSingleServer(simConfig *simulator.SimConfig) (*server.Server, server.CleanupFunc) {
 	err := logutil.InitLogger(&simConfig.ServerConfig.Log)
 	if err != nil {
-		log.Fatalf("initialize logger error: %s\n", err)
+		log.L().Fatal("initialize logger error", zap.Error(err))
 	}
 
 	s, err := server.CreateServer(simConfig.ServerConfig, api.NewHandler)

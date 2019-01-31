@@ -17,10 +17,11 @@ import (
 	"time"
 	"unicode"
 
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/typeutil"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const zeroDuration = time.Duration(0)
@@ -66,7 +67,7 @@ func prometheusPushClient(job, addr string, interval time.Duration) {
 			prometheus.DefaultGatherer,
 		)
 		if err != nil {
-			log.Errorf("could not push metrics to Prometheus Pushgateway: %v", err)
+			log.L().Error("could not push metrics to Prometheus Pushgateway", zap.Error(err))
 		}
 
 		time.Sleep(interval)
@@ -76,11 +77,11 @@ func prometheusPushClient(job, addr string, interval time.Duration) {
 // Push metircs in background.
 func Push(cfg *MetricConfig) {
 	if cfg.PushInterval.Duration == zeroDuration || len(cfg.PushAddress) == 0 {
-		log.Info("disable Prometheus push client")
+		log.L().Info("disable Prometheus push client")
 		return
 	}
 
-	log.Info("start Prometheus push client")
+	log.L().Info("start Prometheus push client")
 
 	interval := cfg.PushInterval.Duration
 	go prometheusPushClient(cfg.PushJob, cfg.PushAddress, interval)
