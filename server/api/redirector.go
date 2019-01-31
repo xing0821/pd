@@ -20,10 +20,9 @@ import (
 	"net/url"
 	"strings"
 
-	"go.uber.org/zap"
-
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server"
+	"go.uber.org/zap"
 )
 
 const (

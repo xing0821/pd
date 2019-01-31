@@ -19,14 +19,13 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/juju/ratelimit"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

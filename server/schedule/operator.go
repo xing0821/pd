@@ -21,13 +21,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	log "github.com/pingcap/log"
-
 	"github.com/pingcap/pd/server/core"
+	"go.uber.org/zap"
 )
 
 const (
@@ -84,7 +82,7 @@ func (ap AddPeer) String() string {
 func (ap AddPeer) IsFinish(region *core.RegionInfo) bool {
 	if p := region.GetStoreVoter(ap.ToStore); p != nil {
 		if p.GetId() != ap.PeerID {
-			log.L().Warn("", zap.String("expect", ap.String()), zap.Uint64("obtain voter", p.GetId()))
+			log.L().Warn("obtain unexpected peer", zap.String("expect", ap.String()), zap.Uint64("obtain voter", p.GetId()))
 			return false
 		}
 		return region.GetPendingVoter(p.GetId()) == nil
@@ -113,7 +111,7 @@ func (al AddLearner) String() string {
 func (al AddLearner) IsFinish(region *core.RegionInfo) bool {
 	if p := region.GetStoreLearner(al.ToStore); p != nil {
 		if p.GetId() != al.PeerID {
-			log.L().Warn("", zap.String("expect", al.String()), zap.Uint64("obtain learner", p.GetId()))
+			log.L().Warn("obtain unexpected peer", zap.String("expect", al.String()), zap.Uint64("obtain learner", p.GetId()))
 			return false
 		}
 		return region.GetPendingLearner(p.GetId()) == nil
@@ -142,7 +140,7 @@ func (pl PromoteLearner) String() string {
 func (pl PromoteLearner) IsFinish(region *core.RegionInfo) bool {
 	if p := region.GetStoreVoter(pl.ToStore); p != nil {
 		if p.GetId() != pl.PeerID {
-			log.L().Warn("", zap.String("expect", pl.String()), zap.Uint64("obtain voter", p.GetId()))
+			log.L().Warn("obtain unexpected peer", zap.String("expect", pl.String()), zap.Uint64("obtain voter", p.GetId()))
 		}
 		return p.GetId() == pl.PeerID
 	}

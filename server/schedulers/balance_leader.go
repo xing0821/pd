@@ -17,12 +17,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"go.uber.org/zap"
-
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/cache"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
+	"go.uber.org/zap"
 )
 
 func init() {

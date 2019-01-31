@@ -16,12 +16,11 @@ package schedule
 import (
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/pingcap/kvproto/pkg/metapb"
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 // Cluster provides an overview of a cluster's regions distribution.

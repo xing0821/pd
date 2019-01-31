@@ -19,12 +19,11 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/pingcap/kvproto/pkg/metapb"
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
+	"go.uber.org/zap"
 )
 
 func init() {

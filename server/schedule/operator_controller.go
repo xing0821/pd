@@ -18,13 +18,12 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/pingcap/kvproto/pkg/eraftpb"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/core"
+	"go.uber.org/zap"
 )
 
 var historyKeepTime = 5 * time.Minute

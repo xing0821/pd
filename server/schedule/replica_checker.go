@@ -16,12 +16,11 @@ package schedule
 import (
 	"fmt"
 
-	"go.uber.org/zap"
-
 	"github.com/pingcap/kvproto/pkg/metapb"
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
+	"go.uber.org/zap"
 )
 
 // ReplicaChecker ensures region has the best replicas.

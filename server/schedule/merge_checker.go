@@ -16,12 +16,11 @@ package schedule
 import (
 	"time"
 
-	"go.uber.org/zap"
-
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/cache"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
+	"go.uber.org/zap"
 )
 
 // As region split history is not persisted. We put a special marker into
