@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/logutil"
@@ -45,11 +44,10 @@ type heartbeatStreams struct {
 	streams   map[uint64]heartbeatStream
 	msgCh     chan *pdpb.RegionHeartbeatResponse
 	streamCh  chan streamUpdate
-	kv        *core.KV
-	cluster   *clusterInfo
+	cluster   *RaftCluster
 }
 
-func newHeartbeatStreams(clusterID uint64, kv *core.KV, cluster *clusterInfo) *heartbeatStreams {
+func newHeartbeatStreams(clusterID uint64, cluster *RaftCluster) *heartbeatStreams {
 	ctx, cancel := context.WithCancel(context.Background())
 	hs := &heartbeatStreams{
 		ctx:       ctx,
@@ -58,7 +56,6 @@ func newHeartbeatStreams(clusterID uint64, kv *core.KV, cluster *clusterInfo) *h
 		streams:   make(map[uint64]heartbeatStream),
 		msgCh:     make(chan *pdpb.RegionHeartbeatResponse, regionheartbeatSendChanCap),
 		streamCh:  make(chan streamUpdate, 1),
-		kv:        kv,
 		cluster:   cluster,
 	}
 	hs.wg.Add(1)
@@ -81,20 +78,14 @@ func (s *heartbeatStreams) run() {
 		case update := <-s.streamCh:
 			s.streams[update.storeID] = update.stream
 		case msg := <-s.msgCh:
-			var storeAddress string
-			store := &metapb.Store{}
 			storeID := msg.GetTargetPeer().GetStoreId()
-			if s.cluster == nil {
-				ok, err := s.kv.LoadStore(storeID, store)
-				if err != nil {
-					log.Errorf("[region %v] failed to load store %v: %v", msg.RegionId, storeID, err)
-				}
-				if ok {
-					storeAddress = store.GetAddress()
-				}
-			} else {
-				storeAddress = s.cluster.GetStore(storeID).GetAddress()
+			store, err := s.cluster.GetStore(storeID)
+			if err != nil {
+				log.Errorf("[region %v] fail to get store %v: %v", msg.RegionId, storeID, err)
+				delete(s.streams, storeID)
+				continue
 			}
+			storeAddress := store.GetAddress()
 			if stream, ok := s.streams[storeID]; ok {
 				if err := stream.Send(msg); err != nil {
 					log.Error("send heartbeat message fail",
@@ -110,19 +101,13 @@ func (s *heartbeatStreams) run() {
 			}
 		case <-keepAliveTicker.C:
 			for storeID, stream := range s.streams {
-				var storeAddress string
-				store := &metapb.Store{}
-				if s.cluster == nil {
-					ok, err := s.kv.LoadStore(storeID, store)
-					if err != nil {
-						log.Errorf("[store %v] failed to load store: %v", storeID, err)
-					}
-					if ok {
-						storeAddress = store.GetAddress()
-					}
-				} else {
-					storeAddress = s.cluster.GetStore(storeID).GetAddress()
+				store, err := s.cluster.GetStore(storeID)
+				if err != nil {
+					log.Errorf("[store %v] fail to get store: %v", storeID, err)
+					delete(s.streams, storeID)
+					continue
 				}
+				storeAddress := store.GetAddress()
 				if err := stream.Send(keepAlive); err != nil {
 					log.Error("send keepalive message fail",
 						zap.Uint64("target-store-id", storeID),
@@ -171,7 +156,7 @@ func (s *heartbeatStreams) SendMsg(region *core.RegionInfo, msg *pdpb.RegionHear
 	}
 }
 
-func (s *heartbeatStreams) sendErr(region *core.RegionInfo, errType pdpb.ErrorType, errMsg string, storeAddress string) {
+func (s *heartbeatStreams) sendErr(errType pdpb.ErrorType, errMsg string, storeAddress string) {
 	regionHeartbeatCounter.WithLabelValues(storeAddress, "report", "err").Inc()
 
 	msg := &pdpb.RegionHeartbeatResponse{

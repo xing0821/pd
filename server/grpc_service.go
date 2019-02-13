@@ -368,19 +368,19 @@ func (s *Server) RegionHeartbeat(stream pdpb.PD_RegionHeartbeatServer) error {
 		region := core.RegionFromHeartbeat(request)
 		if region.GetID() == 0 {
 			msg := fmt.Sprintf("invalid request region, %v", request)
-			hbStreams.sendErr(region, pdpb.ErrorType_UNKNOWN, msg, storeAddress)
+			hbStreams.sendErr(pdpb.ErrorType_UNKNOWN, msg, storeAddress)
 			continue
 		}
 		if region.GetLeader() == nil {
 			msg := fmt.Sprintf("invalid request leader, %v", request)
-			hbStreams.sendErr(region, pdpb.ErrorType_UNKNOWN, msg, storeAddress)
+			hbStreams.sendErr(pdpb.ErrorType_UNKNOWN, msg, storeAddress)
 			continue
 		}
 
 		err = cluster.HandleRegionHeartbeat(region)
 		if err != nil {
 			msg := err.Error()
-			hbStreams.sendErr(region, pdpb.ErrorType_UNKNOWN, msg, storeAddress)
+			hbStreams.sendErr(pdpb.ErrorType_UNKNOWN, msg, storeAddress)
 		}
 
 		regionHeartbeatCounter.WithLabelValues(storeAddress, "report", "ok").Inc()
