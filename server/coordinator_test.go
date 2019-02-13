@@ -144,7 +144,7 @@ func (s *testCoordinatorSuite) TestBasic(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.clusterInfo.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.clusterInfo.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
@@ -201,7 +201,7 @@ func (s *testCoordinatorSuite) TestDispatch(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
@@ -266,7 +266,7 @@ func (s *testCoordinatorSuite) TestCollectMetrics(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
@@ -291,7 +291,7 @@ func (s *testCoordinatorSuite) TestCheckRegion(c *C) {
 	c.Assert(err, IsNil)
 	cfg.DisableLearner = false
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
@@ -350,7 +350,7 @@ func (s *testCoordinatorSuite) TestReplica(c *C) {
 	cfg.RegionScheduleLimit = 0
 
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
@@ -413,7 +413,7 @@ func (s *testCoordinatorSuite) TestPeerState(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
@@ -463,7 +463,7 @@ func (s *testCoordinatorSuite) TestShouldRun(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
@@ -562,7 +562,7 @@ func (s *testCoordinatorSuite) TestAddScheduler(c *C) {
 	cfg.ReplicaScheduleLimit = 0
 
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
 	co.run()
@@ -621,7 +621,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	cfg.ReplicaScheduleLimit = 0
 
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
@@ -715,7 +715,7 @@ func (s *testCoordinatorSuite) TestRestart(c *C) {
 	cfg.RegionScheduleLimit = 0
 
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	// Add 3 stores (1, 2, 3) and a region with 1 replica on store 1.
@@ -810,7 +810,7 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	c.Assert(tc.addLeaderRegion(1, 1), IsNil)
@@ -888,7 +888,7 @@ func (s *testScheduleControllerSuite) TestInterval(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
 	tc := newTestClusterInfo(opt)
-	hbStreams := newHeartbeatStreams(tc.getClusterID())
+	hbStreams := newHeartbeatStreams(tc.getClusterID(), tc.kv, tc.clusterInfo)
 	defer hbStreams.Close()
 
 	co := newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
