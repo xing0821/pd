@@ -82,7 +82,7 @@ func (ap AddPeer) String() string {
 func (ap AddPeer) IsFinish(region *core.RegionInfo) bool {
 	if p := region.GetStoreVoter(ap.ToStore); p != nil {
 		if p.GetId() != ap.PeerID {
-			log.L().Warn("obtain unexpected peer", zap.String("expect", ap.String()), zap.Uint64("obtain voter", p.GetId()))
+			log.Warn("obtain unexpected peer", zap.String("expect", ap.String()), zap.Uint64("obtain-voter", p.GetId()))
 			return false
 		}
 		return region.GetPendingVoter(p.GetId()) == nil
@@ -111,7 +111,7 @@ func (al AddLearner) String() string {
 func (al AddLearner) IsFinish(region *core.RegionInfo) bool {
 	if p := region.GetStoreLearner(al.ToStore); p != nil {
 		if p.GetId() != al.PeerID {
-			log.L().Warn("obtain unexpected peer", zap.String("expect", al.String()), zap.Uint64("obtain learner", p.GetId()))
+			log.Warn("obtain unexpected peer", zap.String("expect", al.String()), zap.Uint64("obtain-learner", p.GetId()))
 			return false
 		}
 		return region.GetPendingLearner(p.GetId()) == nil
@@ -140,7 +140,7 @@ func (pl PromoteLearner) String() string {
 func (pl PromoteLearner) IsFinish(region *core.RegionInfo) bool {
 	if p := region.GetStoreVoter(pl.ToStore); p != nil {
 		if p.GetId() != pl.PeerID {
-			log.L().Warn("obtain unexpected peer", zap.String("expect", pl.String()), zap.Uint64("obtain voter", p.GetId()))
+			log.Warn("obtain unexpected peer", zap.String("expect", pl.String()), zap.Uint64("obtain-voter", p.GetId()))
 		}
 		return p.GetId() == pl.PeerID
 	}
@@ -522,7 +522,7 @@ func matchPeerSteps(cluster Cluster, source *core.RegionInfo, target *core.Regio
 
 			peer, err := cluster.AllocPeer(storeID)
 			if err != nil {
-				log.L().Debug("peer alloc failed", zap.Error(err))
+				log.Debug("peer alloc failed", zap.Error(err))
 				return nil, kind, err
 			}
 			if cluster.IsRaftLearnerEnabled() {

@@ -47,7 +47,7 @@ func intervalGrow(x time.Duration, maxInterval time.Duration, typ intervalGrowth
 	case zeroGrowth:
 		return x
 	default:
-		log.L().Fatal("unknown interval growth type")
+		log.Fatal("unknown interval growth type")
 	}
 	return 0
 }

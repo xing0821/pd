@@ -67,10 +67,10 @@ func (s *labelScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator
 		schedulerCounter.WithLabelValues(s.GetName(), "skip").Inc()
 		return nil
 	}
-	log.L().Debug("label scheduler reject leader store list", zap.Reflect("stores", rejectLeaderStores))
+	log.Debug("label scheduler reject leader store list", zap.Reflect("stores", rejectLeaderStores))
 	for id := range rejectLeaderStores {
 		if region := cluster.RandLeaderRegion(id); region != nil {
-			log.L().Debug("label scheduler selects region to transfer leader", zap.Uint64("region", region.GetID()))
+			log.Debug("label scheduler selects region to transfer leader", zap.Uint64("region", region.GetID()))
 			excludeStores := make(map[uint64]struct{})
 			for _, p := range region.GetDownPeers() {
 				excludeStores[p.GetPeer().GetStoreId()] = struct{}{}
@@ -81,7 +81,7 @@ func (s *labelScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator
 			filter := schedule.NewExcludedFilter(nil, excludeStores)
 			target := s.selector.SelectTarget(cluster, cluster.GetFollowerStores(region), filter)
 			if target == nil {
-				log.L().Debug("label scheduler no target found for region", zap.Uint64("region", region.GetID()))
+				log.Debug("label scheduler no target found for region", zap.Uint64("region", region.GetID()))
 				schedulerCounter.WithLabelValues(s.GetName(), "no_target").Inc()
 				continue
 			}

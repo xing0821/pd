@@ -104,23 +104,23 @@ func (s *RegionSyncer) StartSyncWithLeader(addr string) {
 						return
 					}
 				}
-				log.L().Error("server failed to establish sync stream with leader", zap.String("server", s.server.Name()), zap.String("leader", s.server.GetLeader().GetName()), zap.Error(err))
+				log.Error("server failed to establish sync stream with leader", zap.String("server", s.server.Name()), zap.String("leader", s.server.GetLeader().GetName()), zap.Error(err))
 				time.Sleep(time.Second)
 				continue
 			}
-			log.L().Info("server starts to synchronize with leader", zap.String("server", s.server.Name()), zap.String("leader", s.server.GetLeader().GetName()), zap.Uint64("request-index", s.history.GetNextIndex()))
+			log.Info("server starts to synchronize with leader", zap.String("server", s.server.Name()), zap.String("leader", s.server.GetLeader().GetName()), zap.Uint64("request-index", s.history.GetNextIndex()))
 			for {
 				resp, err := client.Recv()
 				if err != nil {
-					log.L().Error("region sync with leader meet error", zap.Error(err))
+					log.Error("region sync with leader meet error", zap.Error(err))
 					if err = client.CloseSend(); err != nil {
-						log.L().Error("failed to terminate client stream", zap.Error(err))
+						log.Error("failed to terminate client stream", zap.Error(err))
 					}
 					time.Sleep(time.Second)
 					break
 				}
 				if s.history.GetNextIndex() != resp.GetStartIndex() {
-					log.L().Warn("server sync index not match the leader",
+					log.Warn("server sync index not match the leader",
 						zap.String("server", s.server.Name()),
 						zap.Uint64("own", s.history.GetNextIndex()),
 						zap.Uint64("leader", resp.GetStartIndex()),

@@ -78,7 +78,7 @@ func (mc *MockCluster) RandHotRegionFromStore(store uint64, kind FlowKind) *core
 func (mc *MockCluster) AllocPeer(storeID uint64) (*metapb.Peer, error) {
 	peerID, err := mc.allocID()
 	if err != nil {
-		log.L().Error("failed to alloc peer", zap.Error(err))
+		log.Error("failed to alloc peer", zap.Error(err))
 		return nil, err
 	}
 	peer := &metapb.Peer{

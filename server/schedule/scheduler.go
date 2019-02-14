@@ -77,7 +77,7 @@ var schedulerMap = make(map[string]CreateSchedulerFunc)
 // func of a package.
 func RegisterScheduler(name string, createFn CreateSchedulerFunc) {
 	if _, ok := schedulerMap[name]; ok {
-		log.L().Fatal("duplicated scheduler", zap.String("name", name))
+		log.Fatal("duplicated scheduler", zap.String("name", name))
 	}
 	schedulerMap[name] = createFn
 }

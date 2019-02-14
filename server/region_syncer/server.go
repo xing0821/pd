@@ -97,7 +97,7 @@ func (s *RegionSyncer) RunServer(regionNotifier <-chan *core.RegionInfo, quit ch
 	for {
 		select {
 		case <-quit:
-			log.L().Info("exit region syncer")
+			log.Info("exit region syncer")
 			return
 		case first := <-regionNotifier:
 			requests = append(requests, first.GetMeta())
@@ -141,7 +141,7 @@ func (s *RegionSyncer) Sync(stream pdpb.PD_SyncRegionsServer) error {
 		if clusterID != s.server.ClusterID() {
 			return status.Errorf(codes.FailedPrecondition, "mismatch cluster id, need %d but got %d", s.server.ClusterID(), clusterID)
 		}
-		log.L().Info("establish sync region stream",
+		log.Info("establish sync region stream",
 			zap.String("requested-server", request.GetMember().GetName()),
 			zap.String("url", request.GetMember().GetClientUrls()[0]))
 
@@ -159,7 +159,7 @@ func (s *RegionSyncer) syncHistoryRegion(request *pdpb.SyncRegionRequest, stream
 	records := s.history.RecordsFrom(startIndex)
 	if len(records) == 0 {
 		if s.history.GetNextIndex() == startIndex {
-			log.L().Info("requested server has already in sync with server",
+			log.Info("requested server has already in sync with server",
 				zap.String("requested-server", name), zap.String("server", s.server.Name()), zap.Uint64("last-index", startIndex))
 			return nil
 		}
@@ -182,18 +182,18 @@ func (s *RegionSyncer) syncHistoryRegion(request *pdpb.SyncRegionRequest, stream
 				s.limit.Wait(int64(resp.Size()))
 				lastIndex += len(res)
 				if err := stream.Send(resp); err != nil {
-					log.L().Error("failed to send sync region response", zap.Error(err))
+					log.Error("failed to send sync region response", zap.Error(err))
 				}
 				res = res[:0]
 			}
-			log.L().Info("requested server has completed full synchronization with server",
+			log.Info("requested server has completed full synchronization with server",
 				zap.String("requested-server", name), zap.String("server", s.server.Name()), zap.Duration("cost", time.Since(start)))
 			return nil
 		}
-		log.L().Warn("no history regions from index, the leader may be restarted", zap.Uint64("index", startIndex))
+		log.Warn("no history regions from index, the leader may be restarted", zap.Uint64("index", startIndex))
 		return nil
 	}
-	log.L().Info("sync the history regions with server",
+	log.Info("sync the history regions with server",
 		zap.String("server", name),
 		zap.Uint64("from-index", startIndex),
 		zap.Uint64("last-index", s.history.GetNextIndex()),
@@ -223,7 +223,7 @@ func (s *RegionSyncer) broadcast(regions *pdpb.SyncRegionResponse) {
 	for name, sender := range s.streams {
 		err := sender.Send(regions)
 		if err != nil {
-			log.L().Error("region syncer send data meet error", zap.Error(err))
+			log.Error("region syncer send data meet error", zap.Error(err))
 			failed = append(failed, name)
 		}
 	}
@@ -232,7 +232,7 @@ func (s *RegionSyncer) broadcast(regions *pdpb.SyncRegionResponse) {
 		s.Lock()
 		for _, name := range failed {
 			delete(s.streams, name)
-			log.L().Info("region syncer delete the stream", zap.String("stream", name))
+			log.Info("region syncer delete the stream", zap.String("stream", name))
 		}
 		s.Unlock()
 	}

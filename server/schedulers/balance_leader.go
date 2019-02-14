@@ -91,7 +91,7 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 		return nil
 	}
 
-	log.L().Debug("store leader score", zap.String("scheduler", l.GetName()), zap.Uint64("max-store", source.GetID()), zap.Uint64("min-store", target.GetID()))
+	log.Debug("store leader score", zap.String("scheduler", l.GetName()), zap.Uint64("max-store", source.GetID()), zap.Uint64("min-store", target.GetID()))
 	sourceStoreLabel := strconv.FormatUint(source.GetID(), 10)
 	targetStoreLabel := strconv.FormatUint(target.GetID(), 10)
 	balanceLeaderCounter.WithLabelValues("high_score", sourceStoreLabel).Inc()
@@ -110,7 +110,7 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 	}
 
 	// If no operator can be created for the selected stores, ignore them for a while.
-	log.L().Debug("no operator created for selected stores", zap.String("scheduler", l.GetName()), zap.Uint64("source", source.GetID()), zap.Uint64("target", target.GetID()))
+	log.Debug("no operator created for selected stores", zap.String("scheduler", l.GetName()), zap.Uint64("source", source.GetID()), zap.Uint64("target", target.GetID()))
 	balanceLeaderCounter.WithLabelValues("add_taint", strconv.FormatUint(source.GetID(), 10)).Inc()
 	l.taintStores.Put(source.GetID())
 	balanceLeaderCounter.WithLabelValues("add_taint", strconv.FormatUint(target.GetID(), 10)).Inc()
@@ -124,13 +124,13 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 func (l *balanceLeaderScheduler) transferLeaderOut(source *core.StoreInfo, cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
 	region := cluster.RandLeaderRegion(source.GetID(), core.HealthRegion())
 	if region == nil {
-		log.L().Debug("store has no leader", zap.String("scheduler", l.GetName()), zap.Uint64("store", source.GetID()))
+		log.Debug("store has no leader", zap.String("scheduler", l.GetName()), zap.Uint64("store", source.GetID()))
 		schedulerCounter.WithLabelValues(l.GetName(), "no_leader_region").Inc()
 		return nil
 	}
 	target := l.selector.SelectTarget(cluster, cluster.GetFollowerStores(region))
 	if target == nil {
-		log.L().Debug("region has no target store", zap.String("scheduler", l.GetName()), zap.Uint64("region", region.GetID()))
+		log.Debug("region has no target store", zap.String("scheduler", l.GetName()), zap.Uint64("region", region.GetID()))
 		schedulerCounter.WithLabelValues(l.GetName(), "no_target_store").Inc()
 		return nil
 	}
@@ -143,13 +143,13 @@ func (l *balanceLeaderScheduler) transferLeaderOut(source *core.StoreInfo, clust
 func (l *balanceLeaderScheduler) transferLeaderIn(target *core.StoreInfo, cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
 	region := cluster.RandFollowerRegion(target.GetID(), core.HealthRegion())
 	if region == nil {
-		log.L().Debug("store has no follower", zap.String("scheduler", l.GetName()), zap.Uint64("store", target.GetID()))
+		log.Debug("store has no follower", zap.String("scheduler", l.GetName()), zap.Uint64("store", target.GetID()))
 		schedulerCounter.WithLabelValues(l.GetName(), "no_follower_region").Inc()
 		return nil
 	}
 	source := cluster.GetStore(region.GetLeader().GetStoreId())
 	if source == nil {
-		log.L().Debug("region has no leader", zap.String("scheduler", l.GetName()), zap.Uint64("region", region.GetID()))
+		log.Debug("region has no leader", zap.String("scheduler", l.GetName()), zap.Uint64("region", region.GetID()))
 		schedulerCounter.WithLabelValues(l.GetName(), "no_leader").Inc()
 		return nil
 	}
@@ -162,13 +162,13 @@ func (l *balanceLeaderScheduler) transferLeaderIn(target *core.StoreInfo, cluste
 // the leader from the source store to the target store for the region.
 func (l *balanceLeaderScheduler) createOperator(region *core.RegionInfo, source, target *core.StoreInfo, cluster schedule.Cluster, opInfluence schedule.OpInfluence) []*schedule.Operator {
 	if cluster.IsRegionHot(region.GetID()) {
-		log.L().Debug("region is hot region, ignore it", zap.String("scheduler", l.GetName()), zap.Uint64("region", region.GetID()))
+		log.Debug("region is hot region, ignore it", zap.String("scheduler", l.GetName()), zap.Uint64("region", region.GetID()))
 		schedulerCounter.WithLabelValues(l.GetName(), "region_hot").Inc()
 		return nil
 	}
 
 	if !shouldBalance(cluster, source, target, region, core.LeaderKind, opInfluence) {
-		log.L().Debug("skip balance region",
+		log.Debug("skip balance region",
 			zap.String("scheduler", l.GetName()), zap.Uint64("region", region.GetID()), zap.Uint64("source-store", source.GetID()), zap.Uint64("target-store", target.GetID()),
 			zap.Int64("source-size", source.GetLeaderSize()), zap.Float64("source-score", source.LeaderScore(0)),
 			zap.Int64("source-influence", opInfluence.GetStoreInfluence(source.GetID()).ResourceSize(core.LeaderKind)),

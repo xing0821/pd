@@ -308,7 +308,7 @@ func (h *balanceHotRegionsScheduler) balanceByPeer(cluster schedule.Cluster, sto
 			// because it doesn't exist in the system right now.
 			destPeer, err := cluster.AllocPeer(destStoreID)
 			if err != nil {
-				log.L().Error("failed to allocate peer", zap.Error(err))
+				log.Error("failed to allocate peer", zap.Error(err))
 				return nil, nil, nil
 			}
 

@@ -133,7 +133,7 @@ func (s *shuffleHotRegionScheduler) randomSchedule(cluster schedule.Cluster, sto
 		}
 		destPeer, err := cluster.AllocPeer(destStoreID)
 		if err != nil {
-			log.L().Error("failed to allocate peer", zap.Error(err))
+			log.Error("failed to allocate peer", zap.Error(err))
 			return nil
 		}
 		schedulerCounter.WithLabelValues(s.GetName(), "create_operator").Inc()

@@ -36,7 +36,7 @@ import (
 // If the error is nil, this also responds with a 500 and logs at the error level.
 func errorResp(rd *render.Render, w http.ResponseWriter, err error) {
 	if err == nil {
-		log.L().Error("nil is given to errorResp")
+		log.Error("nil is given to errorResp")
 		rd.JSON(w, http.StatusInternalServerError, "nil error")
 		return
 	}

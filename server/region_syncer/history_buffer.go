@@ -134,15 +134,15 @@ func (h *historyBuffer) get(index uint64) *core.RegionInfo {
 func (h *historyBuffer) reload() {
 	v, err := h.kv.Load(historyKey)
 	if err != nil {
-		log.L().Warn("load history index failed", zap.Error(err))
+		log.Warn("load history index failed", zap.Error(err))
 	}
 	if v != "" {
 		h.index, err = strconv.ParseUint(v, 10, 64)
 		if err != nil {
-			log.L().Fatal("load history index failed", zap.Error(err))
+			log.Fatal("load history index failed", zap.Error(err))
 		}
 	}
-	log.L().Info("start from history index", zap.Uint64("start-index", h.firstIndex()))
+	log.Info("start from history index", zap.Uint64("start-index", h.firstIndex()))
 }
 
 func (h *historyBuffer) persist() {
@@ -150,6 +150,6 @@ func (h *historyBuffer) persist() {
 	regionSyncerStatus.WithLabelValues("last_index").Set(float64(h.nextIndex()))
 	err := h.kv.Save(historyKey, strconv.FormatUint(h.nextIndex(), 10))
 	if err != nil {
-		log.L().Warn("persist history index failed", zap.Uint64("persist-index", h.nextIndex()), zap.Error(err))
+		log.Warn("persist history index failed", zap.Uint64("persist-index", h.nextIndex()), zap.Error(err))
 	}
 }

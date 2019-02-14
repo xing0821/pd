@@ -59,12 +59,12 @@ func (h *memberHandler) getMembers() (*pdpb.GetMembersResponse, error) {
 	// Fill leader priorities.
 	for _, m := range members.GetMembers() {
 		if h.svr.GetEtcdLeader() == 0 {
-			log.L().Warn("no etcd leader, skip get leader priority", zap.Uint64("member", m.GetMemberId()))
+			log.Warn("no etcd leader, skip get leader priority", zap.Uint64("member", m.GetMemberId()))
 			continue
 		}
 		leaderPriority, e := h.svr.GetMemberLeaderPriority(m.GetMemberId())
 		if e != nil {
-			log.L().Error("failed to load leader priority", zap.Uint64("member", m.GetMemberId()), zap.Error(err))
+			log.Error("failed to load leader priority", zap.Uint64("member", m.GetMemberId()), zap.Error(err))
 			continue
 		}
 		m.LeaderPriority = int32(leaderPriority)

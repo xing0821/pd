@@ -205,7 +205,7 @@ func (l *balanceAdjacentRegionScheduler) process(cluster schedule.Cluster) []*sc
 
 	defer func() {
 		if l.cacheRegions.len() < 0 {
-			log.L().Fatal("cache overflow", zap.String("scheduler", l.GetName()))
+			log.Fatal("cache overflow", zap.String("scheduler", l.GetName()))
 		}
 		l.cacheRegions.head = head + 1
 		l.lastKey = r2.GetStartKey()
