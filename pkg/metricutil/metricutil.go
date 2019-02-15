@@ -67,7 +67,7 @@ func prometheusPushClient(job, addr string, interval time.Duration) {
 			prometheus.DefaultGatherer,
 		)
 		if err != nil {
-			log.L().Error("could not push metrics to Prometheus Pushgateway", zap.Error(err))
+			log.Error("could not push metrics to Prometheus Pushgateway", zap.Error(err))
 		}
 
 		time.Sleep(interval)
@@ -77,11 +77,11 @@ func prometheusPushClient(job, addr string, interval time.Duration) {
 // Push metircs in background.
 func Push(cfg *MetricConfig) {
 	if cfg.PushInterval.Duration == zeroDuration || len(cfg.PushAddress) == 0 {
-		log.L().Info("disable Prometheus push client")
+		log.Info("disable Prometheus push client")
 		return
 	}
 
-	log.L().Info("start Prometheus push client")
+	log.Info("start Prometheus push client")
 
 	interval := cfg.PushInterval.Duration
 	go prometheusPushClient(cfg.PushJob, cfg.PushAddress, interval)

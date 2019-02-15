@@ -69,11 +69,11 @@ func run(simCase string) {
 	simConfig := simulator.NewSimConfig(*serverLogLevel)
 	if *configFile != "" {
 		if _, err := toml.DecodeFile(*configFile, simConfig); err != nil {
-			simutil.Logger.Fatal(err)
+			simutil.Logger.Fatal("fail to decode file ", zap.Error(err))
 		}
 	}
 	if err := simConfig.Adjust(); err != nil {
-		simutil.Logger.Fatal(err)
+		simutil.Logger.Fatal("fail to adjust simulator configuration", zap.Error(err))
 	}
 
 	if *pdAddr != "" {
@@ -82,7 +82,7 @@ func run(simCase string) {
 		local, clean := NewSingleServer(simConfig)
 		err := local.Run(context.Background())
 		if err != nil {
-			simutil.Logger.Fatal("run server error:", err)
+			simutil.Logger.Fatal("run server error", zap.Error(err))
 		}
 		for {
 			if local.IsLeader() {
@@ -98,7 +98,7 @@ func run(simCase string) {
 func NewSingleServer(simConfig *simulator.SimConfig) (*server.Server, server.CleanupFunc) {
 	err := logutil.InitLogger(&simConfig.ServerConfig.Log)
 	if err != nil {
-		log.L().Fatal("initialize logger error", zap.Error(err))
+		log.Fatal("initialize logger error", zap.Error(err))
 	}
 
 	s, err := server.CreateServer(simConfig.ServerConfig, api.NewHandler)
@@ -122,12 +122,12 @@ func simStart(pdAddr string, simCase string, simConfig *simulator.SimConfig, cle
 	start := time.Now()
 	driver, err := simulator.NewDriver(pdAddr, simCase, simConfig)
 	if err != nil {
-		simutil.Logger.Fatal("create driver error:", err)
+		simutil.Logger.Fatal("create driver error", zap.Error(err))
 	}
 
 	err = driver.Prepare()
 	if err != nil {
-		simutil.Logger.Fatal("simulator prepare error:", err)
+		simutil.Logger.Fatal("simulator prepare error", zap.Error(err))
 	}
 
 	tickInterval := simConfig.SimTickInterval.Duration

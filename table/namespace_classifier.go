@@ -457,7 +457,7 @@ func (namespaceInfo *namespacesInfo) loadNamespaces(kv *core.KV, rangeLimit int)
 		}
 
 		if len(res) < rangeLimit {
-			log.L().Info("load namespaces information",
+			log.Info("load namespaces information",
 				zap.Int("namespace-count", namespaceInfo.getNamespaceCount()),
 				zap.Duration("cost", time.Since(start)))
 			return nil

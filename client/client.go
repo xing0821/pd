@@ -122,7 +122,7 @@ type SecurityOption struct {
 
 // NewClient creates a PD client.
 func NewClient(pdAddrs []string, security SecurityOption) (Client, error) {
-	log.L().Info("[pd] create pd client with endpoints", zap.Reflect("pd-address", pdAddrs))
+	log.Info("[pd] create pd client with endpoints", zap.Strings("pd-address", pdAddrs))
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &client{
 		urls:          addrsToUrls(pdAddrs),
@@ -141,7 +141,7 @@ func NewClient(pdAddrs []string, security SecurityOption) (Client, error) {
 	if err := c.updateLeader(); err != nil {
 		return nil, err
 	}
-	log.L().Info("[pd] init cluster id", zap.Uint64("cluster-id", c.clusterID))
+	log.Info("[pd] init cluster id", zap.Uint64("cluster-id", c.clusterID))
 
 	c.wg.Add(3)
 	go c.tsLoop()
@@ -168,7 +168,7 @@ func (c *client) initClusterID() error {
 			members, err := c.getMembers(timeoutCtx, u)
 			timeoutCancel()
 			if err != nil || members.GetHeader() == nil {
-				log.L().Error("[pd] failed to get cluster id", zap.Error(err))
+				log.Error("[pd] failed to get cluster id", zap.Error(err))
 				continue
 			}
 			c.clusterID = members.GetHeader().GetClusterId()
@@ -224,7 +224,7 @@ func (c *client) switchLeader(addrs []string) error {
 		return nil
 	}
 
-	log.L().Info("[pd] switch leader", zap.String("new-leader", addr), zap.String("old-leader", oldLeader))
+	log.Info("[pd] switch leader", zap.String("new-leader", addr), zap.String("old-leader", oldLeader))
 	if _, err := c.getOrCreateGRPCConn(addr); err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (c *client) leaderLoop() {
 		}
 
 		if err := c.updateLeader(); err != nil {
-			log.L().Error("[pd] failed updateLeader", zap.Error(err))
+			log.Error("[pd] failed updateLeader", zap.Error(err))
 		}
 	}
 }
@@ -331,7 +331,7 @@ func (c *client) tsCancelLoop() {
 		case d := <-c.tsDeadlineCh:
 			select {
 			case <-d.timer:
-				log.L().Error("tso request is canceled due to timeout")
+				log.Error("tso request is canceled due to timeout")
 				d.cancel()
 			case <-d.done:
 			case <-ctx.Done():
@@ -368,7 +368,7 @@ func (c *client) tsLoop() {
 					return
 				default:
 				}
-				log.L().Error("[pd] create tso stream error", zap.Error(err))
+				log.Error("[pd] create tso stream error", zap.Error(err))
 				c.ScheduleCheckLeader()
 				cancel()
 				c.revokeTSORequest(errors.WithStack(err))
@@ -416,7 +416,7 @@ func (c *client) tsLoop() {
 				return
 			default:
 			}
-			log.L().Error("[pd] getTS error", zap.Error(err))
+			log.Error("[pd] getTS error", zap.Error(err))
 			c.ScheduleCheckLeader()
 			cancel()
 			stream, cancel = nil, nil
@@ -498,7 +498,7 @@ func (c *client) Close() {
 	defer c.connMu.Unlock()
 	for _, cc := range c.connMu.clientConns {
 		if err := cc.Close(); err != nil {
-			log.L().Error("[pd] failed close grpc clientConn", zap.Error(err))
+			log.Error("[pd] failed close grpc clientConn", zap.Error(err))
 		}
 	}
 }

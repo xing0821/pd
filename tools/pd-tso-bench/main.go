@@ -47,7 +47,7 @@ func main() {
 		KeyPath:  *keyPath,
 	})
 	if err != nil {
-		log.L().Fatal(fmt.Sprintf("%v", err))
+		log.Fatal(fmt.Sprintf("%v", err))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -55,7 +55,7 @@ func main() {
 	for i := 0; i < *concurrency; i++ {
 		_, _, err = pdCli.GetTS(ctx)
 		if err != nil {
-			log.L().Fatal(fmt.Sprintf("%v", err))
+			log.Fatal(fmt.Sprintf("%v", err))
 		}
 	}
 
@@ -210,7 +210,7 @@ func reqWorker(ctx context.Context, pdCli pd.Client, durCh chan time.Duration) {
 		}
 
 		if err != nil {
-			log.L().Fatal(fmt.Sprintf("%v", err))
+			log.Fatal(fmt.Sprintf("%v", err))
 		}
 		dur := time.Since(start)
 

@@ -60,7 +60,7 @@ func CheckClusterID(localClusterID types.ID, um types.URLsMap, tlsConfig *tls.Co
 		trp.CloseIdleConnections()
 		if gerr != nil {
 			// Do not return error, because other members may be not ready.
-			log.L().Error(fmt.Sprintf("%v", gerr))
+			log.Error(fmt.Sprintf("%v", gerr))
 			continue
 		}
 
