@@ -64,7 +64,7 @@ func (n *NamespaceChecker) Check(region *core.RegionInfo) *Operator {
 		if n.isExists(targetStores, peer.StoreId) {
 			continue
 		}
-		log.Debug("peer is not located in namespace target stores", zap.Uint64("region", region.GetID()), zap.Reflect("peer", peer))
+		log.Debug("peer is not located in namespace target stores", zap.Uint64("region-id", region.GetID()), zap.Reflect("peer", peer))
 		newPeer := n.SelectBestPeerToRelocate(region, targetStores)
 		if newPeer == nil {
 			checkerCounter.WithLabelValues("namespace_checker", "no_target_peer").Inc()
@@ -82,7 +82,7 @@ func (n *NamespaceChecker) Check(region *core.RegionInfo) *Operator {
 func (n *NamespaceChecker) SelectBestPeerToRelocate(region *core.RegionInfo, targets []*core.StoreInfo) *metapb.Peer {
 	storeID := n.SelectBestStoreToRelocate(region, targets)
 	if storeID == 0 {
-		log.Debug("has no best store to relocate", zap.Uint64("region", region.GetID()))
+		log.Debug("has no best store to relocate", zap.Uint64("region-id", region.GetID()))
 		return nil
 	}
 	newPeer, err := n.cluster.AllocPeer(storeID)
