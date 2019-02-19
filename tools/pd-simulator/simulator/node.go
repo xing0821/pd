@@ -80,7 +80,7 @@ func NewNode(s *cases.Store, pdAddr string, ioRate int64) (*Node, error) {
 		tasks:                    make(map[uint64]Task),
 		receiveRegionHeartbeatCh: receiveRegionHeartbeatCh,
 		ioRate:                   ioRate * cases.MB,
-		tick:                     uint64(rand.Intn(10)),
+		tick:                     uint64(rand.Intn(storeHeartBeatPeriod)),
 	}, nil
 }
 
@@ -114,8 +114,8 @@ func (n *Node) receiveRegionHeartbeat() {
 }
 
 // Tick steps node status change.
-func (n *Node) Tick(d *Driver) {
-	defer d.wg.Done()
+func (n *Node) Tick(wg *sync.WaitGroup) {
+	defer wg.Done()
 	if n.GetState() != metapb.StoreState_Up {
 		return
 	}

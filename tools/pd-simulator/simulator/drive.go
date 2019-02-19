@@ -109,7 +109,7 @@ func (d *Driver) Tick() {
 	for _, n := range d.conn.Nodes {
 		n.reportRegionChange()
 		d.wg.Add(1)
-		go n.Tick(d)
+		go n.Tick(&d.wg)
 	}
 	d.wg.Wait()
 }
