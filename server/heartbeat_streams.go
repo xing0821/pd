@@ -81,7 +81,10 @@ func (s *heartbeatStreams) run() {
 			storeID := msg.GetTargetPeer().GetStoreId()
 			store, err := s.cluster.GetStore(storeID)
 			if err != nil {
-				log.Errorf("[region %v] fail to get store %v: %v", msg.RegionId, storeID, err)
+				log.Error("fail to get store",
+					zap.Uint64("region-id", msg.RegionId),
+					zap.Uint64("store-id", storeID),
+					zap.Error(err))
 				delete(s.streams, storeID)
 				continue
 			}
@@ -96,14 +99,16 @@ func (s *heartbeatStreams) run() {
 					regionHeartbeatCounter.WithLabelValues(storeAddress, "push", "ok").Inc()
 				}
 			} else {
-				log.Debug("heartbeat stream not found, skip send message", zap.Uint64("region-id", msg.RegionId), zap.Uint64("store-id", storeID))
+				log.Debug("heartbeat stream not found, skip send message",
+					zap.Uint64("region-id", msg.RegionId),
+					zap.Uint64("store-id", storeID))
 				regionHeartbeatCounter.WithLabelValues(storeAddress, "push", "skip").Inc()
 			}
 		case <-keepAliveTicker.C:
 			for storeID, stream := range s.streams {
 				store, err := s.cluster.GetStore(storeID)
 				if err != nil {
-					log.Errorf("[store %v] fail to get store: %v", storeID, err)
+					log.Error("fail to get store", zap.Uint64("store-id", storeID), zap.Error(err))
 					delete(s.streams, storeID)
 					continue
 				}
