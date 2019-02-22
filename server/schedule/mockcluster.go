@@ -541,7 +541,7 @@ const (
 	defaultMaxBalanceRegionInflight    = 4
 	defaultMaxMakeupReplicaInflight    = 8
 	defaultMaxMergeRegionInflight      = 8
-	defaultMaxDefaultScheduleInflight  = 8
+	defaultMaxDefaultScheduleInflight  = 1
 	defaultTolerantSizeRatio           = 2.5
 	defaultLowSpaceRatio               = 0.8
 	defaultHighSpaceRatio              = 0.6

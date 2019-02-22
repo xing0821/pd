@@ -163,7 +163,7 @@ func (c *coordinator) checkRegion(region *core.RegionInfo) bool {
 		}
 	}
 
-	if opController.OperatorInflight("merge-region") < c.cluster.GetMaxMergeRegionInflight() {
+	if c.cluster.IsFeatureSupported(RegionMerge) && opController.OperatorInflight("merge-region") < c.cluster.GetMaxMergeRegionInflight() {
 		if ops := c.mergeChecker.Check(region); ops != nil {
 			// It makes sure that two operators can be added successfully altogether.
 			if opController.AddOperator(ops...) {

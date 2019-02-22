@@ -89,11 +89,10 @@ func (oc *OperatorController) Dispatch(region *core.RegionInfo) {
 		if timeout {
 			log.Info("operator timeout", zap.Uint64("region-id", region.GetID()), zap.Reflect("operator", op))
 			oc.RemoveWaitingOperator(op)
-		} else if oc.promoteOperator(op) {
-			if step := op.Check(region); step != nil {
-				operatorCounter.WithLabelValues(op.Desc(), "check").Inc()
-				oc.SendScheduleCommand(region, step)
-			}
+		} else {
+			oc.Lock()
+			oc.promoteOperator(region, op)
+			oc.Unlock()
 		}
 	}
 }
@@ -150,25 +149,16 @@ func isHigherPriorityOperator(new, old *Operator) bool {
 	return new.GetPriorityLevel() < old.GetPriorityLevel()
 }
 
-func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
+func (oc *OperatorController) addOperatorLocked(op *Operator) {
 	regionID := op.RegionID()
+	region := oc.cluster.GetRegion(regionID)
 
 	log.Info("add operator", zap.Uint64("region-id", regionID), zap.Reflect("operator", op))
-	if len(oc.waitingOperators) == 0 && oc.allowSchedule(op) {
-		oc.createOperator(oc.runningOperators, op)
-		if region := oc.cluster.GetRegion(op.RegionID()); region != nil {
-			if step := op.Check(region); step != nil {
-				oc.SendScheduleCommand(region, step)
-			}
-		}
-		return true
-	}
-
 	// If there is an old operator in running operators, replace it.
 	// The priority should be checked already.
 	if old, ok := oc.runningOperators[regionID]; ok && oc.allowSchedule(old) {
 		oc.replaceOperator(oc.runningOperators, op, old)
-		if region := oc.cluster.GetRegion(op.RegionID()); region != nil {
+		if region != nil {
 			if step := op.Check(region); step != nil {
 				oc.SendScheduleCommand(region, step)
 			}
@@ -177,10 +167,20 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 		// If there is an old operator in waiting operators, replace it.
 		// The priority should be checked already.
 		oc.replaceOperator(oc.waitingOperators, op, old)
+		oc.promoteOperator(region, op)
 	} else {
 		oc.createOperator(oc.waitingOperators, op)
+		oc.promoteOperator(region, op)
 	}
-	return true
+}
+
+func (oc *OperatorController) promoteOperator(region *core.RegionInfo, op *Operator) {
+	if oc.allowPromote(op) {
+		if step := op.Check(region); step != nil {
+			operatorCounter.WithLabelValues(op.Desc(), "check").Inc()
+			oc.SendScheduleCommand(region, step)
+		}
+	}
 }
 
 func (oc *OperatorController) createOperator(operators map[uint64]*Operator, op *Operator) {
@@ -270,10 +270,7 @@ func (oc *OperatorController) GetWaitingOperators() []*Operator {
 	return operators
 }
 
-func (oc *OperatorController) promoteOperator(op *Operator) bool {
-	oc.Lock()
-	defer oc.Unlock()
-
+func (oc *OperatorController) allowPromote(op *Operator) bool {
 	if op.Desc() == "merge-region" {
 		for _, step := range op.steps {
 			if st, ok := step.(MergeRegion); ok {
