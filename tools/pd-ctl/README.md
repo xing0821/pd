@@ -212,7 +212,7 @@ Usage:
     >> config set max-merge-region-inflight 16       // 16 tasks of Merge scheduling at the same time at most
     ```
 
-- `max-default-schedule-inflight` controls the number of other scheduling tasks at the same time. 
+- `max-default-schedule-inflight` controls the number of other scheduling tasks at the same time.
 
     ```bash
     >> config set max-merge-region-inflight 1       // 1 tasks for each other scheduling at the same time at most

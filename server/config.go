@@ -491,6 +491,10 @@ type ScheduleConfig struct {
 	// If the number of times a region hits the hot cache is greater than this
 	// threshold, it is considered a hot region.
 	HotRegionCacheHitsThreshold uint64 `toml:"hot-region-cache-hits-threshold,omitempty" json:"hot-region-cache-hits-threshold"`
+	// MaxScheduleCost is the maxinum of scheduling cost for the running operators.
+	MaxScheduleCost uint64 `toml:"max-schedule-cost,omitempty" json:"max-schedule-cost"`
+	// StoreMaxScheduleCost is the maxinum of scheduling cost for each store.
+	StoreMaxScheduleCost uint64 `toml:"store-max-schedule-cost,omitempty" json:"store-max-schedule-cost"`
 	// TolerantSizeRatio is the ratio of buffer size for balance scheduler.
 	TolerantSizeRatio float64 `toml:"tolerant-size-ratio,omitempty" json:"tolerant-size-ratio"`
 	//
@@ -558,6 +562,8 @@ func (c *ScheduleConfig) clone() *ScheduleConfig {
 		MaxShuffleRegionInflight:           c.MaxShuffleRegionInflight,
 		MaxShuffleHotRegionInflight:        c.MaxShuffleHotRegionInflight,
 		HotRegionCacheHitsThreshold:        c.HotRegionCacheHitsThreshold,
+		MaxScheduleCost:                    c.MaxScheduleCost,
+		StoreMaxScheduleCost:               c.StoreMaxScheduleCost,
 		TolerantSizeRatio:                  c.TolerantSizeRatio,
 		LowSpaceRatio:                      c.LowSpaceRatio,
 		HighSpaceRatio:                     c.HighSpaceRatio,
@@ -592,6 +598,8 @@ const (
 	// defaultHotRegionCacheHitsThreshold is the low hit number threshold of the
 	// hot region.
 	defautHotRegionCacheHitsThreshold = 3
+	defaultMaxScheduleCost            = 20
+	defaultStoreMaxScheduleCost       = 200
 )
 
 func (c *ScheduleConfig) adjust(meta *configMetaData) error {
@@ -630,6 +638,12 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	}
 	if !meta.IsDefined("tolerant-size-ratio") {
 		adjustFloat64(&c.TolerantSizeRatio, defaultTolerantSizeRatio)
+	}
+	if !meta.IsDefined("max-schedule-cost") {
+		adjustUint64(&c.MaxScheduleCost, defaultMaxScheduleCost)
+	}
+	if !meta.IsDefined("store-max-schedule-cost") {
+		adjustUint64(&c.StoreMaxScheduleCost, defaultStoreMaxScheduleCost)
 	}
 
 	adjustDuration(&c.SplitMergeInterval, defaultSplitMergeInterval)
@@ -764,6 +778,10 @@ type NamespaceConfig struct {
 	MaxShuffleHotRegionInflight uint64 `json:"max-shuffle-hot-region-inflight"`
 	// MaxReplicas is the number of replicas for each region.
 	MaxReplicas uint64 `json:"max-replicas"`
+	// MaxScheduleCost is the maxinum of scheduling cost for the running operators.
+	MaxScheduleCost uint64 `json:"max-schedule-cost"`
+	// StoreMaxScheduleCost is the maxinum of scheduling cost for each store.
+	StoreMaxScheduleCost uint64 `json:"store-max-schedule-cost"`
 }
 
 func (c *NamespaceConfig) adjust(opt *scheduleOption) {
@@ -782,6 +800,8 @@ func (c *NamespaceConfig) adjust(opt *scheduleOption) {
 	adjustUint64(&c.MaxShuffleRegionInflight, opt.GetMaxShuffleRegionInflight(namespace.DefaultNamespace))
 	adjustUint64(&c.MaxShuffleHotRegionInflight, opt.GetMaxShuffleHotRegionInflight(namespace.DefaultNamespace))
 	adjustUint64(&c.MaxReplicas, uint64(opt.GetMaxReplicas(namespace.DefaultNamespace)))
+	adjustUint64(&c.MaxScheduleCost, uint64(opt.GetMaxScheduleCost(namespace.DefaultNamespace)))
+	adjustUint64(&c.StoreMaxScheduleCost, uint64(opt.GetStoreMaxScheduleCost(namespace.DefaultNamespace)))
 }
 
 // SecurityConfig is the configuration for supporting tls.

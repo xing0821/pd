@@ -154,18 +154,16 @@ func (s *testCoordinatorSuite) TestBasic(c *C) {
 
 	op1 := newTestOperator(1, tc.GetRegion(1).GetRegionEpoch(), schedule.OpLeader)
 	oc.AddOperator(op1)
-	c.Assert(oc.OperatorCount(op1.Kind()), Equals, uint64(1))
 	c.Assert(oc.GetRunningOperator(1).RegionID(), Equals, op1.RegionID())
 
 	// Region 1 already has an operator, cannot add another one.
 	op2 := newTestOperator(1, tc.GetRegion(1).GetRegionEpoch(), schedule.OpRegion)
 	oc.AddOperator(op2)
-	c.Assert(oc.OperatorCount(op2.Kind()), Equals, uint64(0))
+	c.Assert(oc.GetRunningOperator(1).RegionID(), Equals, op1.RegionID())
 
 	// Remove the operator manually, then we can add a new operator.
 	oc.RemoveRunningOperator(op1)
 	oc.AddOperator(op2)
-	c.Assert(oc.OperatorCount(op2.Kind()), Equals, uint64(1))
 	c.Assert(oc.GetRunningOperator(1).RegionID(), Equals, op2.RegionID())
 }
 
@@ -708,42 +706,6 @@ func waitOperator(c *C, co *coordinator, regionID uint64) {
 	})
 }
 
-var _ = Suite(&testOperatorControllerSuite{})
-
-type testOperatorControllerSuite struct{}
-
-func (s *testOperatorControllerSuite) TestOperatorCount(c *C) {
-	_, opt, err := newTestScheduleConfig()
-	c.Assert(err, IsNil)
-	tc := newTestClusterInfo(opt)
-	hbStreams := schedule.NewMockHeartbeatStreams(tc.clusterInfo.getClusterID())
-
-	oc := schedule.NewOperatorController(tc.clusterInfo, hbStreams)
-	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(0))
-	c.Assert(oc.OperatorCount(schedule.OpRegion), Equals, uint64(0))
-
-	c.Assert(tc.addLeaderRegion(1, 1), IsNil)
-	c.Assert(tc.addLeaderRegion(2, 2), IsNil)
-	op1 := newTestOperator(1, tc.GetRegion(1).GetRegionEpoch(), schedule.OpLeader)
-	oc.AddOperator(op1)
-	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(1)) // 1:leader
-	op2 := newTestOperator(2, tc.GetRegion(2).GetRegionEpoch(), schedule.OpLeader)
-	oc.AddOperator(op2)
-	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(2)) // 1:leader, 2:leader
-	oc.RemoveRunningOperator(op1)
-	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(1)) // 2:leader
-
-	op1 = newTestOperator(1, tc.GetRegion(1).GetRegionEpoch(), schedule.OpRegion)
-	oc.AddOperator(op1)
-	c.Assert(oc.OperatorCount(schedule.OpRegion), Equals, uint64(1)) // 1:region 2:leader
-	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(1))
-	op2 = newTestOperator(2, tc.GetRegion(2).GetRegionEpoch(), schedule.OpRegion)
-	op2.SetPriorityLevel(core.HighPriority)
-	oc.AddOperator(op2)
-	c.Assert(oc.OperatorCount(schedule.OpRegion), Equals, uint64(2)) // 1:region 2:region
-	c.Assert(oc.OperatorCount(schedule.OpLeader), Equals, uint64(0))
-}
-
 var _ = Suite(&testScheduleControllerSuite{})
 
 type testScheduleControllerSuite struct{}
@@ -751,18 +713,19 @@ type testScheduleControllerSuite struct{}
 // FIXME: remove after move into schedulers package
 type mockLimitScheduler struct {
 	schedule.Scheduler
-	limit   uint64
-	counter *schedule.OperatorController
-	kind    schedule.OperatorKind
+	limit uint64
+	oc    *schedule.OperatorController
+	kind  schedule.OperatorKind
 }
 
 func (s *mockLimitScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool {
-	return s.counter.OperatorCount(s.kind) < s.limit
+	return s.oc.OperatorInflight("test") < s.limit
 }
 
 func (s *testScheduleControllerSuite) TestController(c *C) {
-	_, opt, err := newTestScheduleConfig()
+	cfg, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
+	cfg.MaxScheduleCost = 0
 	tc := newTestClusterInfo(opt)
 	hbStreams := newHeartbeatStreams(tc.getClusterID())
 	defer hbStreams.Close()
@@ -776,7 +739,7 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	c.Assert(err, IsNil)
 	lb := &mockLimitScheduler{
 		Scheduler: scheduler,
-		counter:   oc,
+		oc:        oc,
 		kind:      schedule.OpLeader,
 	}
 
@@ -798,7 +761,7 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	c.Assert(oc.AddOperator(op2), IsTrue)
 	// count = 2
 	c.Assert(sc.AllowSchedule(), IsFalse)
-	oc.RemoveRunningOperator(op1)
+	oc.RemoveWaitingOperator(op1)
 	// count = 1
 	c.Assert(sc.AllowSchedule(), IsTrue)
 
@@ -809,7 +772,7 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	c.Assert(sc.AllowSchedule(), IsFalse)
 	c.Assert(oc.AddOperator(op3), IsTrue)
 	c.Assert(sc.AllowSchedule(), IsTrue)
-	oc.RemoveRunningOperator(op3)
+	oc.RemoveWaitingOperator(op3)
 
 	// add a admin operator will remove old operator
 	c.Assert(oc.AddOperator(op2), IsTrue)
@@ -818,14 +781,14 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	op4.SetPriorityLevel(core.HighPriority)
 	c.Assert(oc.AddOperator(op4), IsTrue)
 	c.Assert(sc.AllowSchedule(), IsTrue)
-	oc.RemoveRunningOperator(op4)
+	oc.RemoveWaitingOperator(op4)
 
 	// test wrong region id.
 	op5 := newTestOperator(3, &metapb.RegionEpoch{}, schedule.OpHotRegion)
 	c.Assert(oc.AddOperator(op5), IsFalse)
 
 	// test wrong region epoch.
-	oc.RemoveRunningOperator(op1)
+	oc.RemoveWaitingOperator(op1)
 	epoch := &metapb.RegionEpoch{
 		Version: tc.GetRegion(1).GetRegionEpoch().GetVersion() + 1,
 		ConfVer: tc.GetRegion(1).GetRegionEpoch().GetConfVer(),
@@ -835,7 +798,7 @@ func (s *testScheduleControllerSuite) TestController(c *C) {
 	epoch.Version--
 	op6 = newTestOperator(1, epoch, schedule.OpLeader)
 	c.Assert(oc.AddOperator(op6), IsTrue)
-	oc.RemoveRunningOperator(op6)
+	oc.RemoveWaitingOperator(op6)
 }
 
 func (s *testScheduleControllerSuite) TestInterval(c *C) {

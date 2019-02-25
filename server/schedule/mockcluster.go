@@ -517,6 +517,16 @@ func (mc *MockCluster) GetMaxReplicas() int {
 	return mc.MockSchedulerOptions.GetMaxReplicas(namespace.DefaultNamespace)
 }
 
+// GetMaxScheduleCost mocks method.
+func (mc *MockCluster) GetMaxScheduleCost() uint64 {
+	return mc.MockSchedulerOptions.GetMaxScheduleCost(namespace.DefaultNamespace)
+}
+
+// GetStoreMaxScheduleCost mocks method.
+func (mc *MockCluster) GetStoreMaxScheduleCost() uint64 {
+	return mc.MockSchedulerOptions.GetStoreMaxScheduleCost(namespace.DefaultNamespace)
+}
+
 // CheckLabelProperty checks label property.
 func (mc *MockCluster) CheckLabelProperty(typ string, labels []*metapb.StoreLabel) bool {
 	for _, cfg := range mc.LabelProperties[typ] {
@@ -546,6 +556,8 @@ const (
 	defaultLowSpaceRatio               = 0.8
 	defaultHighSpaceRatio              = 0.6
 	defaultHotRegionCacheHitsThreshold = 3
+	defaultMaxScheduleCost             = 200
+	defaultStoreMaxScheduleCost        = 20
 )
 
 // MockSchedulerOptions is a mock of SchedulerOptions
@@ -574,6 +586,8 @@ type MockSchedulerOptions struct {
 	MaxStoreDownTime                   time.Duration
 	HotRegionCacheHitsThreshold        int
 	MaxReplicas                        int
+	MaxScheduleCost                    uint64
+	StoreMaxScheduleCost               uint64
 	LocationLabels                     []string
 	HotRegionLowThreshold              int
 	TolerantSizeRatio                  float64
@@ -618,6 +632,8 @@ func NewMockSchedulerOptions() *MockSchedulerOptions {
 	mso.TolerantSizeRatio = defaultTolerantSizeRatio
 	mso.LowSpaceRatio = defaultLowSpaceRatio
 	mso.HighSpaceRatio = defaultHighSpaceRatio
+	mso.MaxScheduleCost = defaultMaxScheduleCost
+	mso.StoreMaxScheduleCost = defaultStoreMaxScheduleCost
 	return mso
 }
 
@@ -729,6 +745,16 @@ func (mso *MockSchedulerOptions) GetMaxStoreDownTime() time.Duration {
 // GetMaxReplicas mock method
 func (mso *MockSchedulerOptions) GetMaxReplicas(name string) int {
 	return mso.MaxReplicas
+}
+
+// GetMaxScheduleCost mock method
+func (mso *MockSchedulerOptions) GetMaxScheduleCost(name string) uint64 {
+	return mso.MaxScheduleCost
+}
+
+// GetStoreMaxScheduleCost mock method
+func (mso *MockSchedulerOptions) GetStoreMaxScheduleCost(name string) uint64 {
+	return mso.StoreMaxScheduleCost
 }
 
 // GetLocationLabels mock method

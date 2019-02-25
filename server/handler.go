@@ -299,7 +299,7 @@ func (h *Handler) GetOperators() ([]*schedule.Operator, error) {
 	if err != nil {
 		return nil, err
 	}
-	operators := append(c.opController.GetRunningOperators(), c.opController.GetWaitingOperators()...)
+	operators := c.opController.GetRunningOperators()
 	return operators, nil
 }
 

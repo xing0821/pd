@@ -40,6 +40,8 @@ type Options interface {
 	GetMaxShuffleLeaderInflight() uint64
 	GetMaxShuffleRegionInflight() uint64
 	GetMaxShuffleHotRegionInflight() uint64
+	GetMaxScheduleCost() uint64
+	GetStoreMaxScheduleCost() uint64
 
 	GetMaxSnapshotCount() uint64
 	GetMaxPendingPeerCount() uint64
@@ -86,6 +88,8 @@ type NamespaceOptions interface {
 	GetMaxShuffleRegionInflight(name string) uint64
 	GetMaxShuffleHotRegionInflight(name string) uint64
 	GetMaxReplicas(name string) int
+	GetMaxScheduleCost(name string) uint64
+	GetStoreMaxScheduleCost(name string) uint64
 }
 
 const (
