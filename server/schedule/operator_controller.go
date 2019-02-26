@@ -26,9 +26,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	historyKeepTime = 5 * time.Minute
-)
+const historyKeepTime = 5 * time.Minute
 
 // HeartbeatStreams is an interface of async region heartbeat.
 type HeartbeatStreams interface {
@@ -77,13 +75,13 @@ func (oc *OperatorController) Dispatch(region *core.RegionInfo) {
 			oc.pushHistory(op)
 			oc.RemoveRunningOperator(op)
 		} else if timeout {
-			log.Info("operator timeout", zap.Uint64("region-id", region.GetID()), zap.Reflect("operator", op))
+			log.Info("running operator timeout", zap.Uint64("region-id", region.GetID()), zap.Reflect("operator", op))
 			oc.RemoveRunningOperator(op)
 		}
 	} else if op := oc.GetWaitingOperator(region.GetID()); op != nil {
 		timeout := op.IsTimeout()
 		if timeout {
-			log.Info("operator timeout", zap.Uint64("region-id", region.GetID()), zap.Reflect("operator", op))
+			log.Info("waiting operator timeout", zap.Uint64("region-id", region.GetID()), zap.Reflect("operator", op))
 			oc.RemoveWaitingOperator(op)
 		} else {
 			oc.Lock()
@@ -131,11 +129,11 @@ func (oc *OperatorController) checkAddOperator(op *Operator) bool {
 		return false
 	}
 	if old := oc.runningOperators[op.RegionID()]; old != nil && !isHigherPriorityOperator(op, old) {
-		log.Debug("already have operator, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", old))
+		log.Debug("already have it in running operators, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", old))
 		return false
 	}
 	if old := oc.waitingOperators[op.RegionID()]; old != nil && !isHigherPriorityOperator(op, old) {
-		log.Debug("already have operator, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", old))
+		log.Debug("already have it in waiting operators, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", old))
 		return false
 	}
 	return true
@@ -153,7 +151,7 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) {
 	// If there is an old operator in running operators, replace it.
 	// The priority should be checked already.
 	if old, ok := oc.runningOperators[regionID]; ok && oc.allowSchedule(old) {
-		oc.replaceOperator(oc.runningOperators, op, old, false)
+		oc.replaceRunningOperator(op, old)
 		if region != nil {
 			if step := op.Check(region); step != nil {
 				oc.SendScheduleCommand(region, step)
@@ -162,7 +160,7 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) {
 	} else if old, ok := oc.waitingOperators[regionID]; ok {
 		// If there is an old operator in waiting operators, replace it.
 		// The priority should be checked already.
-		oc.replaceOperator(oc.waitingOperators, op, old, true)
+		oc.replaceWaitingOperator(op, old)
 		oc.promoteOperator(region, op)
 	} else {
 		oc.createOperator(op)
@@ -186,25 +184,43 @@ func (oc *OperatorController) createOperator(op *Operator) {
 	operatorCounter.WithLabelValues(op.Desc(), "create").Inc()
 }
 
-func (oc *OperatorController) replaceOperator(operators map[uint64]*Operator, op *Operator, old *Operator, isWating bool) {
+func (oc *OperatorController) replaceRunningOperator(op *Operator, old *Operator) {
 	regionID := op.RegionID()
 	log.Info("replace old operator", zap.Uint64("region-id", regionID), zap.Reflect("operator", old))
 	operatorCounter.WithLabelValues(old.Desc(), "replaced").Inc()
-	oc.removeOperatorLocked(operators, old, isWating)
-	operators[regionID] = op
+	oc.removeRunningOperatorLocked(old)
+	oc.runningOperators[regionID] = op
 }
 
-func (oc *OperatorController) removeOperatorLocked(operators map[uint64]*Operator, op *Operator, isWating bool) {
+func (oc *OperatorController) replaceWaitingOperator(op *Operator, old *Operator) {
+	regionID := op.RegionID()
+	log.Info("replace old operator", zap.Uint64("region-id", regionID), zap.Reflect("operator", old))
+	operatorCounter.WithLabelValues(old.Desc(), "replaced").Inc()
+	oc.removeWaitingOperatorLocked(old)
+	oc.waitingOperators[regionID] = op
+}
+
+func (oc *OperatorController) removeRunningOperatorLocked(op *Operator) {
 	regionID := op.RegionID()
 	opInfluence := NewOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
 		oc.storesCost[storeID] -= opInfluence.GetStoreInfluence(storeID).StepCost
 	}
-	if _, ok := operators[regionID]; ok {
-		delete(operators, regionID)
-		if isWating {
-			oc.updateCounts(operators)
+	if _, ok := oc.runningOperators[regionID]; ok {
+		delete(oc.runningOperators, regionID)
+		for id, op := range oc.waitingOperators {
+			region := oc.cluster.GetRegion(id)
+			oc.promoteOperator(region, op)
 		}
+		operatorCounter.WithLabelValues(op.Desc(), "remove").Inc()
+	}
+}
+
+func (oc *OperatorController) removeWaitingOperatorLocked(op *Operator) {
+	regionID := op.RegionID()
+	if _, ok := oc.waitingOperators[regionID]; ok {
+		delete(oc.waitingOperators, regionID)
+		oc.updateCounts(oc.waitingOperators)
 		operatorCounter.WithLabelValues(op.Desc(), "remove").Inc()
 	}
 }
@@ -213,14 +229,14 @@ func (oc *OperatorController) removeOperatorLocked(operators map[uint64]*Operato
 func (oc *OperatorController) RemoveRunningOperator(op *Operator) {
 	oc.Lock()
 	defer oc.Unlock()
-	oc.removeOperatorLocked(oc.runningOperators, op, false)
+	oc.removeRunningOperatorLocked(op)
 }
 
 // RemoveWaitingOperator removes an operator from waiting operators.
 func (oc *OperatorController) RemoveWaitingOperator(op *Operator) {
 	oc.Lock()
 	defer oc.Unlock()
-	oc.removeOperatorLocked(oc.waitingOperators, op, true)
+	oc.removeWaitingOperatorLocked(op)
 }
 
 // GetRunningOperator gets an operator from the given region in running operators.
@@ -294,7 +310,7 @@ func (oc *OperatorController) promote(ops ...*Operator) {
 	for _, op := range ops {
 		regionID := op.RegionID()
 		oc.runningOperators[regionID] = op
-		oc.removeOperatorLocked(oc.waitingOperators, op, true)
+		oc.removeWaitingOperatorLocked(op)
 		operatorCounter.WithLabelValues(op.Desc(), "promote").Inc()
 	}
 	opInfluence := NewOpInfluence(ops, oc.cluster)

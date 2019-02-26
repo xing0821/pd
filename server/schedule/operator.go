@@ -392,7 +392,7 @@ func (o *Operator) IsTimeout() bool {
 	return false
 }
 
-// Influence calculates the store difference which unfinished operator steps make
+// Influence calculates the store difference which operator steps make
 func (o *Operator) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
 	for step := atomic.LoadInt32(&o.currentStep); int(step) < len(o.steps); step++ {
 		o.steps[int(step)].Influence(opInfluence, region)

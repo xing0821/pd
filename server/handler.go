@@ -262,10 +262,6 @@ func (h *Handler) GetOperator(regionID uint64) (*schedule.Operator, error) {
 	}
 
 	op := c.opController.GetRunningOperator(regionID)
-	if op != nil {
-		return op, nil
-	}
-	op = c.opController.GetWaitingOperator(regionID)
 	if op == nil {
 		return nil, ErrOperatorNotFound
 	}
@@ -285,11 +281,6 @@ func (h *Handler) RemoveOperator(regionID uint64) error {
 		c.opController.RemoveRunningOperator(op)
 		return nil
 	}
-	op = c.opController.GetWaitingOperator(regionID)
-	if op == nil {
-		return ErrOperatorNotFound
-	}
-	c.opController.RemoveWaitingOperator(op)
 	return nil
 }
 
@@ -453,7 +444,7 @@ func (h *Handler) AddTransferPeerOperator(regionID uint64, fromStoreID, toStoreI
 		return err
 	}
 
-	op := schedule.CreateMovePeerOperator("adminMovePeer", c.cluster, region, schedule.OpAdmin, fromStoreID, toStoreID, newPeer.GetId())
+	op := schedule.CreateMovePeerOperator("admin-move-peer", c.cluster, region, schedule.OpAdmin, fromStoreID, toStoreID, newPeer.GetId())
 	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
@@ -559,7 +550,7 @@ func (h *Handler) AddRemovePeerOperator(regionID uint64, fromStoreID uint64) err
 		return errors.Errorf("region has no peer in store %v", fromStoreID)
 	}
 
-	op := schedule.CreateRemovePeerOperator("adminRemovePeer", c.cluster, schedule.OpAdmin, region, fromStoreID)
+	op := schedule.CreateRemovePeerOperator("admin-remove-peer", c.cluster, schedule.OpAdmin, region, fromStoreID)
 	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(errAddOperator)
 	}
@@ -599,7 +590,7 @@ func (h *Handler) AddMergeRegionOperator(regionID uint64, targetID uint64) error
 		return ErrRegionNotAdjacent
 	}
 
-	ops, err := schedule.CreateMergeRegionOperator("adminMergeRegion", c.cluster, region, target, schedule.OpAdmin)
+	ops, err := schedule.CreateMergeRegionOperator("admin-merge-region", c.cluster, region, target, schedule.OpAdmin)
 	if err != nil {
 		return err
 	}

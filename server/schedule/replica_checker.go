@@ -94,7 +94,7 @@ func (r *ReplicaChecker) Check(region *core.RegionInfo) *Operator {
 			return nil
 		}
 		checkerCounter.WithLabelValues("replica_checker", "new_operator").Inc()
-		return CreateRemovePeerOperator("removeExtraReplica", r.cluster, OpReplica, region, oldPeer.GetStoreId())
+		return CreateRemovePeerOperator("remove-extra-replica", r.cluster, OpReplica, region, oldPeer.GetStoreId())
 	}
 
 	return r.checkBestReplacement(region)
@@ -234,7 +234,7 @@ func (r *ReplicaChecker) checkBestReplacement(region *core.RegionInfo) *Operator
 		return nil
 	}
 	checkerCounter.WithLabelValues("replica_checker", "new_operator").Inc()
-	return CreateMovePeerOperator("moveToBetterLocation", r.cluster, region, OpReplica, oldPeer.GetStoreId(), newPeer.GetStoreId(), newPeer.GetId())
+	return CreateMovePeerOperator("move-to-better-location", r.cluster, region, OpReplica, oldPeer.GetStoreId(), newPeer.GetStoreId(), newPeer.GetId())
 }
 
 func (r *ReplicaChecker) fixPeer(region *core.RegionInfo, peer *metapb.Peer, status string) *Operator {
