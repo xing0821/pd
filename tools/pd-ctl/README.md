@@ -97,11 +97,10 @@ Usage:
   "split-merge-interval": "1h",
   "patrol-region-interval": "100ms",
   "max-store-down-time": "1h0m0s",
-  "max-balance-leader-inflight": 4,
-  "max-balance-region-inflight": 4,
-  "max-makeup-replica-inflight":8,
-  "max-merge-region-inflight": 8,
-  "max-default-schedule-inflight": 1,
+  "leader-schedule-limit": 4,
+  "region-schedule-limit": 4,
+  "replica-schedule-limit":8,
+  "merge-schedule-limit": 8,
   "tolerant-size-ratio": 5,
   "low-space-ratio": 0.8,
   "high-space-ratio": 0.6,
@@ -130,11 +129,9 @@ Usage:
 >> config show all                            // Display all config information
 >> config show namespace ts1                  // Display the config information of the namespace named ts1
 {
-  "max-balance-leader-inflight": 4,
-  "max-balance-region-inflight": 4,
-  "max-makeup-replica-inflight": 8,
-  "max-merge-region-inflight": 8,
-  "max-default-schedule-inflight": 1,
+  "leader-schedule-limit": 4,
+  "region-schedule-limit": 4,
+  "replica-schedule-limit": 8,
   "max-replicas": 3,
 }
 >> config show replication                    // Display the config information of replication
@@ -188,43 +185,37 @@ Usage:
     >> config set max-store-down-time 30m  // Set the time within which PD receives no heartbeats and after which PD starts to add replicas to 30 minutes
     ```
 
-- `max-balance-leader-inflight` controls the number of tasks scheduling the leader at the same time. This value affects the speed of leader balance. A larger value means a higher speed and setting the value to 0 closes the scheduling. Usually the leader scheduling has a small load, and you can increase the value in need.
+- `leader-schedule-limit` controls the number of tasks scheduling the leader at the same time. This value affects the speed of leader balance. A larger value means a higher speed and setting the value to 0 closes the scheduling. Usually the leader scheduling has a small load, and you can increase the value in need.
 
     ```bash
-    >> config set max-balance-leader-inflight 4         // 4 tasks of leader scheduling at the same time at most
+    >> config set leader-schedule-limit 4         // 4 tasks of leader scheduling at the same time at most
     ```
 
-- `max-balance-region-inflight` controls the number of tasks scheduling the Region at the same time. This value affects the speed of Region balance. A larger value means a higher speed and setting the value to 0 closes the scheduling. Usually the Region scheduling has a large load, so do not set a too large value.
+- `region-schedule-limit` controls the number of tasks scheduling the Region at the same time. This value affects the speed of Region balance. A larger value means a higher speed and setting the value to 0 closes the scheduling. Usually the Region scheduling has a large load, so do not set a too large value.
 
     ```bash
-    >> config set max-balance-region-inflight 2         // 2 tasks of Region scheduling at the same time at most
+    >> config set region-schedule-limit 2         // 2 tasks of Region scheduling at the same time at most
     ```
 
-- `max-makeup-replica-inflight` controls the number of tasks scheduling the replica at the same time. This value affects the scheduling speed when the node is down or removed. A larger value means a higher speed and setting the value to 0 closes the scheduling. Usually the replica scheduling has a large load, so do not set a too large value.
+- `replica-schedule-limit` controls the number of tasks scheduling the replica at the same time. This value affects the scheduling speed when the node is down or removed. A larger value means a higher speed and setting the value to 0 closes the scheduling. Usually the replica scheduling has a large load, so do not set a too large value.
 
     ```bash
-    >> config set max-makeup-replica-inflight 4        // 4 tasks of replica scheduling at the same time at most
+    >> config set replica-schedule-limit 4        // 4 tasks of replica scheduling at the same time at most
     ```
 
-- `max-merge-region-inflight` controls the number of Region Merge scheduling tasks. Setting the value to 0 closes Region Merge. Usually the Merge scheduling has a large load, so do not set a too large value.
+- `merge-schedule-limit` controls the number of Region Merge scheduling tasks. Setting the value to 0 closes Region Merge. Usually the Merge scheduling has a large load, so do not set a too large value.
 
     ```bash
-    >> config set max-merge-region-inflight 16       // 16 tasks of Merge scheduling at the same time at most
-    ```
-
-- `max-default-schedule-inflight` controls the number of other scheduling tasks at the same time.
-
-    ```bash
-    >> config set max-merge-region-inflight 1       // 1 tasks for each other scheduling at the same time at most
+    >> config set merge-schedule-limit 16       // 16 tasks of Merge scheduling at the same time at most
     ```
 
 The configuration above is global. You can also tune the configuration by configuring different namespaces. The global configuration is used if the corresponding configuration of the namespace is not set.
 
-> **Note:** The configuration of the namespace only supports editing `max-balance-leader-inflight`, `max-balance-region-inflight`, `max-makeup-replica-inflight`, `max-merge-region-inflight`, `max-default-schedule-inflight` and `max-replicas`.
+> **Note:** The configuration of the namespace only supports editing `leader-schedule-limit`, `region-schedule-limit`, `replica-schedule-limit` and `max-replicas`.
 
     ```bash
-    >> config set namespace ts1 max-balance-leader-inflight 4 // 4 tasks of leader scheduling at the same time at most for the namespace named ts1
-    >> config set namespace ts2 max-balance-region-inflight 2 // 2 tasks of region scheduling at the same time at most for the namespace named ts2
+    >> config set namespace ts1 leader-schedule-limit 4 // 4 tasks of leader scheduling at the same time at most for the namespace named ts1
+    >> config set namespace ts2 region-schedule-limit 2 // 2 tasks of region scheduling at the same time at most for the namespace named ts2
     ```
 
 - `tolerant-size-ratio` controls the size of the balance buffer area. When the score difference between the leader or Region of the two stores is less than specified multiple times of the Region size, it is considered in balance by PD.
@@ -284,7 +275,7 @@ After you configure the namespace, if you want it to continue to use global conf
 If you want to use global configuration only for a certain configuration of the namespace, use the following command:
 
 ```bash
->> config delete namespace max-balance-region-inflight ts2 // Delete the max-balance-region-inflight configuration of the namespace named ts2
+>> config delete namespace region-schedule-limit ts2 // Delete the region-schedule-limit configuration of the namespace named ts2
 ```
 
 ### `health`

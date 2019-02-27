@@ -65,11 +65,10 @@ types:
       split-merge-interval?: string
       patrol-region-interval?: string
       max-store-down-time?: string
-      max-balance-leader-inflight?: integer
-      max-balance-region-inflight?: integer
-      max-makeup-replica-inflight?: integer
-      max-merge-region-inflight?: integer
-      max-default-schedule-inflight?: integer
+      leader-schedule-limit?: integer
+      region-schedule-limit?: integer
+      replica-schedule-limit?: integer
+      merge-schedule-limit?: integer
       tolerant-size-ratio?: number
       low-space-ratio?: number
       high-space-ratio?: number
@@ -97,11 +96,10 @@ types:
   NamespaceConfig:
     type: object
     properties:
-      max-balance-leader-inflight: integer
-      max-balance-region-inflight: integer
-      max-makeup-replica-inflight: integer
-      max-merge-region-inflight: integer
-      max-default-schedule-inflight: integer
+      leader-schedule-limit: integer
+      region-schedule-limit: integer
+      replica-schedule-limit: integer
+      merge-schedule-limit: integer
       max-replicas: integer
   LabelPropertyConfig:
     type: object
