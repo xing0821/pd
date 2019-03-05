@@ -15,16 +15,16 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -198,16 +198,17 @@ func (c *coordinator) run() {
 		if schedulerCfg.Disable {
 			scheduleCfg.Schedulers[k] = schedulerCfg
 			k++
-			log.Info("skip create ", schedulerCfg.Type)
+			log.Info("skip create scheduler", zap.String("scheduler-type", schedulerCfg.Type))
 			continue
 		}
 		s, err := schedule.CreateScheduler(schedulerCfg.Type, c.opController, schedulerCfg.Args...)
 		if err != nil {
-			log.Fatalf("can not create scheduler %s: %v", schedulerCfg.Type, err)
+			log.Error("can not create scheduler", zap.String("scheduler-type", schedulerCfg.Type), zap.Error(err))
+			continue
 		}
-		log.Infof("create scheduler %s", s.GetName())
+		log.Info("create scheduler", zap.String("scheduler-name", s.GetName()))
 		if err = c.addScheduler(s, schedulerCfg.Args...); err != nil {
-			log.Errorf("can not add scheduler %s: %v", s.GetName(), err)
+			log.Error("can not add scheduler", zap.String("scheduler-name", s.GetName()), zap.Error(err))
 		}
 
 		// Only records the valid scheduler config.
@@ -221,7 +222,7 @@ func (c *coordinator) run() {
 	scheduleCfg.Schedulers = scheduleCfg.Schedulers[:k]
 	c.cluster.opt.store(scheduleCfg)
 	if err := c.cluster.opt.persist(c.cluster.kv); err != nil {
-		log.Errorf("can't persist schedule config: %v", err)
+		log.Error("cannot persist schedule config", zap.Error(err))
 	}
 
 	c.wg.Add(1)
@@ -302,17 +303,17 @@ func (c *coordinator) collectHotSpotMetrics() {
 	stores := c.cluster.GetStores()
 	status := s.Scheduler.(hasHotStatus).GetHotWriteStatus()
 	for _, s := range stores {
-		store := fmt.Sprintf("store_%d", s.GetID())
+		storeAddress := s.GetAddress()
 		stat, ok := status.AsPeer[s.GetID()]
 		if ok {
 			totalWriteBytes := float64(stat.TotalFlowBytes)
 			hotWriteRegionCount := float64(stat.RegionsCount)
 
-			hotSpotStatusGauge.WithLabelValues(store, "total_written_bytes_as_peer").Set(totalWriteBytes)
-			hotSpotStatusGauge.WithLabelValues(store, "hot_write_region_as_peer").Set(hotWriteRegionCount)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "total_written_bytes_as_peer").Set(totalWriteBytes)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "hot_write_region_as_peer").Set(hotWriteRegionCount)
 		} else {
-			hotSpotStatusGauge.WithLabelValues(store, "total_written_bytes_as_peer").Set(0)
-			hotSpotStatusGauge.WithLabelValues(store, "hot_write_region_as_peer").Set(0)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "total_written_bytes_as_peer").Set(0)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "hot_write_region_as_peer").Set(0)
 		}
 
 		stat, ok = status.AsLeader[s.GetID()]
@@ -320,28 +321,28 @@ func (c *coordinator) collectHotSpotMetrics() {
 			totalWriteBytes := float64(stat.TotalFlowBytes)
 			hotWriteRegionCount := float64(stat.RegionsCount)
 
-			hotSpotStatusGauge.WithLabelValues(store, "total_written_bytes_as_leader").Set(totalWriteBytes)
-			hotSpotStatusGauge.WithLabelValues(store, "hot_write_region_as_leader").Set(hotWriteRegionCount)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "total_written_bytes_as_leader").Set(totalWriteBytes)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "hot_write_region_as_leader").Set(hotWriteRegionCount)
 		} else {
-			hotSpotStatusGauge.WithLabelValues(store, "total_written_bytes_as_leader").Set(0)
-			hotSpotStatusGauge.WithLabelValues(store, "hot_write_region_as_leader").Set(0)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "total_written_bytes_as_leader").Set(0)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "hot_write_region_as_leader").Set(0)
 		}
 	}
 
 	// Collects hot read region metrics.
 	status = s.Scheduler.(hasHotStatus).GetHotReadStatus()
 	for _, s := range stores {
-		store := fmt.Sprintf("store_%d", s.GetID())
+		storeAddress := s.GetAddress()
 		stat, ok := status.AsLeader[s.GetID()]
 		if ok {
 			totalReadBytes := float64(stat.TotalFlowBytes)
 			hotReadRegionCount := float64(stat.RegionsCount)
 
-			hotSpotStatusGauge.WithLabelValues(store, "total_read_bytes_as_leader").Set(totalReadBytes)
-			hotSpotStatusGauge.WithLabelValues(store, "hot_read_region_as_leader").Set(hotReadRegionCount)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "total_read_bytes_as_leader").Set(totalReadBytes)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "hot_read_region_as_leader").Set(hotReadRegionCount)
 		} else {
-			hotSpotStatusGauge.WithLabelValues(store, "total_read_bytes_as_leader").Set(0)
-			hotSpotStatusGauge.WithLabelValues(store, "hot_read_region_as_leader").Set(0)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "total_read_bytes_as_leader").Set(0)
+			hotSpotStatusGauge.WithLabelValues(storeAddress, "hot_read_region_as_leader").Set(0)
 		}
 	}
 
@@ -408,7 +409,9 @@ func (c *coordinator) runScheduler(s *scheduleController) {
 			}
 
 		case <-s.Ctx().Done():
-			log.Infof("%v stopped: %v", s.GetName(), s.Ctx().Err())
+			log.Info("stopped scheduler",
+				zap.String("scheduler-name", s.GetName()),
+				zap.Error(s.Ctx().Err()))
 			return
 		}
 	}

@@ -20,9 +20,10 @@ import (
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/testutil"
 	"github.com/pingcap/pd/pkg/typeutil"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 var _ = Suite(&testHeartbeatStreamSuite{})
@@ -68,7 +69,6 @@ func (s *testHeartbeatStreamSuite) TestActivity(c *C) {
 			return 0
 		}
 	}
-
 	req := &pdpb.RegionHeartbeatRequest{
 		Header: newRequestHeader(s.svr.clusterID),
 		Leader: s.region.Peers[0],
@@ -113,13 +113,13 @@ func newRegionheartbeatClient(c *C, grpcClient pdpb.PDClient) *regionHeartbeatCl
 
 func (c *regionHeartbeatClient) close() {
 	if err := c.stream.CloseSend(); err != nil {
-		log.Errorf("Failed to terminate client stream: %v", err)
+		log.Error("failed to terminate client stream", zap.Error(err))
 	}
 }
 
 func (c *regionHeartbeatClient) SendRecv(msg *pdpb.RegionHeartbeatRequest, timeout time.Duration) *pdpb.RegionHeartbeatResponse {
 	if err := c.stream.Send(msg); err != nil {
-		log.Errorf("send heartbeat message fail: %v", err)
+		log.Error("send heartbeat message fail", zap.Error(err))
 	}
 	select {
 	case <-time.After(timeout):
