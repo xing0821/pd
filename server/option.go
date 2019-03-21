@@ -139,6 +139,14 @@ func (o *scheduleOption) GetHotRegionScheduleLimit(name string) uint64 {
 	return o.load().HotRegionScheduleLimit
 }
 
+func (o *scheduleOption) GetMaxScheduleCost() uint64 {
+	return o.load().MaxScheduleCost
+}
+
+func (o *scheduleOption) GetStoreMaxScheduleCost() uint64 {
+	return o.load().StoreMaxScheduleCost
+}
+
 func (o *scheduleOption) GetTolerantSizeRatio() float64 {
 	return o.load().TolerantSizeRatio
 }

@@ -474,6 +474,10 @@ type ScheduleConfig struct {
 	// If the number of times a region hits the hot cache is greater than this
 	// threshold, it is considered a hot region.
 	HotRegionCacheHitsThreshold uint64 `toml:"hot-region-cache-hits-threshold,omitempty" json:"hot-region-cache-hits-threshold"`
+	// MaxScheduleCost is the maxinum of scheduling cost for the running operators.
+	MaxScheduleCost uint64 `toml:"max-schedule-cost,omitempty" json:"max-schedule-cost"`
+	// StoreMaxScheduleCost is the maxinum of scheduling cost for each store.
+	StoreMaxScheduleCost uint64 `toml:"store-max-schedule-cost,omitempty" json:"store-max-schedule-cost"`
 	// TolerantSizeRatio is the ratio of buffer size for balance scheduler.
 	TolerantSizeRatio float64 `toml:"tolerant-size-ratio,omitempty" json:"tolerant-size-ratio"`
 	//
@@ -531,6 +535,8 @@ func (c *ScheduleConfig) clone() *ScheduleConfig {
 		MergeScheduleLimit:           c.MergeScheduleLimit,
 		HotRegionScheduleLimit:       c.HotRegionScheduleLimit,
 		HotRegionCacheHitsThreshold:  c.HotRegionCacheHitsThreshold,
+		MaxScheduleCost:              c.MaxScheduleCost,
+		StoreMaxScheduleCost:         c.StoreMaxScheduleCost,
 		TolerantSizeRatio:            c.TolerantSizeRatio,
 		LowSpaceRatio:                c.LowSpaceRatio,
 		HighSpaceRatio:               c.HighSpaceRatio,
@@ -559,6 +565,8 @@ const (
 	defaultReplicaScheduleLimit   = 8
 	defaultMergeScheduleLimit     = 8
 	defaultHotRegionScheduleLimit = 2
+	defaultMaxScheduleCost        = 200
+	defaultStoreMaxScheduleCost   = 20
 	defaultTolerantSizeRatio      = 5
 	defaultLowSpaceRatio          = 0.8
 	defaultHighSpaceRatio         = 0.6
@@ -600,6 +608,12 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	}
 	if !meta.IsDefined("hot-region-cache-hits-threshold") {
 		adjustUint64(&c.HotRegionCacheHitsThreshold, defaultHotRegionCacheHitsThreshold)
+	}
+	if !meta.IsDefined("max-schedule-cost") {
+		adjustUint64(&c.MaxScheduleCost, defaultMaxScheduleCost)
+	}
+	if !meta.IsDefined("store-max-schedule-cost") {
+		adjustUint64(&c.StoreMaxScheduleCost, defaultStoreMaxScheduleCost)
 	}
 	if !meta.IsDefined("tolerant-size-ratio") {
 		adjustFloat64(&c.TolerantSizeRatio, defaultTolerantSizeRatio)
