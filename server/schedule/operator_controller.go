@@ -38,23 +38,25 @@ type HeartbeatStreams interface {
 // OperatorController is used to limit the speed of scheduling.
 type OperatorController struct {
 	sync.RWMutex
-	cluster   Cluster
-	operators map[uint64]*Operator
-	hbStreams HeartbeatStreams
-	histories *list.List
-	counts    map[OperatorKind]uint64
-	opRecords *OperatorRecords
+	cluster    Cluster
+	operators  map[uint64]*Operator
+	hbStreams  HeartbeatStreams
+	histories  *list.List
+	counts     map[OperatorKind]uint64
+	opRecords  *OperatorRecords
+	storesCost map[uint64]uint64
 }
 
 // NewOperatorController creates a OperatorController.
 func NewOperatorController(cluster Cluster, hbStreams HeartbeatStreams) *OperatorController {
 	return &OperatorController{
-		cluster:   cluster,
-		operators: make(map[uint64]*Operator),
-		hbStreams: hbStreams,
-		histories: list.New(),
-		counts:    make(map[OperatorKind]uint64),
-		opRecords: NewOperatorRecords(),
+		cluster:    cluster,
+		operators:  make(map[uint64]*Operator),
+		hbStreams:  hbStreams,
+		histories:  list.New(),
+		counts:     make(map[OperatorKind]uint64),
+		opRecords:  NewOperatorRecords(),
+		storesCost: make(map[uint64]uint64),
 	}
 }
 
@@ -87,6 +89,10 @@ func (oc *OperatorController) Dispatch(region *core.RegionInfo) {
 func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
 	oc.Lock()
 	defer oc.Unlock()
+
+	if oc.exceedStoreCost(ops...) || oc.getScheduleCost() >= oc.cluster.GetMaxScheduleCost() {
+		return false
+	}
 
 	for _, op := range ops {
 		if !oc.checkAddOperator(op) {
@@ -143,6 +149,10 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 	}
 
 	oc.operators[regionID] = op
+	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
+	for storeID := range opInfluence.storesInfluence {
+		oc.storesCost[storeID] += opInfluence.GetStoreInfluence(storeID).StepCost
+	}
 	oc.updateCounts(oc.operators)
 
 	if region := oc.cluster.GetRegion(op.RegionID()); region != nil {
@@ -178,6 +188,10 @@ func (oc *OperatorController) GetOperatorStatus(id uint64) *OperatorWithStatus {
 func (oc *OperatorController) removeOperatorLocked(op *Operator) {
 	regionID := op.RegionID()
 	delete(oc.operators, regionID)
+	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
+	for storeID := range opInfluence.storesInfluence {
+		oc.storesCost[storeID] -= opInfluence.GetStoreInfluence(storeID).StepCost
+	}
 	oc.updateCounts(oc.operators)
 	operatorCounter.WithLabelValues(op.Desc(), "remove").Inc()
 }
@@ -358,24 +372,38 @@ func (oc *OperatorController) GetOpInfluence(cluster Cluster) OpInfluence {
 			}
 		}
 	}
-	return NewOpInfluence(res, cluster)
+	return NewUnfinishedOpInfluence(res, cluster)
 }
 
-// NewOpInfluence creates a OpInfluence.
-func NewOpInfluence(operators []*Operator, cluster Cluster) OpInfluence {
+// NewTotalOpInfluence creates a OpInfluence.
+func NewTotalOpInfluence(operators []*Operator, cluster Cluster) OpInfluence {
 	influence := OpInfluence{
-		storesInfluence:  make(map[uint64]*StoreInfluence),
-		regionsInfluence: make(map[uint64]*Operator),
+		storesInfluence: make(map[uint64]*StoreInfluence),
+	}
+
+	for _, op := range operators {
+		region := cluster.GetRegion(op.RegionID())
+		if region != nil {
+			op.TotalInfluence(influence, region)
+		}
+	}
+
+	return influence
+}
+
+// NewUnfinishedOpInfluence creates a OpInfluence.
+func NewUnfinishedOpInfluence(operators []*Operator, cluster Cluster) OpInfluence {
+	influence := OpInfluence{
+		storesInfluence: make(map[uint64]*StoreInfluence),
 	}
 
 	for _, op := range operators {
 		if !op.IsTimeout() && !op.IsFinish() {
 			region := cluster.GetRegion(op.RegionID())
 			if region != nil {
-				op.Influence(influence, region)
+				op.UnfinishedInfluence(influence, region)
 			}
 		}
-		influence.regionsInfluence[op.RegionID()] = op
 	}
 
 	return influence
@@ -383,8 +411,7 @@ func NewOpInfluence(operators []*Operator, cluster Cluster) OpInfluence {
 
 // OpInfluence records the influence of the cluster.
 type OpInfluence struct {
-	storesInfluence  map[uint64]*StoreInfluence
-	regionsInfluence map[uint64]*Operator
+	storesInfluence map[uint64]*StoreInfluence
 }
 
 // GetStoreInfluence get storeInfluence of specific store.
@@ -397,17 +424,13 @@ func (m OpInfluence) GetStoreInfluence(id uint64) *StoreInfluence {
 	return storeInfluence
 }
 
-// GetRegionsInfluence gets regionInfluence of specific region.
-func (m OpInfluence) GetRegionsInfluence() map[uint64]*Operator {
-	return m.regionsInfluence
-}
-
 // StoreInfluence records influences that pending operators will make.
 type StoreInfluence struct {
 	RegionSize  int64
 	RegionCount int64
 	LeaderSize  int64
 	LeaderCount int64
+	StepCost    uint64
 }
 
 // ResourceSize returns delta size of leader/region by influence.
@@ -471,4 +494,23 @@ func (o *OperatorRecords) Put(op *Operator, status pdpb.OperatorStatus) {
 		Status: status,
 	}
 	o.ttl.Put(id, record)
+}
+
+// exceedStoreCost return true if store exceeds the cost after adding the operator. Otherwise, return false.
+func (oc *OperatorController) exceedStoreCost(ops ...*Operator) bool {
+	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
+	for storeID := range opInfluence.storesInfluence {
+		if oc.storesCost[storeID]+opInfluence.GetStoreInfluence(storeID).StepCost >= oc.cluster.GetStoreMaxScheduleCost() {
+			return true
+		}
+	}
+	return false
+}
+
+func (oc *OperatorController) getScheduleCost() uint64 {
+	var scheduleCost uint64
+	for _, cost := range oc.storesCost {
+		scheduleCost += cost
+	}
+	return scheduleCost
 }
