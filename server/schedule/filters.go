@@ -104,6 +104,25 @@ func (f *blockFilter) FilterTarget(opt Options, store *core.StoreInfo) bool {
 	return store.IsBlocked()
 }
 
+type overloadFilter struct{}
+
+// NewOverloadFilter creates a Filter that filters all stores that are overloaded from balance.
+func NewOverloadFilter() Filter {
+	return &overloadFilter{}
+}
+
+func (f *overloadFilter) Type() string {
+	return "overload-filter"
+}
+
+func (f *overloadFilter) FilterSource(opt Options, store *core.StoreInfo) bool {
+	return store.IsOverloaded()
+}
+
+func (f *overloadFilter) FilterTarget(opt Options, store *core.StoreInfo) bool {
+	return store.IsOverloaded()
+}
+
 type stateFilter struct{}
 
 // NewStateFilter creates a Filter that filters all stores that are not UP.

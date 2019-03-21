@@ -41,6 +41,9 @@ type Cluster interface {
 	BlockStore(id uint64) error
 	UnblockStore(id uint64)
 
+	OverloadStore(id uint64) error
+	UnburdenStore(id uint64)
+
 	IsRegionHot(id uint64) bool
 	RegionWriteStats() []*core.RegionStat
 	RegionReadStats() []*core.RegionStat

@@ -32,10 +32,14 @@ var (
 
 	// StoreTombstonedCode is an invalid operation was attempted on a store which is in a removed state.
 	StoreTombstonedCode = storeStateCode.Child("state.store.tombstoned").SetHTTP(http.StatusGone)
+
+	// StoreOverloadedCode is an error due to requesting an operation that is invalid due to a store being in a overloaded state
+	StoreOverloadedCode = storeStateCode.Child("state.store.overloaded")
 )
 
 var _ errcode.ErrorCode = (*StoreTombstonedErr)(nil) // assert implements interface
 var _ errcode.ErrorCode = (*StoreBlockedErr)(nil)    // assert implements interface
+var _ errcode.ErrorCode = (*StoreOverloadedErr)(nil) // assert implements interface
 
 // StoreErr can be newtyped or embedded in your own error
 type StoreErr struct {
@@ -61,3 +65,13 @@ func (e StoreBlockedErr) Error() string {
 
 // Code returns StoreBlockedCode
 func (e StoreBlockedErr) Code() errcode.Code { return StoreBlockedCode }
+
+// StoreOverloadedErr has a Code() of StoreOverloadedCode
+type StoreOverloadedErr StoreErr
+
+func (e StoreOverloadedErr) Error() string {
+	return fmt.Sprintf("store %v is overloaded", e.StoreID)
+}
+
+// Code returns StoreOverloadedCode
+func (e StoreOverloadedErr) Code() errcode.Code { return StoreOverloadedCode }

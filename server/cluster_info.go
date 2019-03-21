@@ -233,6 +233,20 @@ func (c *clusterInfo) UnblockStore(storeID uint64) {
 	c.core.UnblockStore(storeID)
 }
 
+// OverloadStore stops balancer from selecting the store.
+func (c *clusterInfo) OverloadStore(storeID uint64) error {
+	c.Lock()
+	defer c.Unlock()
+	return c.core.OverloadStore(storeID)
+}
+
+// UnburdenStore allows balancer to select the store.
+func (c *clusterInfo) UnburdenStore(storeID uint64) {
+	c.Lock()
+	defer c.Unlock()
+	c.core.UnburdenStore(storeID)
+}
+
 // GetStores returns all stores in the cluster.
 func (c *clusterInfo) GetStores() []*core.StoreInfo {
 	c.RLock()

@@ -42,6 +42,7 @@ type StoreInfo struct {
 	leaderWeight      float64
 	regionWeight      float64
 	rollingStoreStats *RollingStoreStats
+	overloaded        bool
 }
 
 // NewStoreInfo creates StoreInfo with meta data.
@@ -74,6 +75,7 @@ func (s *StoreInfo) Clone(opts ...StoreCreateOption) *StoreInfo {
 		leaderWeight:      s.leaderWeight,
 		regionWeight:      s.regionWeight,
 		rollingStoreStats: s.rollingStoreStats,
+		overloaded:        s.overloaded,
 	}
 
 	for _, opt := range opts {
@@ -85,6 +87,11 @@ func (s *StoreInfo) Clone(opts ...StoreCreateOption) *StoreInfo {
 // IsBlocked returns if the store is blocked.
 func (s *StoreInfo) IsBlocked() bool {
 	return s.blocked
+}
+
+// IsOverloaded returns if the store is overloaded.
+func (s *StoreInfo) IsOverloaded() bool {
+	return s.overloaded
 }
 
 // IsUp checks if the store's state is Up.
@@ -533,6 +540,30 @@ func (s *StoresInfo) UnblockStore(storeID uint64) {
 			zap.Uint64("store-id", storeID))
 	}
 	s.stores[storeID] = store.Clone(SetStoreUnBlock())
+}
+
+// OverloadStore overloads a StoreInfo with storeID.
+func (s *StoresInfo) OverloadStore(storeID uint64) errcode.ErrorCode {
+	op := errcode.Op("store.overload")
+	store, ok := s.stores[storeID]
+	if !ok {
+		return op.AddTo(NewStoreNotFoundErr(storeID))
+	}
+	if store.IsOverloaded() {
+		return op.AddTo(StoreOverloadedErr{StoreID: storeID})
+	}
+	s.stores[storeID] = store.Clone(SetStoreOverload())
+	return nil
+}
+
+// UnburdenStore unburden a StoreInfo with storeID.
+func (s *StoresInfo) UnburdenStore(storeID uint64) {
+	store, ok := s.stores[storeID]
+	if !ok {
+		log.Fatal("store is unburdened, but it is not found",
+			zap.Uint64("store-id", storeID))
+	}
+	s.stores[storeID] = store.Clone(SetStoreUnburden())
 }
 
 // GetStores gets a complete set of StoreInfo.
