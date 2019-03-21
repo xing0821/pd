@@ -305,6 +305,7 @@ func (h *balanceHotRegionsScheduler) balanceByPeer(cluster schedule.Cluster, sto
 			schedule.StoreStateFilter{MoveRegion: true},
 			schedule.NewExcludedFilter(srcRegion.GetStoreIds(), srcRegion.GetStoreIds()),
 			schedule.NewDistinctScoreFilter(cluster.GetLocationLabels(), cluster.GetRegionStores(srcRegion), srcStore),
+			schedule.NewOverloadFilter(),
 		}
 		candidateStoreIDs := make([]uint64, 0, len(stores))
 		for _, store := range stores {

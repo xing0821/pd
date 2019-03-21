@@ -30,7 +30,10 @@ type NamespaceChecker struct {
 
 // NewNamespaceChecker creates a namespace checker.
 func NewNamespaceChecker(cluster Cluster, classifier namespace.Classifier) *NamespaceChecker {
-	filters := []Filter{StoreStateFilter{MoveRegion: true}}
+	filters := []Filter{
+		StoreStateFilter{MoveRegion: true},
+		NewOverloadFilter(),
+	}
 
 	return &NamespaceChecker{
 		cluster:    cluster,

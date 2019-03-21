@@ -46,6 +46,7 @@ func newBalanceLeaderScheduler(opController *schedule.OperatorController) schedu
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{TransferLeader: true},
 		schedule.NewCacheFilter(taintStores),
+		schedule.NewOverloadFilter(),
 	}
 	base := newBaseScheduler(opController)
 	s := &balanceLeaderScheduler{

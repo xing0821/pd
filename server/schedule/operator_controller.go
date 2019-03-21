@@ -275,6 +275,9 @@ func (oc *OperatorController) removeOperatorLocked(op *Operator) {
 	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
 		oc.storesCost[storeID] -= opInfluence.GetStoreInfluence(storeID).StepCost
+		if oc.cluster.GetStore(storeID).IsOverloaded() {
+			oc.cluster.UnburdenStore(storeID)
+		}
 	}
 	oc.updateCounts(oc.operators)
 	operatorCounter.WithLabelValues(op.Desc(), "remove").Inc()
@@ -585,6 +588,7 @@ func (oc *OperatorController) exceedStoreCost(ops ...*Operator) bool {
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
 		if oc.storesCost[storeID]+opInfluence.GetStoreInfluence(storeID).StepCost >= oc.cluster.GetStoreMaxScheduleCost() {
+			oc.cluster.OverloadStore(storeID)
 			return true
 		}
 	}
