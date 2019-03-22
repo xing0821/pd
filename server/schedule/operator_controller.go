@@ -165,17 +165,14 @@ func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
 	oc.Lock()
 	defer oc.Unlock()
 
-	if oc.exceedStoreCost(ops...) || oc.getScheduleCost() >= oc.cluster.GetMaxScheduleCost() {
+	if oc.exceedStoreCost(ops...) || !oc.checkAddOperator(ops...) {
+		for _, op := range ops {
+			operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
+			oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
+		}
 		return false
 	}
 
-	for _, op := range ops {
-		if !oc.checkAddOperator(op) {
-			operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
-			oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
-			return false
-		}
-	}
 	for _, op := range ops {
 		oc.addOperatorLocked(op)
 	}
@@ -187,19 +184,21 @@ func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
 // - There is no such region in the cluster
 // - The epoch of the operator and the epoch of the corresponding region are no longer consistent.
 // - The region already has a higher priority or same priority operator.
-func (oc *OperatorController) checkAddOperator(op *Operator) bool {
-	region := oc.cluster.GetRegion(op.RegionID())
-	if region == nil {
-		log.Debug("region not found, cancel add operator", zap.Uint64("region-id", op.RegionID()))
-		return false
-	}
-	if region.GetRegionEpoch().GetVersion() != op.RegionEpoch().GetVersion() || region.GetRegionEpoch().GetConfVer() != op.RegionEpoch().GetConfVer() {
-		log.Debug("region epoch not match, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", region.GetRegionEpoch()), zap.Reflect("new", op.RegionEpoch()))
-		return false
-	}
-	if old := oc.operators[op.RegionID()]; old != nil && !isHigherPriorityOperator(op, old) {
-		log.Debug("already have operator, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", old))
-		return false
+func (oc *OperatorController) checkAddOperator(ops ...*Operator) bool {
+	for _, op := range ops {
+		region := oc.cluster.GetRegion(op.RegionID())
+		if region == nil {
+			log.Debug("region not found, cancel add operator", zap.Uint64("region-id", op.RegionID()))
+			return false
+		}
+		if region.GetRegionEpoch().GetVersion() != op.RegionEpoch().GetVersion() || region.GetRegionEpoch().GetConfVer() != op.RegionEpoch().GetConfVer() {
+			log.Debug("region epoch not match, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", region.GetRegionEpoch()), zap.Reflect("new", op.RegionEpoch()))
+			return false
+		}
+		if old := oc.operators[op.RegionID()]; old != nil && !isHigherPriorityOperator(op, old) {
+			log.Debug("already have operator, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", old))
+			return false
+		}
 	}
 	return true
 }
@@ -595,7 +594,8 @@ func (oc *OperatorController) exceedStoreCost(ops ...*Operator) bool {
 	return false
 }
 
-func (oc *OperatorController) getScheduleCost() uint64 {
+// GetScheduleCost gets the cost of running operators.
+func (oc *OperatorController) GetScheduleCost() uint64 {
 	var scheduleCost uint64
 	for _, cost := range oc.storesCost {
 		scheduleCost += cost
