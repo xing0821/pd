@@ -154,7 +154,8 @@ func (c *coordinator) checkRegion(region *core.RegionInfo) bool {
 	// If PD has restarted, it need to check learners added before and promote them.
 	// Don't check isRaftLearnerEnabled cause it maybe disable learner feature but there are still some learners to promote.
 	opController := c.opController
-	if c.opController.GetScheduleCost() >= c.cluster.GetMaxScheduleCost() {
+	maxScheduleCost := c.cluster.GetMaxScheduleCost()
+	if maxScheduleCost != 0 && c.opController.GetScheduleCost() >= maxScheduleCost {
 		return false
 	}
 	for _, p := range region.GetLearners() {
@@ -499,7 +500,8 @@ func (s *scheduleController) GetInterval() time.Duration {
 
 // AllowSchedule returns if a scheduler is allowed to schedule.
 func (s *scheduleController) AllowSchedule() bool {
-	if s.opController.GetScheduleCost() >= s.cluster.GetMaxScheduleCost() {
+	maxScheduleCost := s.cluster.GetMaxScheduleCost()
+	if maxScheduleCost != 0 && s.opController.GetScheduleCost() >= maxScheduleCost {
 		return false
 	}
 	return s.Scheduler.IsScheduleAllowed(s.cluster)

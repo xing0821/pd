@@ -36,7 +36,7 @@ const (
 	// longer than it, the operator will be considered timeout.
 	RegionOperatorWaitTime = 10 * time.Minute
 	// RegionWeight reflects the influence which is caused by a region related step in an operator.
-	RegionWeight = 2
+	RegionWeight = 10
 	// LeaderWeight reflects the influence which is caused by a leader related step in an operator.
 	LeaderWeight = 1
 )
