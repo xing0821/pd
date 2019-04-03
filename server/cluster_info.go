@@ -701,12 +701,16 @@ func (c *clusterInfo) GetHotRegionScheduleLimit() uint64 {
 	return c.opt.GetHotRegionScheduleLimit(namespace.DefaultNamespace)
 }
 
-func (c *clusterInfo) GetMaxScheduleCost() uint64 {
+func (c *clusterInfo) GetMaxScheduleCost() int64 {
 	return c.opt.GetMaxScheduleCost()
 }
 
-func (c *clusterInfo) GetStoreMaxScheduleCost() uint64 {
+func (c *clusterInfo) GetStoreMaxScheduleCost() int64 {
 	return c.opt.GetStoreMaxScheduleCost()
+}
+
+func (c *clusterInfo) GetStoreBucketRate() float64 {
+	return c.opt.GetStoreBucketRate()
 }
 
 func (c *clusterInfo) GetTolerantSizeRatio() float64 {

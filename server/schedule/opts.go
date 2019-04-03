@@ -31,8 +31,9 @@ type Options interface {
 	GetMergeScheduleLimit() uint64
 	GetHotRegionScheduleLimit() uint64
 
-	GetMaxScheduleCost() uint64
-	GetStoreMaxScheduleCost() uint64
+	GetMaxScheduleCost() int64
+	GetStoreMaxScheduleCost() int64
+	GetStoreBucketRate() float64
 
 	GetMaxSnapshotCount() uint64
 	GetMaxPendingPeerCount() uint64

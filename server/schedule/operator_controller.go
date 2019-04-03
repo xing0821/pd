@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/juju/ratelimit"
 	"github.com/pingcap/kvproto/pkg/eraftpb"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
@@ -58,7 +59,7 @@ type OperatorController struct {
 	histories       *list.List
 	counts          map[OperatorKind]uint64
 	opRecords       *OperatorRecords
-	storesCost      map[uint64]uint64
+	storesLimit     map[uint64]*ratelimit.Bucket
 	opNotifierQueue operatorQueue
 }
 
@@ -71,7 +72,7 @@ func NewOperatorController(cluster Cluster, hbStreams HeartbeatStreams) *Operato
 		histories:       list.New(),
 		counts:          make(map[OperatorKind]uint64),
 		opRecords:       NewOperatorRecords(),
-		storesCost:      make(map[uint64]uint64),
+		storesLimit:     make(map[uint64]*ratelimit.Bucket),
 		opNotifierQueue: make(operatorQueue, 0),
 	}
 }
@@ -224,7 +225,7 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 	oc.operators[regionID] = op
 	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
-		oc.storesCost[storeID] += opInfluence.GetStoreInfluence(storeID).StepCost
+		oc.storesLimit[storeID].Take(opInfluence.GetStoreInfluence(storeID).StepCost)
 	}
 	oc.updateCounts(oc.operators)
 
@@ -273,7 +274,6 @@ func (oc *OperatorController) removeOperatorLocked(op *Operator) {
 	delete(oc.operators, regionID)
 	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
-		oc.storesCost[storeID] -= opInfluence.GetStoreInfluence(storeID).StepCost
 		if oc.cluster.GetStore(storeID).IsOverloaded() {
 			oc.cluster.UnburdenStore(storeID)
 		}
@@ -516,7 +516,7 @@ type StoreInfluence struct {
 	RegionCount int64
 	LeaderSize  int64
 	LeaderCount int64
-	StepCost    uint64
+	StepCost    int64
 }
 
 // ResourceSize returns delta size of leader/region by influence.
@@ -586,7 +586,10 @@ func (o *OperatorRecords) Put(op *Operator, status pdpb.OperatorStatus) {
 func (oc *OperatorController) exceedStoreCost(ops ...*Operator) bool {
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
-		if oc.storesCost[storeID]+opInfluence.GetStoreInfluence(storeID).StepCost >= oc.cluster.GetStoreMaxScheduleCost() {
+		if oc.storesLimit[storeID] == nil {
+			oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(oc.cluster.GetStoreBucketRate(), oc.cluster.GetStoreMaxScheduleCost())
+		}
+		if oc.storesLimit[storeID].Available() < opInfluence.GetStoreInfluence(storeID).StepCost {
 			oc.cluster.OverloadStore(storeID)
 			return true
 		}
@@ -595,10 +598,10 @@ func (oc *OperatorController) exceedStoreCost(ops ...*Operator) bool {
 }
 
 // GetScheduleCost gets the cost of running operators.
-func (oc *OperatorController) GetScheduleCost() uint64 {
-	var scheduleCost uint64
-	for _, cost := range oc.storesCost {
-		scheduleCost += cost
+func (oc *OperatorController) GetScheduleCost() int64 {
+	var scheduleCost int64
+	for _, limit := range oc.storesLimit {
+		scheduleCost += limit.Capacity() - limit.Available()
 	}
 	return scheduleCost
 }
