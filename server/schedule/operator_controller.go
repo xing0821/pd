@@ -53,6 +53,12 @@ type HeartbeatStreams interface {
 	SendMsg(region *core.RegionInfo, msg *pdpb.RegionHeartbeatResponse)
 }
 
+// SchedulerStatus is used to limit the count of operators created by a specific scheduler.
+type SchedulerStatus struct {
+	current uint64
+	max     uint64
+}
+
 // OperatorController is used to limit the speed of scheduling.
 type OperatorController struct {
 	sync.RWMutex
@@ -64,6 +70,8 @@ type OperatorController struct {
 	opRecords *OperatorRecords
 	// TODO: Need to clean up the unused store ID.
 	storesLimit     map[uint64]*ratelimit.Bucket
+	wop             WaitingOperator
+	swo             map[string]*SchedulerStatus
 	opNotifierQueue operatorQueue
 }
 
@@ -77,6 +85,8 @@ func NewOperatorController(cluster Cluster, hbStreams HeartbeatStreams) *Operato
 		counts:          make(map[OperatorKind]uint64),
 		opRecords:       NewOperatorRecords(),
 		storesLimit:     make(map[uint64]*ratelimit.Bucket),
+		wop:             NewRandQueue(),
+		swo:             make(map[string]*SchedulerStatus),
 		opNotifierQueue: make(operatorQueue, 0),
 	}
 }
@@ -98,10 +108,12 @@ func (oc *OperatorController) Dispatch(region *core.RegionInfo, source string) {
 			oc.pushHistory(op)
 			oc.opRecords.Put(op, pdpb.OperatorStatus_SUCCESS)
 			oc.RemoveOperator(op)
+			oc.PromoteOperator()
 		} else if timeout {
 			log.Info("operator timeout", zap.Uint64("region-id", region.GetID()), zap.Reflect("operator", op))
 			oc.RemoveTimeoutOperator(op)
 			oc.opRecords.Put(op, pdpb.OperatorStatus_TIMEOUT)
+			oc.PromoteOperator()
 		}
 	}
 }
@@ -168,19 +180,63 @@ func (oc *OperatorController) PushOperators() {
 // AddOperator adds operators to the running operators.
 func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
 	oc.Lock()
-	defer oc.Unlock()
 
 	if oc.exceedStoreLimit(ops...) || !oc.checkAddOperator(ops...) {
 		for _, op := range ops {
 			operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
 			oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
 		}
+		oc.Unlock()
 		return false
 	}
-	for _, op := range ops {
-		oc.addOperatorLocked(op)
+
+	op := ops[0]
+	desc := op.Desc()
+	if oc.swo[desc] == nil {
+		oc.swo[desc] = &SchedulerStatus{0, oc.cluster.GetSchedulerMaxWaitingOperator()}
 	}
+	if oc.swo[desc].current >= oc.swo[desc].max {
+		oc.Unlock()
+		return false
+	}
+	oc.wop.PutOperator(op)
+	oc.swo[desc].current++
+	if desc == "merge-region" {
+		oc.wop.PutOperator(ops[1])
+	}
+	oc.Unlock()
+	oc.PromoteOperator()
 	return true
+}
+
+// PromoteOperator promotes operators from waiting operators.
+func (oc *OperatorController) PromoteOperator() {
+	oc.Lock()
+	defer oc.Unlock()
+	var ops []*Operator
+	for {
+		ops = ops[:0]
+		op := oc.wop.GetOperator()
+		if op == nil {
+			return
+		}
+		ops = append(ops, op)
+		if op.Desc() == "merge-region" {
+			ops = append(ops, oc.wop.GetOperator())
+		}
+		for _, op := range ops {
+			if !oc.checkAddOperator(op) {
+				operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
+				continue
+			}
+		}
+		oc.swo[op.Desc()].current--
+		break
+	}
+
+	for _, op := range ops {
+		oc.promoteOperatorLocked(op)
+	}
 }
 
 // checkAddOperator checks if the operator can be added.
@@ -211,7 +267,7 @@ func isHigherPriorityOperator(new, old *Operator) bool {
 	return new.GetPriorityLevel() < old.GetPriorityLevel()
 }
 
-func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
+func (oc *OperatorController) promoteOperatorLocked(op *Operator) bool {
 	regionID := op.RegionID()
 
 	log.Info("add operator", zap.Uint64("region-id", regionID), zap.Reflect("operator", op))
