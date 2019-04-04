@@ -25,15 +25,7 @@ type testWaitingOperatorSuite struct{}
 
 func (s *testWaitingOperatorSuite) TestPriorityQueue(c *C) {
 	pq := NewPriorityQueue()
-	for i := 1; i <= 4; i++ {
-		op := NewOperator("testOperator", uint64(i), &metapb.RegionEpoch{}, OpRegion, []OperatorStep{
-			RemovePeer{FromStore: uint64(i)},
-		}...)
-		if i == 2 {
-			op.SetPriorityLevel(core.HighPriority)
-		}
-		pq.PutOperator(op)
-	}
+	addOperators(pq)
 	res := []uint64{2, 1, 3, 4}
 	for i := 0; i < 4; i++ {
 		c.Assert(pq.GetOperator().regionID, Equals, res[i])
@@ -42,6 +34,21 @@ func (s *testWaitingOperatorSuite) TestPriorityQueue(c *C) {
 
 func (s *testWaitingOperatorSuite) TestRandQueue(c *C) {
 	rq := NewRandQueue()
+	addOperators(rq)
+	for i := 0; i < 4; i++ {
+		c.Assert(rq.GetOperator(), NotNil)
+	}
+}
+
+func (s *testWaitingOperatorSuite) TestRandBuckets(c *C) {
+	rb := NewRandBuckets()
+	addOperators(rb)
+	for i := 0; i < 4; i++ {
+		c.Assert(rb.GetOperator(), NotNil)
+	}
+}
+
+func addOperators(wop WaitingOperator) {
 	for i := 1; i <= 4; i++ {
 		var op *Operator
 		if i == 2 {
@@ -54,9 +61,6 @@ func (s *testWaitingOperatorSuite) TestRandQueue(c *C) {
 				RemovePeer{FromStore: uint64(i)},
 			}...)
 		}
-		rq.PutOperator(op)
-	}
-	for i := 0; i < 4; i++ {
-		c.Assert(rq.GetOperator(), NotNil)
+		wop.PutOperator(op)
 	}
 }

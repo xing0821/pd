@@ -20,7 +20,11 @@ import (
 	"time"
 )
 
-const maxPriority = 2
+const (
+	maxPriority               = 2
+	queueAmplificationFactor  = 2
+	bucketAmplificationFactor = 5
+)
 
 // WaitingOperator is an interface of waiting operator.
 type WaitingOperator interface {
@@ -102,7 +106,7 @@ func NewRandQueue() *RandQueue {
 // PutOperator puts an operator into the random queue.
 func (r *RandQueue) PutOperator(op *Operator) {
 	r.ops = append(r.ops, op)
-	r.weight += int(math.Pow10((maxPriority - int(op.GetPriorityLevel())) * 2))
+	r.weight += int(math.Pow10((maxPriority - int(op.GetPriorityLevel())) * queueAmplificationFactor))
 }
 
 // GetOperator gets an operator from the random queue.
@@ -114,7 +118,7 @@ func (r *RandQueue) GetOperator() *Operator {
 	r1 := rand.Intn(r.weight)
 	sum := 0
 	for i, op := range r.ops {
-		weight := int(math.Pow10((maxPriority - int(op.GetPriorityLevel())) * 2))
+		weight := int(math.Pow10((maxPriority - int(op.GetPriorityLevel())) * queueAmplificationFactor))
 		if r1 >= sum && r1 < sum+weight {
 			ret := r.ops[i]
 			r.ops = append(r.ops[:i], r.ops[i+1:]...)
@@ -122,6 +126,58 @@ func (r *RandQueue) GetOperator() *Operator {
 			return ret
 		}
 		sum += weight
+	}
+	return nil
+}
+
+// Bucket is used to maintain the operators created by a specific scheduler
+type Bucket struct {
+	weight float64
+	ops    []*Operator
+}
+
+// RandBuckets is an implementation of waiting operators
+type RandBuckets struct {
+	sumWeight float64
+	buckets   map[string]*Bucket
+}
+
+// NewRandBuckets create a random buckets.
+func NewRandBuckets() *RandBuckets {
+	return &RandBuckets{
+		buckets: make(map[string]*Bucket),
+	}
+}
+
+// PutOperator puts an operator into the random buckets.
+func (b *RandBuckets) PutOperator(op *Operator) {
+	if b.buckets[op.Desc()] == nil {
+		weight := math.Pow(bucketAmplificationFactor, maxPriority-float64(op.GetPriorityLevel()))
+		b.buckets[op.Desc()] = &Bucket{weight: weight}
+		b.sumWeight += weight
+	}
+	b.buckets[op.Desc()].ops = append(b.buckets[op.Desc()].ops, op)
+}
+
+// GetOperator gets an operator from the random buckets.
+func (b *RandBuckets) GetOperator() *Operator {
+	rand.Seed(time.Now().UnixNano())
+	r1 := rand.Float64()
+	sum := 0.0
+	for desc, bucket := range b.buckets {
+		proportion := bucket.weight / b.sumWeight
+		if r1 >= sum && r1 < sum+proportion {
+			ops := b.buckets[desc].ops
+			r2 := rand.Intn(len(ops))
+			op := ops[r2]
+			b.buckets[desc].ops = append(b.buckets[desc].ops[:r2], b.buckets[desc].ops[r2+1:]...)
+			if len(b.buckets[desc].ops) == 0 {
+				b.sumWeight -= b.buckets[desc].weight
+				delete(b.buckets, desc)
+			}
+			return op
+		}
+		sum += proportion
 	}
 	return nil
 }
