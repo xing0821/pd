@@ -36,8 +36,8 @@ func (t *testOperatorControllerSuite) TestGetOpInfluence(c *C) {
 	steps := []OperatorStep{
 		RemovePeer{FromStore: 2},
 	}
-	op1 := NewOperator("testOperator", 1, &metapb.RegionEpoch{}, OpRegion, steps...)
-	op2 := NewOperator("testOperator", 2, &metapb.RegionEpoch{}, OpRegion, steps...)
+	op1 := NewOperator("test", 1, &metapb.RegionEpoch{}, OpRegion, steps...)
+	op2 := NewOperator("test", 2, &metapb.RegionEpoch{}, OpRegion, steps...)
 	oc.SetOperator(op1)
 	oc.SetOperator(op2)
 	go func() {
