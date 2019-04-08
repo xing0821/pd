@@ -166,7 +166,7 @@ func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
 	oc.Lock()
 	defer oc.Unlock()
 
-	if oc.exceedStoreCost(ops...) || !oc.checkAddOperator(ops...) {
+	if oc.exceedStoreLimit(ops...) || !oc.checkAddOperator(ops...) {
 		for _, op := range ops {
 			operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
 			oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
@@ -582,8 +582,8 @@ func (o *OperatorRecords) Put(op *Operator, status pdpb.OperatorStatus) {
 	o.ttl.Put(id, record)
 }
 
-// exceedStoreCost return true if store exceeds the cost after adding the operator. Otherwise, return false.
-func (oc *OperatorController) exceedStoreCost(ops ...*Operator) bool {
+// exceedStoreLimit return true if store exceeds the cost limit after adding the operator. Otherwise, return false.
+func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
 		if oc.storesLimit[storeID] == nil {
@@ -599,6 +599,8 @@ func (oc *OperatorController) exceedStoreCost(ops ...*Operator) bool {
 
 // GetScheduleCost gets the cost of running operators.
 func (oc *OperatorController) GetScheduleCost() int64 {
+	oc.RLock()
+	defer oc.RUnlock()
 	var scheduleCost int64
 	for _, limit := range oc.storesLimit {
 		scheduleCost += limit.Capacity() - limit.Available()
