@@ -35,8 +35,15 @@ const (
 	// RegionOperatorWaitTime is the duration that when a region operator lives
 	// longer than it, the operator will be considered timeout.
 	RegionOperatorWaitTime = 10 * time.Minute
+)
+
+const (
 	// RegionWeight reflects the influence which is caused by a region related step in an operator.
 	RegionWeight = 10
+	// PromoteLearnerWeight reflects the influence which is caused by a promote learner step in an operator.
+	PromoteLearnerWeight = 2
+	// RemovePeerWeight reflects the influence which is caused by a remove peer step in an operator.
+	RemovePeerWeight = 2
 	// LeaderWeight reflects the influence which is caused by a leader related step in an operator.
 	LeaderWeight = 1
 )
@@ -158,7 +165,7 @@ func (pl PromoteLearner) IsFinish(region *core.RegionInfo) bool {
 // Influence calculates the store difference that current step make
 func (pl PromoteLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
 	to := opInfluence.GetStoreInfluence(pl.ToStore)
-	to.StepCost += RegionWeight
+	to.StepCost += PromoteLearnerWeight
 }
 
 // RemovePeer is an OperatorStep that removes a region peer.
@@ -181,7 +188,7 @@ func (rp RemovePeer) Influence(opInfluence OpInfluence, region *core.RegionInfo)
 
 	from.RegionSize -= region.GetApproximateSize()
 	from.RegionCount--
-	from.StepCost += RegionWeight
+	from.StepCost += RemovePeerWeight
 }
 
 // MergeRegion is an OperatorStep that merge two regions.

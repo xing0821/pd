@@ -570,7 +570,7 @@ const (
 	defaultHotRegionScheduleLimit = 2
 	defaultMaxScheduleCost        = 0
 	defaultStoreMaxScheduleCost   = 50
-	defaultStoreBucketRate        = 0.05
+	defaultStoreBucketRate        = 5
 	defaultTolerantSizeRatio      = 5
 	defaultLowSpaceRatio          = 0.8
 	defaultHighSpaceRatio         = 0.6
