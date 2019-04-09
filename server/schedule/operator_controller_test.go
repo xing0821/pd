@@ -73,8 +73,8 @@ func (t *testOperatorControllerSuite) TestOperatorStatus(c *C) {
 		RemovePeer{FromStore: 2},
 		AddPeer{ToStore: 2, PeerID: 4},
 	}
-	op1 := NewOperator("testOperator", 1, &metapb.RegionEpoch{}, OpRegion, steps...)
-	op2 := NewOperator("testOperator", 2, &metapb.RegionEpoch{}, OpRegion, steps...)
+	op1 := NewOperator("test", 1, &metapb.RegionEpoch{}, OpRegion, steps...)
+	op2 := NewOperator("test", 2, &metapb.RegionEpoch{}, OpRegion, steps...)
 	region1 := tc.GetRegion(1)
 	region2 := tc.GetRegion(2)
 	oc.SetOperator(op1)
