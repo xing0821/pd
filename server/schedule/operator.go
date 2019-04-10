@@ -41,9 +41,9 @@ const (
 	// RegionWeight reflects the influence which is caused by a region related step in an operator.
 	RegionWeight = 10
 	// PromoteLearnerWeight reflects the influence which is caused by a promote learner step in an operator.
-	PromoteLearnerWeight = 2
+	PromoteLearnerWeight = 3
 	// RemovePeerWeight reflects the influence which is caused by a remove peer step in an operator.
-	RemovePeerWeight = 2
+	RemovePeerWeight = 3
 	// LeaderWeight reflects the influence which is caused by a leader related step in an operator.
 	LeaderWeight = 1
 )
