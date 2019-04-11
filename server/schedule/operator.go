@@ -52,7 +52,7 @@ const (
 type OperatorStep interface {
 	fmt.Stringer
 	IsFinish(region *core.RegionInfo) bool
-	Influence(opInfluence OpInfluence, region *core.RegionInfo)
+	Influence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster)
 }
 
 // TransferLeader is an OperatorStep that transfers a region's leader.
@@ -70,16 +70,16 @@ func (tl TransferLeader) IsFinish(region *core.RegionInfo) bool {
 }
 
 // Influence calculates the store difference that current step make
-func (tl TransferLeader) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
+func (tl TransferLeader) Influence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster) {
 	from := opInfluence.GetStoreInfluence(tl.FromStore)
 	to := opInfluence.GetStoreInfluence(tl.ToStore)
 
 	from.LeaderSize -= region.GetApproximateSize()
 	from.LeaderCount--
-	from.StepCost += LeaderWeight
+	from.StepCost += cluster.GetTransferLeaderStepCost()
 	to.LeaderSize += region.GetApproximateSize()
 	to.LeaderCount++
-	to.StepCost += LeaderWeight
+	to.StepCost += cluster.GetTransferLeaderStepCost()
 }
 
 // AddPeer is an OperatorStep that adds a region peer.
@@ -104,12 +104,12 @@ func (ap AddPeer) IsFinish(region *core.RegionInfo) bool {
 }
 
 // Influence calculates the store difference that current step make
-func (ap AddPeer) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
+func (ap AddPeer) Influence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster) {
 	to := opInfluence.GetStoreInfluence(ap.ToStore)
 
 	to.RegionSize += region.GetApproximateSize()
 	to.RegionCount++
-	to.StepCost += RegionWeight
+	to.StepCost += cluster.GetAddPeerStepCost()
 }
 
 // AddLearner is an OperatorStep that adds a region learner peer.
@@ -134,12 +134,12 @@ func (al AddLearner) IsFinish(region *core.RegionInfo) bool {
 }
 
 // Influence calculates the store difference that current step make
-func (al AddLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
+func (al AddLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster) {
 	to := opInfluence.GetStoreInfluence(al.ToStore)
 
 	to.RegionSize += region.GetApproximateSize()
 	to.RegionCount++
-	to.StepCost += RegionWeight
+	to.StepCost += cluster.GetAddLearnerStepCost()
 }
 
 // PromoteLearner is an OperatorStep that promotes a region learner peer to normal voter.
@@ -163,9 +163,9 @@ func (pl PromoteLearner) IsFinish(region *core.RegionInfo) bool {
 }
 
 // Influence calculates the store difference that current step make
-func (pl PromoteLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
+func (pl PromoteLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster) {
 	to := opInfluence.GetStoreInfluence(pl.ToStore)
-	to.StepCost += PromoteLearnerWeight
+	to.StepCost += cluster.GetPromoteLearnerStepCost()
 }
 
 // RemovePeer is an OperatorStep that removes a region peer.
@@ -183,12 +183,12 @@ func (rp RemovePeer) IsFinish(region *core.RegionInfo) bool {
 }
 
 // Influence calculates the store difference that current step make
-func (rp RemovePeer) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
+func (rp RemovePeer) Influence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster) {
 	from := opInfluence.GetStoreInfluence(rp.FromStore)
 
 	from.RegionSize -= region.GetApproximateSize()
 	from.RegionCount--
-	from.StepCost += RemovePeerWeight
+	from.StepCost += cluster.GetRemovePeerStepCost()
 }
 
 // MergeRegion is an OperatorStep that merge two regions.
@@ -217,15 +217,15 @@ func (mr MergeRegion) IsFinish(region *core.RegionInfo) bool {
 }
 
 // Influence calculates the store difference that current step make
-func (mr MergeRegion) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
+func (mr MergeRegion) Influence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster) {
 	if mr.IsPassive {
 		for _, p := range region.GetPeers() {
 			o := opInfluence.GetStoreInfluence(p.GetStoreId())
 			o.RegionCount--
-			o.StepCost += RegionWeight
+			o.StepCost += cluster.GetMergeRegionStepCost()
 			if region.GetLeader().GetId() == p.GetId() {
 				o.LeaderCount--
-				o.StepCost += LeaderWeight
+				o.StepCost += cluster.GetMergeLeaderStepCost()
 			}
 		}
 	}
@@ -247,14 +247,15 @@ func (sr SplitRegion) IsFinish(region *core.RegionInfo) bool {
 }
 
 // Influence calculates the store difference that current step make.
-func (sr SplitRegion) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
+func (sr SplitRegion) Influence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster) {
 	for _, p := range region.GetPeers() {
 		inf := opInfluence.GetStoreInfluence(p.GetStoreId())
 		inf.RegionCount++
-		inf.StepCost += RegionWeight
+		inf.StepCost += cluster.GetSplitRegionStepCost()
 		if region.GetLeader().GetId() == p.GetId() {
 			inf.LeaderCount++
-			inf.StepCost += LeaderWeight
+			inf.StepCost += cluster.GetSplitLeaderStepCost()
+			cluster.GetMaxScheduleCost()
 		}
 	}
 }
@@ -400,18 +401,18 @@ func (o *Operator) IsTimeout() bool {
 }
 
 // UnfinishedInfluence calculates the store difference which unfinished operator steps make
-func (o *Operator) UnfinishedInfluence(opInfluence OpInfluence, region *core.RegionInfo) {
+func (o *Operator) UnfinishedInfluence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster) {
 	for step := atomic.LoadInt32(&o.currentStep); int(step) < len(o.steps); step++ {
 		if !o.steps[int(step)].IsFinish(region) {
-			o.steps[int(step)].Influence(opInfluence, region)
+			o.steps[int(step)].Influence(opInfluence, region, cluster)
 		}
 	}
 }
 
 // TotalInfluence calculates the store difference which whole operator steps make
-func (o *Operator) TotalInfluence(opInfluence OpInfluence, region *core.RegionInfo) {
+func (o *Operator) TotalInfluence(opInfluence OpInfluence, region *core.RegionInfo, cluster Cluster) {
 	for step := 0; step < len(o.steps); step++ {
-		o.steps[int(step)].Influence(opInfluence, region)
+		o.steps[int(step)].Influence(opInfluence, region, cluster)
 	}
 }
 

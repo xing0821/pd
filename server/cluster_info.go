@@ -812,6 +812,34 @@ func (c *clusterInfo) RegionWriteStats() []*core.RegionStat {
 	return c.core.HotCache.RegionStats(schedule.WriteFlow)
 }
 
+func (c *clusterInfo) GetTransferLeaderStepCost() int64 {
+	return c.opt.GetTransferLeaderStepCost()
+}
+func (c *clusterInfo) GetAddPeerStepCost() int64 {
+	return c.opt.GetAddPeerStepCost()
+}
+func (c *clusterInfo) GetRemovePeerStepCost() int64 {
+	return c.opt.GetRemovePeerStepCost()
+}
+func (c *clusterInfo) GetAddLearnerStepCost() int64 {
+	return c.opt.GetAddLearnerStepCost()
+}
+func (c *clusterInfo) GetPromoteLearnerStepCost() int64 {
+	return c.opt.GetPromoteLearnerStepCost()
+}
+func (c *clusterInfo) GetMergeRegionStepCost() int64 {
+	return c.opt.GetMergeRegionStepCost()
+}
+func (c *clusterInfo) GetMergeLeaderStepCost() int64 {
+	return c.opt.GetMergeLeaderStepCost()
+}
+func (c *clusterInfo) GetSplitRegionStepCost() int64 {
+	return c.opt.GetSplitRegionStepCost()
+}
+func (c *clusterInfo) GetSplitLeaderStepCost() int64 {
+	return c.opt.GetSplitLeaderStepCost()
+}
+
 type prepareChecker struct {
 	reactiveRegions map[uint64]int
 	start           time.Time

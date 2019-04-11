@@ -387,7 +387,7 @@ func NewTotalOpInfluence(operators []*Operator, cluster Cluster) OpInfluence {
 	for _, op := range operators {
 		region := cluster.GetRegion(op.RegionID())
 		if region != nil {
-			op.TotalInfluence(influence, region)
+			op.TotalInfluence(influence, region, cluster)
 		}
 	}
 
@@ -404,7 +404,7 @@ func NewUnfinishedOpInfluence(operators []*Operator, cluster Cluster) OpInfluenc
 		if !op.IsTimeout() && !op.IsFinish() {
 			region := cluster.GetRegion(op.RegionID())
 			if region != nil {
-				op.UnfinishedInfluence(influence, region)
+				op.UnfinishedInfluence(influence, region, cluster)
 			}
 		}
 	}

@@ -517,7 +517,16 @@ type ScheduleConfig struct {
 	DisableNamespaceRelocation bool `toml:"disable-namespace-relocation" json:"disable-namespace-relocation,string"`
 
 	// Schedulers support for loding customized schedulers
-	Schedulers SchedulerConfigs `toml:"schedulers,omitempty" json:"schedulers-v2"` // json v2 is for the sake of compatible upgrade
+	Schedulers             SchedulerConfigs `toml:"schedulers,omitempty" json:"schedulers-v2"` // json v2 is for the sake of compatible upgrade
+	TransferLeaderStepCost int64            `toml:"transfer-leader-step-cost" json:"transfer-leader-step-cost"`
+	AddPeerStepCost        int64            `toml:"add-peer-step-cost" json:"add-peer-step-cost"`
+	RemovePeerStepCost     int64            `toml:"remove-peer-step-cost" json:"remove-peer-step-cost"`
+	AddLearnerStepCost     int64            `toml:"add-learner-step-cost" json:"add-learner-step-cost"`
+	PromoteLearnerStepCost int64            `toml:"promote-learner-step-cost" json:"promote-learner-step-cost"`
+	MergeRegionStepCost    int64            `toml:"merge-region-step-cost" json:"merge-region-step-cost"`
+	MergeLeaderStepCost    int64            `toml:"merge-leader-step-cost" json:"merge-leader-step-cost"`
+	SplitRegionStepCost    int64            `toml:"split-region-step-cost" json:"split-region-step-cost"`
+	SplitLeaderStepCost    int64            `toml:"split-leader-step-cost" json:"split-leader-step-cost"`
 }
 
 func (c *ScheduleConfig) clone() *ScheduleConfig {
@@ -551,6 +560,15 @@ func (c *ScheduleConfig) clone() *ScheduleConfig {
 		DisableLocationReplacement:   c.DisableLocationReplacement,
 		DisableNamespaceRelocation:   c.DisableNamespaceRelocation,
 		Schedulers:                   schedulers,
+		TransferLeaderStepCost:       c.TransferLeaderStepCost,
+		AddPeerStepCost:              c.AddPeerStepCost,
+		RemovePeerStepCost:           c.RemovePeerStepCost,
+		AddLearnerStepCost:           c.AddLearnerStepCost,
+		PromoteLearnerStepCost:       c.PromoteLearnerStepCost,
+		MergeRegionStepCost:          c.MergeRegionStepCost,
+		MergeLeaderStepCost:          c.MergeLeaderStepCost,
+		SplitRegionStepCost:          c.SplitRegionStepCost,
+		SplitLeaderStepCost:          c.SplitLeaderStepCost,
 	}
 }
 
@@ -577,6 +595,15 @@ const (
 	// defaultHotRegionCacheHitsThreshold is the low hit number threshold of the
 	// hot region.
 	defaultHotRegionCacheHitsThreshold = 3
+	defaultTransferLeaderStepCost      = 1
+	defaultAddPeerStepCost             = 10
+	defaultRemovePeerStepCost          = 3
+	defaultAddLearnerStepCost          = 10
+	defaultPromoteLearnerStepCost      = 3
+	defaultMergeRegionStepCost         = 10
+	defaultMergeLeaderStepCost         = 1
+	defaultSplitRegionStepCost         = 10
+	defaultSplitLeaderStepCost         = 1
 )
 
 func (c *ScheduleConfig) adjust(meta *configMetaData) error {
@@ -626,6 +653,16 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	adjustFloat64(&c.LowSpaceRatio, defaultLowSpaceRatio)
 	adjustFloat64(&c.HighSpaceRatio, defaultHighSpaceRatio)
 	adjustSchedulers(&c.Schedulers, defaultSchedulers)
+
+	adjustInt64(&c.TransferLeaderStepCost, defaultTransferLeaderStepCost)
+	adjustInt64(&c.AddPeerStepCost, defaultAddPeerStepCost)
+	adjustInt64(&c.RemovePeerStepCost, defaultRemovePeerStepCost)
+	adjustInt64(&c.AddLearnerStepCost, defaultAddLearnerStepCost)
+	adjustInt64(&c.PromoteLearnerStepCost, defaultPromoteLearnerStepCost)
+	adjustInt64(&c.MergeRegionStepCost, defaultMergeRegionStepCost)
+	adjustInt64(&c.MergeLeaderStepCost, defaultMergeLeaderStepCost)
+	adjustInt64(&c.SplitRegionStepCost, defaultSplitRegionStepCost)
+	adjustInt64(&c.SplitLeaderStepCost, defaultSplitLeaderStepCost)
 
 	return c.validate()
 }

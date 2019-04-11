@@ -104,6 +104,34 @@ func (o *scheduleOption) GetMaxStoreDownTime() time.Duration {
 	return o.load().MaxStoreDownTime.Duration
 }
 
+func (o *scheduleOption) GetTransferLeaderStepCost() int64 {
+	return o.load().TransferLeaderStepCost
+}
+func (o *scheduleOption)GetAddPeerStepCost() int64 {
+	return o.load().AddPeerStepCost
+}
+func (o *scheduleOption) GetRemovePeerStepCost() int64 {
+	return o.load().RemovePeerStepCost
+}
+func (o *scheduleOption) GetAddLearnerStepCost() int64 {
+	return o.load().AddLearnerStepCost
+}
+func (o *scheduleOption) GetPromoteLearnerStepCost() int64 {
+	return o.load().PromoteLearnerStepCost
+}
+func (o *scheduleOption) GetMergeRegionStepCost()int64{
+	return o.load().MergeRegionStepCost
+}
+func (o *scheduleOption) GetMergeLeaderStepCost()int64 {
+	return o.load().MergeLeaderStepCost
+}
+func (o *scheduleOption) GetSplitRegionStepCost() int64 {
+	return o.load().SplitRegionStepCost
+}
+func (o *scheduleOption) GetSplitLeaderStepCost() int64 {
+	return o.load().SplitLeaderStepCost
+}
+
 func (o *scheduleOption) GetLeaderScheduleLimit(name string) uint64 {
 	if n, ok := o.ns[name]; ok {
 		return n.GetLeaderScheduleLimit()

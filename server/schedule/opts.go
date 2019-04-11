@@ -60,6 +60,17 @@ type Options interface {
 	IsNamespaceRelocationEnabled() bool
 
 	CheckLabelProperty(typ string, labels []*metapb.StoreLabel) bool
+
+	// test purpose
+	GetTransferLeaderStepCost() int64
+	GetAddPeerStepCost() int64
+	GetRemovePeerStepCost() int64
+	GetAddLearnerStepCost() int64
+	GetPromoteLearnerStepCost() int64
+	GetMergeRegionStepCost() int64
+	GetMergeLeaderStepCost() int64
+	GetSplitRegionStepCost() int64
+	GetSplitLeaderStepCost() int64
 }
 
 // NamespaceOptions for namespace cluster.
