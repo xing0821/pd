@@ -594,16 +594,16 @@ const (
 	defaultHighSpaceRatio         = 0.6
 	// defaultHotRegionCacheHitsThreshold is the low hit number threshold of the
 	// hot region.
-	defaultHotRegionCacheHitsThreshold = 3
-	defaultTransferLeaderStepCost      = 1
-	defaultAddPeerStepCost             = 10
-	defaultRemovePeerStepCost          = 3
-	defaultAddLearnerStepCost          = 10
-	defaultPromoteLearnerStepCost      = 3
-	defaultMergeRegionStepCost         = 10
-	defaultMergeLeaderStepCost         = 1
-	defaultSplitRegionStepCost         = 10
-	defaultSplitLeaderStepCost         = 1
+	defautHotRegionCacheHitsThreshold = 3
+	defaultTransferLeaderStepCost     = 0
+	defaultAddPeerStepCost            = 10
+	defaultRemovePeerStepCost         = 3
+	defaultAddLearnerStepCost         = 10
+	defaultPromoteLearnerStepCost     = 3
+	defaultMergeRegionStepCost        = 10
+	defaultMergeLeaderStepCost        = 0
+	defaultSplitRegionStepCost        = 10
+	defaultSplitLeaderStepCost        = 0
 )
 
 func (c *ScheduleConfig) adjust(meta *configMetaData) error {
