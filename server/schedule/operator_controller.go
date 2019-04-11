@@ -116,15 +116,15 @@ func (oc *OperatorController) checkAddOperator(ops ...*Operator) bool {
 	for _, op := range ops {
 		region := oc.cluster.GetRegion(op.RegionID())
 		if region == nil {
-			log.Debug("region not found, cancel add operator", zap.Uint64("region-id", op.RegionID()))
+			log.Info("region not found, cancel add operator", zap.Uint64("region-id", op.RegionID()))
 			return false
 		}
 		if region.GetRegionEpoch().GetVersion() != op.RegionEpoch().GetVersion() || region.GetRegionEpoch().GetConfVer() != op.RegionEpoch().GetConfVer() {
-			log.Debug("region epoch not match, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", region.GetRegionEpoch()), zap.Reflect("new", op.RegionEpoch()))
+			log.Info("region epoch not match, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", region.GetRegionEpoch()), zap.Reflect("new", op.RegionEpoch()))
 			return false
 		}
 		if old := oc.operators[op.RegionID()]; old != nil && !isHigherPriorityOperator(op, old) {
-			log.Debug("already have operator, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", old))
+			log.Info("already have operator, cancel add operator", zap.Uint64("region-id", op.RegionID()), zap.Reflect("old", old))
 			return false
 		}
 	}
@@ -510,6 +510,9 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 			oc.cluster.OverloadStore(storeID)
 			return true
 		}
+	}
+	for _, op := range ops {
+		log.Info("operator cancel exceedStoreLimit", zap.Reflect("op", op.Desc()))
 	}
 	return false
 }
