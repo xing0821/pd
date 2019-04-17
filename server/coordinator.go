@@ -98,6 +98,7 @@ func (c *coordinator) patrolRegions() {
 		case <-timer.C:
 			timer.Reset(c.cluster.GetPatrolRegionInterval())
 		case <-c.ctx.Done():
+			log.Info("patrol regions has been stopped")
 			return
 		}
 
@@ -409,7 +410,7 @@ func (c *coordinator) runScheduler(s *scheduleController) {
 			}
 
 		case <-s.Ctx().Done():
-			log.Info("stopped scheduler",
+			log.Info("scheduler has been stopped",
 				zap.String("scheduler-name", s.GetName()),
 				zap.Error(s.Ctx().Err()))
 			return
