@@ -74,10 +74,11 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 
 	stores := cluster.GetStores()
 
+	opInfluence := l.opController.GetOpInfluence(cluster)
 	// source/target is the store with highest/lowest leader score in the list that
 	// can be selected as balance source/target.
-	source := l.selector.SelectSource(cluster, stores)
-	target := l.selector.SelectTarget(cluster, stores)
+	source := l.selector.SelectSource(cluster, stores, opInfluence)
+	target := l.selector.SelectTarget(cluster, stores, opInfluence)
 
 	// No store can be selected as source or target.
 	if source == nil || target == nil {
@@ -100,7 +101,6 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 	balanceLeaderCounter.WithLabelValues("high_score", sourceAddress, sourceStoreLabel).Inc()
 	balanceLeaderCounter.WithLabelValues("low_score", targetAddress, targetStoreLabel).Inc()
 
-	opInfluence := l.opController.GetOpInfluence(cluster)
 	for i := 0; i < balanceLeaderRetryLimit; i++ {
 		if op := l.transferLeaderOut(source, cluster, opInfluence); op != nil {
 			balanceLeaderCounter.WithLabelValues("transfer_out", sourceAddress, sourceStoreLabel).Inc()
@@ -132,7 +132,7 @@ func (l *balanceLeaderScheduler) transferLeaderOut(source *core.StoreInfo, clust
 		schedulerCounter.WithLabelValues(l.GetName(), "no_leader_region").Inc()
 		return nil
 	}
-	target := l.selector.SelectTarget(cluster, cluster.GetFollowerStores(region))
+	target := l.selector.SelectTarget(cluster, cluster.GetFollowerStores(region), opInfluence)
 	if target == nil {
 		log.Debug("region has no target store", zap.String("scheduler", l.GetName()), zap.Uint64("region-id", region.GetID()))
 		schedulerCounter.WithLabelValues(l.GetName(), "no_target_store").Inc()
@@ -176,7 +176,7 @@ func (l *balanceLeaderScheduler) createOperator(region *core.RegionInfo, source,
 	sourceID := source.GetID()
 	targetID := target.GetID()
 	if !shouldBalance(cluster, source, target, region, core.LeaderKind, opInfluence) {
-		log.Debug("skip balance region",
+		log.Debug("skip balance leader",
 			zap.String("scheduler", l.GetName()), zap.Uint64("region-id", regionID), zap.Uint64("source-store", sourceID), zap.Uint64("target-store", targetID),
 			zap.Int64("source-size", source.GetLeaderSize()), zap.Float64("source-score", source.LeaderScore(0)),
 			zap.Int64("source-influence", opInfluence.GetStoreInfluence(sourceID).ResourceSize(core.LeaderKind)),

@@ -39,16 +39,24 @@ func NewBalanceSelector(kind core.ResourceKind, filters []Filter) *BalanceSelect
 
 // SelectSource selects the store that can pass all filters and has the minimal
 // resource score.
-func (s *BalanceSelector) SelectSource(opt Options, stores []*core.StoreInfo) *core.StoreInfo {
+func (s *BalanceSelector) SelectSource(opt Options, stores []*core.StoreInfo, opInfluence OpInfluence) *core.StoreInfo {
 	var result *core.StoreInfo
 	for _, store := range stores {
 		if FilterSource(opt, store, s.filters) {
 			log.Debug("balance filter store", zap.String("kind", s.kind.String()), zap.Uint64("store", store.GetID()))
 			continue
 		}
-		if result == nil ||
-			result.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), 0) <
-				store.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), 0) {
+
+		if result == nil {
+			result = store
+			continue
+		}
+
+		storeDelta := opInfluence.GetStoreInfluence(store.GetID()).ResourceSize(s.kind)
+		resultDelta := opInfluence.GetStoreInfluence(result.GetID()).ResourceSize(s.kind)
+
+		if result.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), resultDelta) <
+			store.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), storeDelta) {
 			result = store
 		}
 	}
@@ -57,16 +65,23 @@ func (s *BalanceSelector) SelectSource(opt Options, stores []*core.StoreInfo) *c
 
 // SelectTarget selects the store that can pass all filters and has the maximal
 // resource score.
-func (s *BalanceSelector) SelectTarget(opt Options, stores []*core.StoreInfo, filters ...Filter) *core.StoreInfo {
+func (s *BalanceSelector) SelectTarget(opt Options, stores []*core.StoreInfo, opInfluence OpInfluence, filters ...Filter) *core.StoreInfo {
 	filters = append(filters, s.filters...)
 	var result *core.StoreInfo
 	for _, store := range stores {
 		if FilterTarget(opt, store, filters) {
 			continue
 		}
-		if result == nil ||
-			result.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), 0) >
-				store.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), 0) {
+		if result == nil {
+			result = store
+			continue
+		}
+
+		storeDelta := opInfluence.GetStoreInfluence(store.GetID()).ResourceSize(s.kind)
+		resultDelta := opInfluence.GetStoreInfluence(result.GetID()).ResourceSize(s.kind)
+
+		if result.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), resultDelta) >
+			store.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), storeDelta) {
 			result = store
 		}
 	}

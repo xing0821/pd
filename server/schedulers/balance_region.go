@@ -76,8 +76,9 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 
 	stores := cluster.GetStores()
 
+	opInfluence := s.opController.GetOpInfluence(cluster)
 	// source is the store with highest region score in the list that can be selected as balance source.
-	source := s.selector.SelectSource(cluster, stores)
+	source := s.selector.SelectSource(cluster, stores, opInfluence)
 	if source == nil {
 		schedulerCounter.WithLabelValues(s.GetName(), "no_store").Inc()
 		// Unlike the balanceLeaderScheduler, we don't need to clear the taintCache
@@ -92,7 +93,6 @@ func (s *balanceRegionScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 	sourceLabel := strconv.FormatUint(sourceID, 10)
 	balanceRegionCounter.WithLabelValues("source_store", sourceAddress, sourceLabel).Inc()
 
-	opInfluence := s.opController.GetOpInfluence(cluster)
 	var hasPotentialTarget bool
 	for i := 0; i < balanceRegionRetryLimit; i++ {
 		// Priority the region that has a follower in the source store.
@@ -210,6 +210,7 @@ func (s *balanceRegionScheduler) hasPotentialTarget(cluster schedule.Cluster, re
 		if !store.IsUp() || store.DownTime() > cluster.GetMaxStoreDownTime() {
 			continue
 		}
+
 		if !shouldBalance(cluster, source, store, region, core.RegionKind, opInfluence) {
 			continue
 		}
