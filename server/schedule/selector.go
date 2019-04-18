@@ -16,6 +16,9 @@ package schedule
 import (
 	"math/rand"
 
+	"go.uber.org/zap"
+
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/core"
 )
 
@@ -40,6 +43,7 @@ func (s *BalanceSelector) SelectSource(opt Options, stores []*core.StoreInfo) *c
 	var result *core.StoreInfo
 	for _, store := range stores {
 		if FilterSource(opt, store, s.filters) {
+			log.Debug("balance filter store", zap.String("kind", s.kind.String()), zap.Uint64("store", store.GetID()))
 			continue
 		}
 		if result == nil ||
