@@ -140,6 +140,7 @@ func (c *RaftCluster) runCoordinator() {
 	}()
 	c.coordinator.run()
 	<-c.coordinator.ctx.Done()
+	log.Info("coordinator is stopping")
 }
 
 func (c *RaftCluster) syncRegions() {

@@ -206,7 +206,7 @@ func (s *Server) campaignLeader() error {
 	lessor := clientv3.NewLease(s.client)
 	defer func() {
 		lessor.Close()
-		log.Debug("exit campaign leader")
+		log.Info("exit campaign leader")
 	}()
 
 	start := time.Now()
