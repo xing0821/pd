@@ -713,6 +713,14 @@ func (c *clusterInfo) GetStoreBucketRate() float64 {
 	return c.opt.GetStoreBucketRate()
 }
 
+func (c *clusterInfo) OfflineStoreScheduleCost() int64 {
+	return c.opt.OfflineStoreScheduleCost()
+}
+
+func (c *clusterInfo) OfflineStoreBucketRate() float64 {
+	return c.opt.OfflineStoreBucketRate()
+}
+
 func (c *clusterInfo) GetTolerantSizeRatio() float64 {
 	return c.opt.GetTolerantSizeRatio()
 }

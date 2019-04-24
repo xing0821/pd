@@ -107,7 +107,7 @@ func (o *scheduleOption) GetMaxStoreDownTime() time.Duration {
 func (o *scheduleOption) GetTransferLeaderStepCost() int64 {
 	return o.load().TransferLeaderStepCost
 }
-func (o *scheduleOption)GetAddPeerStepCost() int64 {
+func (o *scheduleOption) GetAddPeerStepCost() int64 {
 	return o.load().AddPeerStepCost
 }
 func (o *scheduleOption) GetRemovePeerStepCost() int64 {
@@ -119,10 +119,10 @@ func (o *scheduleOption) GetAddLearnerStepCost() int64 {
 func (o *scheduleOption) GetPromoteLearnerStepCost() int64 {
 	return o.load().PromoteLearnerStepCost
 }
-func (o *scheduleOption) GetMergeRegionStepCost()int64{
+func (o *scheduleOption) GetMergeRegionStepCost() int64 {
 	return o.load().MergeRegionStepCost
 }
-func (o *scheduleOption) GetMergeLeaderStepCost()int64 {
+func (o *scheduleOption) GetMergeLeaderStepCost() int64 {
 	return o.load().MergeLeaderStepCost
 }
 func (o *scheduleOption) GetSplitRegionStepCost() int64 {
@@ -177,6 +177,14 @@ func (o *scheduleOption) GetStoreMaxScheduleCost() int64 {
 
 func (o *scheduleOption) GetStoreBucketRate() float64 {
 	return o.load().StoreBucketRate
+}
+
+func (o *scheduleOption) OfflineStoreScheduleCost() int64 {
+	return o.load().OfflineStoreScheduleCost
+}
+
+func (o *scheduleOption) OfflineStoreBucketRate() float64 {
+	return o.load().OfflineStoreBucketRate
 }
 
 func (o *scheduleOption) GetTolerantSizeRatio() float64 {

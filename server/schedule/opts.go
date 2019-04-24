@@ -34,6 +34,8 @@ type Options interface {
 	GetMaxScheduleCost() int64
 	GetStoreMaxScheduleCost() int64
 	GetStoreBucketRate() float64
+	OfflineStoreScheduleCost() int64
+	OfflineStoreBucketRate() float64
 
 	GetMaxSnapshotCount() uint64
 	GetMaxPendingPeerCount() uint64

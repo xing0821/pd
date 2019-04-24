@@ -527,3 +527,10 @@ func (oc *OperatorController) GetScheduleCost() int64 {
 	}
 	return scheduleCost
 }
+
+// SetOfflineStoreLimit xxx.
+func (oc *OperatorController) SetOfflineStoreLimit(storeID uint64) {
+	oc.Lock()
+	defer oc.Unlock()
+	oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(oc.cluster.OfflineStoreBucketRate(), oc.cluster.OfflineStoreScheduleCost())
+}

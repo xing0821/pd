@@ -480,6 +480,10 @@ type ScheduleConfig struct {
 	StoreMaxScheduleCost int64 `toml:"store-max-schedule-cost,omitempty" json:"store-max-schedule-cost"`
 	// StoreBucketRate is the maxinum of bucket rate for each store.
 	StoreBucketRate float64 `toml:"store-bucket-rate,omitempty" json:"store-bucket-rate"`
+	// OfflineStoreScheduleCost is the maxinum of scheduling cost for each store.
+	OfflineStoreScheduleCost int64 `toml:"offline-store-schedule-cost,omitempty" json:"offline-store-schedule-cost"`
+	// OfflineStoreBucketRate is the maxinum of bucket rate for each store.
+	OfflineStoreBucketRate float64 `toml:"offline-store-bucket-rate,omitempty" json:"offline-store-bucket-rate"`
 	// TolerantSizeRatio is the ratio of buffer size for balance scheduler.
 	TolerantSizeRatio float64 `toml:"tolerant-size-ratio,omitempty" json:"tolerant-size-ratio"`
 	//
@@ -549,6 +553,8 @@ func (c *ScheduleConfig) clone() *ScheduleConfig {
 		MaxScheduleCost:              c.MaxScheduleCost,
 		StoreMaxScheduleCost:         c.StoreMaxScheduleCost,
 		StoreBucketRate:              c.StoreBucketRate,
+		OfflineStoreScheduleCost:     c.OfflineStoreScheduleCost,
+		OfflineStoreBucketRate:       c.OfflineStoreBucketRate,
 		TolerantSizeRatio:            c.TolerantSizeRatio,
 		LowSpaceRatio:                c.LowSpaceRatio,
 		HighSpaceRatio:               c.HighSpaceRatio,
@@ -573,37 +579,39 @@ func (c *ScheduleConfig) clone() *ScheduleConfig {
 }
 
 const (
-	defaultMaxReplicas            = 3
-	defaultMaxSnapshotCount       = 3
-	defaultMaxPendingPeerCount    = 16
-	defaultMaxMergeRegionSize     = 20
-	defaultMaxMergeRegionKeys     = 200000
-	defaultSplitMergeInterval     = 1 * time.Hour
-	defaultPatrolRegionInterval   = 100 * time.Millisecond
-	defaultMaxStoreDownTime       = 30 * time.Minute
-	defaultLeaderScheduleLimit    = 1000
-	defaultRegionScheduleLimit    = 1000
-	defaultReplicaScheduleLimit   = 1000
-	defaultMergeScheduleLimit     = 8
-	defaultHotRegionScheduleLimit = 2
-	defaultMaxScheduleCost        = 0
-	defaultStoreMaxScheduleCost   = 50
-	defaultStoreBucketRate        = 5
-	defaultTolerantSizeRatio      = 5
-	defaultLowSpaceRatio          = 0.8
-	defaultHighSpaceRatio         = 0.6
+	defaultMaxReplicas              = 3
+	defaultMaxSnapshotCount         = 3
+	defaultMaxPendingPeerCount      = 16
+	defaultMaxMergeRegionSize       = 20
+	defaultMaxMergeRegionKeys       = 200000
+	defaultSplitMergeInterval       = 1 * time.Hour
+	defaultPatrolRegionInterval     = 100 * time.Millisecond
+	defaultMaxStoreDownTime         = 30 * time.Minute
+	defaultLeaderScheduleLimit      = 1000
+	defaultRegionScheduleLimit      = 1000
+	defaultReplicaScheduleLimit     = 1000
+	defaultMergeScheduleLimit       = 8
+	defaultHotRegionScheduleLimit   = 2
+	defaultMaxScheduleCost          = 0
+	defaultStoreMaxScheduleCost     = 300
+	defaultStoreBucketRate          = 5
+	defaultOfflineStoreScheduleCost = 900
+	defaultOfflineStoreBucketRate   = 15
+	defaultTolerantSizeRatio        = 5
+	defaultLowSpaceRatio            = 0.8
+	defaultHighSpaceRatio           = 0.6
 	// defaultHotRegionCacheHitsThreshold is the low hit number threshold of the
 	// hot region.
-	defautHotRegionCacheHitsThreshold = 3
-	defaultTransferLeaderStepCost     = 0
-	defaultAddPeerStepCost            = 10
-	defaultRemovePeerStepCost         = 3
-	defaultAddLearnerStepCost         = 10
-	defaultPromoteLearnerStepCost     = 3
-	defaultMergeRegionStepCost        = 10
-	defaultMergeLeaderStepCost        = 0
-	defaultSplitRegionStepCost        = 10
-	defaultSplitLeaderStepCost        = 0
+	defaultHotRegionCacheHitsThreshold = 3
+	defaultTransferLeaderStepCost      = 0
+	defaultAddPeerStepCost             = 10
+	defaultRemovePeerStepCost          = 2
+	defaultAddLearnerStepCost          = 10
+	defaultPromoteLearnerStepCost      = 1
+	defaultMergeRegionStepCost         = 10
+	defaultMergeLeaderStepCost         = 0
+	defaultSplitRegionStepCost         = 10
+	defaultSplitLeaderStepCost         = 0
 )
 
 func (c *ScheduleConfig) adjust(meta *configMetaData) error {
@@ -650,6 +658,8 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 		adjustFloat64(&c.TolerantSizeRatio, defaultTolerantSizeRatio)
 	}
 	adjustFloat64(&c.StoreBucketRate, defaultStoreBucketRate)
+	adjustFloat64(&c.OfflineStoreBucketRate, defaultOfflineStoreBucketRate)
+	adjustInt64(&c.OfflineStoreScheduleCost, defaultOfflineStoreScheduleCost)
 	adjustFloat64(&c.LowSpaceRatio, defaultLowSpaceRatio)
 	adjustFloat64(&c.HighSpaceRatio, defaultHighSpaceRatio)
 	adjustSchedulers(&c.Schedulers, defaultSchedulers)
