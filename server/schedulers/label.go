@@ -82,8 +82,7 @@ func (s *labelScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator
 				excludeStores[p.GetStoreId()] = struct{}{}
 			}
 			filter := schedule.NewExcludedFilter(nil, excludeStores)
-			opInfluence := s.opController.GetOpInfluence(cluster)
-			target := s.selector.SelectTarget(cluster, cluster.GetFollowerStores(region), opInfluence, filter)
+			target := s.selector.SelectTarget(cluster, cluster.GetFollowerStores(region), filter)
 			if target == nil {
 				log.Debug("label scheduler no target found for region", zap.Uint64("region-id", region.GetID()))
 				schedulerCounter.WithLabelValues(s.GetName(), "no_target").Inc()

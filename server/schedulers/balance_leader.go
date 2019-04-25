@@ -77,8 +77,8 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 	opInfluence := l.opController.GetOpInfluence(cluster)
 	// source/target is the store with highest/lowest leader score in the list that
 	// can be selected as balance source/target.
-	source := l.selector.SelectSource(cluster, stores, opInfluence)
-	target := l.selector.SelectTarget(cluster, stores, opInfluence)
+	source := l.selector.SelectSource(cluster, stores)
+	target := l.selector.SelectTarget(cluster, stores)
 
 	// No store can be selected as source or target.
 	if source == nil || target == nil {
@@ -132,7 +132,7 @@ func (l *balanceLeaderScheduler) transferLeaderOut(source *core.StoreInfo, clust
 		schedulerCounter.WithLabelValues(l.GetName(), "no_leader_region").Inc()
 		return nil
 	}
-	target := l.selector.SelectTarget(cluster, cluster.GetFollowerStores(region), opInfluence)
+	target := l.selector.SelectTarget(cluster, cluster.GetFollowerStores(region))
 	if target == nil {
 		log.Debug("region has no target store", zap.String("scheduler", l.GetName()), zap.Uint64("region-id", region.GetID()))
 		schedulerCounter.WithLabelValues(l.GetName(), "no_target_store").Inc()

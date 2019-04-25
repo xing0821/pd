@@ -39,7 +39,7 @@ func NewBalanceSelector(kind core.ResourceKind, filters []Filter) *BalanceSelect
 
 // SelectSource selects the store that can pass all filters and has the minimal
 // resource score.
-func (s *BalanceSelector) SelectSource(opt Options, stores []*core.StoreInfo, opInfluence OpInfluence) *core.StoreInfo {
+func (s *BalanceSelector) SelectSource(opt Options, stores []*core.StoreInfo) *core.StoreInfo {
 	var result *core.StoreInfo
 	for _, store := range stores {
 		if FilterSource(opt, store, s.filters) {
@@ -52,11 +52,8 @@ func (s *BalanceSelector) SelectSource(opt Options, stores []*core.StoreInfo, op
 			continue
 		}
 
-		storeDelta := opInfluence.GetStoreInfluence(store.GetID()).ResourceSize(s.kind)
-		resultDelta := opInfluence.GetStoreInfluence(result.GetID()).ResourceSize(s.kind)
-
-		if result.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), resultDelta) <
-			store.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), storeDelta) {
+		if result.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), 0) <
+			store.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), 0) {
 			result = store
 		}
 	}
@@ -65,7 +62,7 @@ func (s *BalanceSelector) SelectSource(opt Options, stores []*core.StoreInfo, op
 
 // SelectTarget selects the store that can pass all filters and has the maximal
 // resource score.
-func (s *BalanceSelector) SelectTarget(opt Options, stores []*core.StoreInfo, opInfluence OpInfluence, filters ...Filter) *core.StoreInfo {
+func (s *BalanceSelector) SelectTarget(opt Options, stores []*core.StoreInfo, filters ...Filter) *core.StoreInfo {
 	filters = append(filters, s.filters...)
 	var result *core.StoreInfo
 	for _, store := range stores {
@@ -77,11 +74,8 @@ func (s *BalanceSelector) SelectTarget(opt Options, stores []*core.StoreInfo, op
 			continue
 		}
 
-		storeDelta := opInfluence.GetStoreInfluence(store.GetID()).ResourceSize(s.kind)
-		resultDelta := opInfluence.GetStoreInfluence(result.GetID()).ResourceSize(s.kind)
-
-		if result.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), resultDelta) >
-			store.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), storeDelta) {
+		if result.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), 0) >
+			store.ResourceScore(s.kind, opt.GetHighSpaceRatio(), opt.GetLowSpaceRatio(), 0) {
 			result = store
 		}
 	}
