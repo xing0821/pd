@@ -123,7 +123,7 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: 0,
 		RegionSize:  10,
 		RegionCount: 1,
-		StepCost:    10,
+		StepCost:    100,
 	})
 
 	TransferLeader{FromStore: 1, ToStore: 2}.Influence(opInfluence, region)
@@ -132,14 +132,14 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: -1,
 		RegionSize:  0,
 		RegionCount: 0,
-		StepCost:    1,
+		StepCost:    0,
 	})
 	c.Assert(*storeOpInfluence[2], DeepEquals, StoreInfluence{
 		LeaderSize:  10,
 		LeaderCount: 1,
 		RegionSize:  10,
 		RegionCount: 1,
-		StepCost:    11,
+		StepCost:    100,
 	})
 
 	RemovePeer{FromStore: 1}.Influence(opInfluence, region)
@@ -148,14 +148,14 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: -1,
 		RegionSize:  -10,
 		RegionCount: -1,
-		StepCost:    11,
+		StepCost:    1,
 	})
 	c.Assert(*storeOpInfluence[2], DeepEquals, StoreInfluence{
 		LeaderSize:  10,
 		LeaderCount: 1,
 		RegionSize:  10,
 		RegionCount: 1,
-		StepCost:    11,
+		StepCost:    100,
 	})
 
 	MergeRegion{IsPassive: false}.Influence(opInfluence, region)
@@ -164,14 +164,14 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: -1,
 		RegionSize:  -10,
 		RegionCount: -1,
-		StepCost:    11,
+		StepCost:    1,
 	})
 	c.Assert(*storeOpInfluence[2], DeepEquals, StoreInfluence{
 		LeaderSize:  10,
 		LeaderCount: 1,
 		RegionSize:  10,
 		RegionCount: 1,
-		StepCost:    11,
+		StepCost:    100,
 	})
 
 	MergeRegion{IsPassive: true}.Influence(opInfluence, region)
@@ -180,14 +180,14 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: -2,
 		RegionSize:  -10,
 		RegionCount: -2,
-		StepCost:    22,
+		StepCost:    2,
 	})
 	c.Assert(*storeOpInfluence[2], DeepEquals, StoreInfluence{
 		LeaderSize:  10,
 		LeaderCount: 1,
 		RegionSize:  10,
 		RegionCount: 0,
-		StepCost:    21,
+		StepCost:    101,
 	})
 }
 

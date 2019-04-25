@@ -102,14 +102,14 @@ func (bc *BasicCluster) UnblockStore(storeID uint64) {
 	bc.Stores.UnblockStore(storeID)
 }
 
-// OverloadStore stops balancer from selecting the store.
-func (bc *BasicCluster) OverloadStore(storeID uint64) error {
-	return bc.Stores.OverloadStore(storeID)
+// SetStoreOverload stops balancer from selecting the store.
+func (bc *BasicCluster) SetStoreOverload(storeID uint64) error {
+	return bc.Stores.SetStoreOverload(storeID)
 }
 
-// UnburdenStore allows balancer to select the store.
-func (bc *BasicCluster) UnburdenStore(storeID uint64) {
-	bc.Stores.UnburdenStore(storeID)
+// ResetStoreOverload allows balancer to select the store.
+func (bc *BasicCluster) ResetStoreOverload(storeID uint64) {
+	bc.Stores.ResetStoreOverload(storeID)
 }
 
 // RandFollowerRegion returns a random region that has a follower on the store.

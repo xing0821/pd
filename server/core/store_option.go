@@ -72,8 +72,8 @@ func SetStoreOverload() StoreCreateOption {
 	}
 }
 
-// SetStoreUnburden allows balancer to select the store.
-func SetStoreUnburden() StoreCreateOption {
+// ResetStoreOverload allows balancer to select the store.
+func ResetStoreOverload() StoreCreateOption {
 	return func(store *StoreInfo) {
 		store.overloaded = false
 	}

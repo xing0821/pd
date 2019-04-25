@@ -542,8 +542,8 @@ func (s *StoresInfo) UnblockStore(storeID uint64) {
 	s.stores[storeID] = store.Clone(SetStoreUnBlock())
 }
 
-// OverloadStore overloads a StoreInfo with storeID.
-func (s *StoresInfo) OverloadStore(storeID uint64) errcode.ErrorCode {
+// SetStoreOverload set a StoreInfo with storeID overload.
+func (s *StoresInfo) SetStoreOverload(storeID uint64) errcode.ErrorCode {
 	op := errcode.Op("store.overload")
 	store, ok := s.stores[storeID]
 	if !ok {
@@ -556,14 +556,14 @@ func (s *StoresInfo) OverloadStore(storeID uint64) errcode.ErrorCode {
 	return nil
 }
 
-// UnburdenStore unburden a StoreInfo with storeID.
-func (s *StoresInfo) UnburdenStore(storeID uint64) {
+// ResetStoreOverload reset a StoreInfo with storeID overload.
+func (s *StoresInfo) ResetStoreOverload(storeID uint64) {
 	store, ok := s.stores[storeID]
 	if !ok {
-		log.Fatal("store is unburdened, but it is not found",
+		log.Fatal("store overload is reset, but it is not found",
 			zap.Uint64("store-id", storeID))
 	}
-	s.stores[storeID] = store.Clone(SetStoreUnburden())
+	s.stores[storeID] = store.Clone(ResetStoreOverload())
 }
 
 // GetStores gets a complete set of StoreInfo.
