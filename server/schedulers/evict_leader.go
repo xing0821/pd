@@ -47,7 +47,6 @@ type evictLeaderScheduler struct {
 func newEvictLeaderScheduler(opController *schedule.OperatorController, storeID uint64) schedule.Scheduler {
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{TransferLeader: true},
-		schedule.NewOverloadFilter(),
 	}
 	base := newBaseScheduler(opController)
 	return &evictLeaderScheduler{

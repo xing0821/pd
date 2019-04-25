@@ -233,18 +233,18 @@ func (c *clusterInfo) UnblockStore(storeID uint64) {
 	c.core.UnblockStore(storeID)
 }
 
-// OverloadStore stops balancer from selecting the store.
-func (c *clusterInfo) OverloadStore(storeID uint64) error {
+// SetStoreOverload stops balancer from selecting the store.
+func (c *clusterInfo) SetStoreOverload(storeID uint64) error {
 	c.Lock()
 	defer c.Unlock()
-	return c.core.OverloadStore(storeID)
+	return c.core.SetStoreOverload(storeID)
 }
 
-// UnburdenStore allows balancer to select the store.
-func (c *clusterInfo) UnburdenStore(storeID uint64) {
+// ResetStoreOverload allows balancer to select the store.
+func (c *clusterInfo) ResetStoreOverload(storeID uint64) {
 	c.Lock()
 	defer c.Unlock()
-	c.core.UnburdenStore(storeID)
+	c.core.ResetStoreOverload(storeID)
 }
 
 // GetStores returns all stores in the cluster.
@@ -711,6 +711,14 @@ func (c *clusterInfo) GetStoreMaxScheduleCost() int64 {
 
 func (c *clusterInfo) GetStoreBucketRate() float64 {
 	return c.opt.GetStoreBucketRate()
+}
+
+func (c *clusterInfo) GetOfflineStoreMaxScheduleCost() int64 {
+	return c.opt.GetOfflineStoreMaxScheduleCost()
+}
+
+func (c *clusterInfo) GetOfflineStoreBucketRate() float64 {
+	return c.opt.GetOfflineStoreBucketRate()
 }
 
 func (c *clusterInfo) GetTolerantSizeRatio() float64 {

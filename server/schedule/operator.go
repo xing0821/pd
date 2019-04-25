@@ -35,10 +35,13 @@ const (
 	// RegionOperatorWaitTime is the duration that when a region operator lives
 	// longer than it, the operator will be considered timeout.
 	RegionOperatorWaitTime = 10 * time.Minute
-	// RegionWeight reflects the influence which is caused by a region related step in an operator.
-	RegionWeight = 10
-	// LeaderWeight reflects the influence which is caused by a leader related step in an operator.
-	LeaderWeight = 1
+)
+
+const (
+	// SmallInfluence represents the influence of a operator step which may have a small influence on the store.
+	SmallInfluence = 1
+	// BigInfluence represents the influence of a operator step which may have a big influence on the store.
+	BigInfluence = 100
 )
 
 // OperatorStep describes the basic scheduling steps that can not be subdivided.
@@ -69,10 +72,8 @@ func (tl TransferLeader) Influence(opInfluence OpInfluence, region *core.RegionI
 
 	from.LeaderSize -= region.GetApproximateSize()
 	from.LeaderCount--
-	from.StepCost += LeaderWeight
 	to.LeaderSize += region.GetApproximateSize()
 	to.LeaderCount++
-	to.StepCost += LeaderWeight
 }
 
 // AddPeer is an OperatorStep that adds a region peer.
@@ -102,7 +103,7 @@ func (ap AddPeer) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
 
 	to.RegionSize += region.GetApproximateSize()
 	to.RegionCount++
-	to.StepCost += RegionWeight
+	to.StepCost += BigInfluence
 }
 
 // AddLearner is an OperatorStep that adds a region learner peer.
@@ -132,7 +133,7 @@ func (al AddLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo)
 
 	to.RegionSize += region.GetApproximateSize()
 	to.RegionCount++
-	to.StepCost += RegionWeight
+	to.StepCost += BigInfluence
 }
 
 // PromoteLearner is an OperatorStep that promotes a region learner peer to normal voter.
@@ -158,7 +159,7 @@ func (pl PromoteLearner) IsFinish(region *core.RegionInfo) bool {
 // Influence calculates the store difference that current step make
 func (pl PromoteLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
 	to := opInfluence.GetStoreInfluence(pl.ToStore)
-	to.StepCost += RegionWeight
+	to.StepCost += SmallInfluence
 }
 
 // RemovePeer is an OperatorStep that removes a region peer.
@@ -181,7 +182,7 @@ func (rp RemovePeer) Influence(opInfluence OpInfluence, region *core.RegionInfo)
 
 	from.RegionSize -= region.GetApproximateSize()
 	from.RegionCount--
-	from.StepCost += RegionWeight
+	from.StepCost += SmallInfluence
 }
 
 // MergeRegion is an OperatorStep that merge two regions.
@@ -215,10 +216,9 @@ func (mr MergeRegion) Influence(opInfluence OpInfluence, region *core.RegionInfo
 		for _, p := range region.GetPeers() {
 			o := opInfluence.GetStoreInfluence(p.GetStoreId())
 			o.RegionCount--
-			o.StepCost += RegionWeight
+			o.StepCost += SmallInfluence
 			if region.GetLeader().GetId() == p.GetId() {
 				o.LeaderCount--
-				o.StepCost += LeaderWeight
 			}
 		}
 	}
@@ -244,10 +244,9 @@ func (sr SplitRegion) Influence(opInfluence OpInfluence, region *core.RegionInfo
 	for _, p := range region.GetPeers() {
 		inf := opInfluence.GetStoreInfluence(p.GetStoreId())
 		inf.RegionCount++
-		inf.StepCost += RegionWeight
+		inf.StepCost += SmallInfluence
 		if region.GetLeader().GetId() == p.GetId() {
 			inf.LeaderCount++
-			inf.StepCost += LeaderWeight
 		}
 	}
 }

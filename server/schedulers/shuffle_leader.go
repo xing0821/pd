@@ -34,7 +34,6 @@ type shuffleLeaderScheduler struct {
 func newShuffleLeaderScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{TransferLeader: true},
-		schedule.NewOverloadFilter(),
 	}
 	base := newBaseScheduler(opController)
 	return &shuffleLeaderScheduler{
