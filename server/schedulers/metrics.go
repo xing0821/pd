@@ -47,6 +47,14 @@ var balanceRegionCounter = prometheus.NewCounterVec(
 		Help:      "Counter of balance region scheduler.",
 	}, []string{"type", "address", "store"})
 
+var storeScoreGauge = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Namespace: "pd",
+		Subsystem: "scheduler",
+		Name:      "store_score",
+		Help:      "Store score for schedule",
+	}, []string{"address", "id", "type"})
+
 func init() {
 	prometheus.MustRegister(schedulerCounter)
 	prometheus.MustRegister(schedulerStatus)

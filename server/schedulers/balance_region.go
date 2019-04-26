@@ -189,6 +189,7 @@ func (s *balanceRegionScheduler) transferPeer(cluster schedule.Cluster, region *
 		schedulerCounter.WithLabelValues(s.GetName(), "create_operator_fail").Inc()
 		return nil
 	}
+	balanceRegionCounter.WithLabelValues("direction", "from_to", sourceLabel+"-"+targetLabel).Inc()
 	return op
 }
 

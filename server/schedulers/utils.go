@@ -14,6 +14,7 @@
 package schedulers
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/montanaflynn/stats"
@@ -57,8 +58,22 @@ func shouldBalance(cluster schedule.Cluster, source, target *core.StoreInfo, reg
 	targetDelta := opInfluence.GetStoreInfluence(target.GetID()).ResourceSize(kind) + regionSize
 
 	// Make sure after move, source score is still greater than target score.
-	return source.ResourceScore(kind, cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), sourceDelta) >
-		target.ResourceScore(kind, cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), targetDelta)
+	sourceScore := source.ResourceScore(kind, cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), sourceDelta)
+	targetScore := target.ResourceScore(kind, cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), targetDelta)
+	sourceAddress := source.GetAddress()
+	sourceID := strconv.FormatUint(source.GetID(), 10)
+	targetAddress := target.GetAddress()
+	targetID := strconv.FormatUint(target.GetID(), 10)
+	switch kind {
+	case core.LeaderKind:
+		storeScoreGauge.WithLabelValues(sourceAddress, sourceID, "leader_source_score").Set(sourceScore)
+		storeScoreGauge.WithLabelValues(targetAddress, targetID, "leader_target_score").Set(targetScore)
+	case core.RegionKind:
+		storeScoreGauge.WithLabelValues(sourceAddress, sourceID, "region_source_score").Set(sourceScore)
+		storeScoreGauge.WithLabelValues(targetAddress, targetID, "region_target_score").Set(targetScore)
+	}
+
+	return sourceScore > targetScore
 }
 
 func adjustBalanceLimit(cluster schedule.Cluster, kind core.ResourceKind) uint64 {
