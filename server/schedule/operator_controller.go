@@ -16,6 +16,7 @@ package schedule
 import (
 	"container/list"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -150,6 +151,10 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 	oc.operators[regionID] = op
 	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
+		if opInfluence.GetStoreInfluence(storeID).StepCost == 0 {
+			continue
+		}
+		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "take").Set(float64(opInfluence.GetStoreInfluence(storeID).StepCost))
 		oc.storesLimit[storeID].Take(opInfluence.GetStoreInfluence(storeID).StepCost)
 	}
 	oc.updateCounts(oc.operators)
@@ -507,6 +512,7 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 		if opInfluence.GetStoreInfluence(storeID).StepCost == 0 {
 			continue
 		}
+		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(oc.storesLimit[storeID].Available()))
 		if oc.storesLimit[storeID].Available() < opInfluence.GetStoreInfluence(storeID).StepCost {
 			oc.cluster.SetStoreOverload(storeID)
 			return true
