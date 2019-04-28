@@ -507,25 +507,11 @@ func (o *OperatorRecords) Put(op *Operator, status pdpb.OperatorStatus) {
 
 // exceedStoreLimit return true if store exceeds the cost limit after adding the operator. Otherwise, return false.
 func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
+	oc.updateLimit()
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
-		sl := oc.storesLimit[storeID]
-		if sl == nil {
+		if oc.storesLimit[storeID] == nil {
 			oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(oc.cluster.GetStoreBucketRate(), oc.cluster.GetStoreMaxScheduleCost())
-		} else {
-			store := oc.cluster.GetStore(storeID)
-			rate, capacity := sl.Rate(), sl.Capacity()
-			if store.IsOffline() {
-				newRate, newCapacity := oc.cluster.GetOfflineStoreBucketRate(), oc.cluster.GetOfflineStoreMaxScheduleCost()
-				if rate != newRate || capacity != newCapacity {
-					oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(newRate, newCapacity)
-				}
-			} else {
-				newRate, newCapacity := oc.cluster.GetStoreBucketRate(), oc.cluster.GetStoreMaxScheduleCost()
-				if rate != newRate || capacity != newCapacity {
-					oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(newRate, newCapacity)
-				}
-			}
 		}
 		if opInfluence.GetStoreInfluence(storeID).StepCost == 0 {
 			continue
@@ -537,6 +523,25 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 		}
 	}
 	return false
+}
+
+// updateLimit is used to update the store limit.
+func (oc *OperatorController) updateLimit() {
+	for storeID, sl := range oc.storesLimit {
+		store := oc.cluster.GetStore(storeID)
+		rate, capacity := sl.Rate(), sl.Capacity()
+		if store.IsOffline() {
+			newRate, newCapacity := oc.cluster.GetOfflineStoreBucketRate(), oc.cluster.GetOfflineStoreMaxScheduleCost()
+			if rate != newRate || capacity != newCapacity {
+				oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(newRate, newCapacity)
+			}
+		} else {
+			newRate, newCapacity := oc.cluster.GetStoreBucketRate(), oc.cluster.GetStoreMaxScheduleCost()
+			if rate != newRate || capacity != newCapacity {
+				oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(newRate, newCapacity)
+			}
+		}
+	}
 }
 
 // GetScheduleCost gets the cost of running operators.
