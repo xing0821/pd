@@ -509,8 +509,23 @@ func (o *OperatorRecords) Put(op *Operator, status pdpb.OperatorStatus) {
 func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
-		if oc.storesLimit[storeID] == nil {
+		sl := oc.storesLimit[storeID]
+		if sl == nil {
 			oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(oc.cluster.GetStoreBucketRate(), oc.cluster.GetStoreMaxScheduleCost())
+		} else {
+			store := oc.cluster.GetStore(storeID)
+			rate, capacity := sl.Rate(), sl.Capacity()
+			if store.IsOffline() {
+				newRate, newCapacity := oc.cluster.GetOfflineStoreBucketRate(), oc.cluster.GetOfflineStoreMaxScheduleCost()
+				if rate != newRate || capacity != newCapacity {
+					oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(newRate, newCapacity)
+				}
+			} else {
+				newRate, newCapacity := oc.cluster.GetStoreBucketRate(), oc.cluster.GetStoreMaxScheduleCost()
+				if rate != newRate || capacity != newCapacity {
+					oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(newRate, newCapacity)
+				}
+			}
 		}
 		if opInfluence.GetStoreInfluence(storeID).StepCost == 0 {
 			continue
