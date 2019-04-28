@@ -234,10 +234,10 @@ func (c *clusterInfo) UnblockStore(storeID uint64) {
 }
 
 // SetStoreOverload stops balancer from selecting the store.
-func (c *clusterInfo) SetStoreOverload(storeID uint64) error {
+func (c *clusterInfo) SetStoreOverload(storeID uint64) {
 	c.Lock()
 	defer c.Unlock()
-	return c.core.SetStoreOverload(storeID)
+	c.core.SetStoreOverload(storeID)
 }
 
 // ResetStoreOverload allows balancer to select the store.

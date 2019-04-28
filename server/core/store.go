@@ -543,17 +543,13 @@ func (s *StoresInfo) UnblockStore(storeID uint64) {
 }
 
 // SetStoreOverload set a StoreInfo with storeID overload.
-func (s *StoresInfo) SetStoreOverload(storeID uint64) errcode.ErrorCode {
-	op := errcode.Op("store.overload")
+func (s *StoresInfo) SetStoreOverload(storeID uint64) {
 	store, ok := s.stores[storeID]
 	if !ok {
-		return op.AddTo(NewStoreNotFoundErr(storeID))
-	}
-	if store.IsOverloaded() {
-		return op.AddTo(StoreOverloadedErr{StoreID: storeID})
+		log.Fatal("store is overloaded, but it is not found",
+			zap.Uint64("store-id", storeID))
 	}
 	s.stores[storeID] = store.Clone(SetStoreOverload())
-	return nil
 }
 
 // ResetStoreOverload reset a StoreInfo with storeID overload.

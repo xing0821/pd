@@ -41,7 +41,7 @@ type Cluster interface {
 	BlockStore(id uint64) error
 	UnblockStore(id uint64)
 
-	SetStoreOverload(id uint64) error
+	SetStoreOverload(id uint64)
 	ResetStoreOverload(id uint64)
 
 	IsRegionHot(id uint64) bool
