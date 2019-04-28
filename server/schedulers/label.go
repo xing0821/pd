@@ -37,7 +37,6 @@ type labelScheduler struct {
 func newLabelScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{TransferLeader: true},
-		schedule.NewOverloadFilter(),
 	}
 	return &labelScheduler{
 		baseScheduler: newBaseScheduler(opController),
