@@ -194,6 +194,9 @@ func (oc *OperatorController) removeOperatorLocked(op *Operator) {
 	delete(oc.operators, regionID)
 	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
+		if opInfluence.GetStoreInfluence(storeID).StepCost == 0 {
+			continue
+		}
 		if oc.cluster.GetStore(storeID).IsOverloaded() {
 			oc.cluster.ResetStoreOverload(storeID)
 		}
