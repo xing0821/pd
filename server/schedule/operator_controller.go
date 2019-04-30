@@ -17,6 +17,7 @@ import (
 	"container/heap"
 	"container/list"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -53,13 +54,14 @@ type HeartbeatStreams interface {
 // OperatorController is used to limit the speed of scheduling.
 type OperatorController struct {
 	sync.RWMutex
-	cluster         Cluster
-	operators       map[uint64]*Operator
-	hbStreams       HeartbeatStreams
-	histories       *list.List
-	counts          map[OperatorKind]uint64
-	opRecords       *OperatorRecords
-	storesLimit     map[uint64]*ratelimit.Bucket
+	cluster   Cluster
+	operators map[uint64]*Operator
+	hbStreams HeartbeatStreams
+	histories *list.List
+	counts    map[OperatorKind]uint64
+	opRecords *OperatorRecords
+	// TODO: Need to clean up the unused store ID.
+	storesLimit map[uint64]*ratelimit.Bucket
 	opNotifierQueue operatorQueue
 }
 
@@ -228,6 +230,7 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 		if stepCost == 0 {
 			continue
 		}
+		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "take").Set(float64(stepCost))
 		oc.storesLimit[storeID].Take(stepCost)
 	}
 	oc.updateCounts(oc.operators)
@@ -595,10 +598,13 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 		if oc.storesLimit[storeID] == nil {
 			oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(oc.cluster.GetStoreBucketRate(), oc.cluster.GetStoreMaxScheduleCost())
 		}
-		if opInfluence.GetStoreInfluence(storeID).StepCost == 0 {
+		stepCost := opInfluence.GetStoreInfluence(storeID).StepCost
+		if stepCost == 0 {
 			continue
 		}
-		if oc.storesLimit[storeID].Available() < opInfluence.GetStoreInfluence(storeID).StepCost {
+		available := oc.storesLimit[storeID].Available()
+		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(available))
+		if available < stepCost {
 			oc.cluster.SetStoreOverload(storeID)
 			return true
 		}
