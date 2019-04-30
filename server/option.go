@@ -180,14 +180,6 @@ func (o *scheduleOption) GetStoreBucketRate() float64 {
 	return o.load().StoreBucketRate
 }
 
-func (o *scheduleOption) GetOfflineStoreMaxScheduleCost() int64 {
-	return o.load().OfflineStoreMaxScheduleCost
-}
-
-func (o *scheduleOption) GetOfflineStoreBucketRate() float64 {
-	return o.load().OfflineStoreBucketRate
-}
-
 func (o *scheduleOption) GetTolerantSizeRatio() float64 {
 	return o.load().TolerantSizeRatio
 }

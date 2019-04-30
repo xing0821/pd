@@ -30,13 +30,14 @@ var (
 // NewStoreCommand return a stores subcommand of rootCmd
 func NewStoreCommand() *cobra.Command {
 	s := &cobra.Command{
-		Use:   `store [delete|label|weight] <store_id> [--jq="<query string>"]`,
+		Use:   `store [delete|label|weight|limit] <store_id> [--jq="<query string>"]`,
 		Short: "show the store status",
 		Run:   showStoreCommandFunc,
 	}
 	s.AddCommand(NewDeleteStoreCommand())
 	s.AddCommand(NewLabelStoreCommand())
 	s.AddCommand(NewSetStoreWeightCommand())
+	s.AddCommand(NewSetStoreLimitCommand())
 	s.Flags().String("jq", "", "jq query")
 	return s
 }
@@ -70,13 +71,23 @@ func NewSetStoreWeightCommand() *cobra.Command {
 	}
 }
 
+// NewSetStoreLimitCommand returns a limit subcommand of storeCmd.
+func NewSetStoreLimitCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "limit <store_id> <rate> <capacity>",
+		Short: "set a store's rate limiter",
+		Run:   setStoreLimitCommandFunc,
+	}
+}
+
 // NewStoresCommand returns a store subcommand of rootCmd
 func NewStoresCommand() *cobra.Command {
 	s := &cobra.Command{
-		Use:   `stores [remove-tombstone]`,
+		Use:   `stores [remove-tombstone|limit]`,
 		Short: "show the store status",
 	}
 	s.AddCommand(NewRemoveTombStoneCommand())
+	s.AddCommand(NewSetAllStoreLimitCommand())
 	return s
 }
 
@@ -85,6 +96,15 @@ func NewRemoveTombStoneCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove-tombstone",
 		Short: "remove tombstone record if only safe",
+		Run:   removeTombStoneCommandFunc,
+	}
+}
+
+// NewSetAllStoreLimitCommand returns a limit subcommand of storesCmd.
+func NewSetAllStoreLimitCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "limit <rate> <capacity>",
+		Short: "set all store's rate limiter",
 		Run:   removeTombStoneCommandFunc,
 	}
 }
@@ -163,12 +183,56 @@ func setStoreWeightCommandFunc(cmd *cobra.Command, args []string) {
 	})
 }
 
+func setStoreLimitCommandFunc(cmd *cobra.Command, args []string) {
+	if len(args) != 3 {
+		cmd.Println("Usage: store limit <store_id> <rate> <capacity>")
+		return
+	}
+	rate, err := strconv.ParseFloat(args[1], 64)
+	if err != nil || rate < 0 {
+		cmd.Println("rate should be a number that >= 0.")
+		return
+	}
+	capacity, err := strconv.ParseInt(args[2], 10, 64)
+	if err != nil || capacity < 0 {
+		cmd.Println("capacity should be a number that >= 0")
+		return
+	}
+	prefix := fmt.Sprintf(path.Join(storePrefix, "limit"), args[0])
+	postJSON(cmd, prefix, map[string]interface{}{
+		"rate":     rate,
+		"capacity": capacity,
+	})
+}
+
 func removeTombStoneCommandFunc(cmd *cobra.Command, args []string) {
-	prefix := fmt.Sprintf(path.Join(storePrefix, "remove-tombstone"), "")
+	prefix := fmt.Sprintf(path.Join(storesPrefix, "remove-tombstone"), "")
 	_, err := doRequest(cmd, prefix, http.MethodDelete)
 	if err != nil {
 		cmd.Printf("Failed to remove tombstone store %s \n", err)
 		return
 	}
 	cmd.Println("Success!")
+}
+
+func setAllStoreLimitCommandFunc(cmd *cobra.Command, args []string) {
+	if len(args) != 2 {
+		cmd.Println("Usage: stores limit <rate> <capacity>")
+		return
+	}
+	rate, err := strconv.ParseFloat(args[0], 64)
+	if err != nil || rate < 0 {
+		cmd.Println("rate should be a number that >= 0.")
+		return
+	}
+	capacity, err := strconv.ParseInt(args[1], 10, 64)
+	if err != nil || capacity < 0 {
+		cmd.Println("capacity should be a number that >= 0")
+		return
+	}
+	prefix := path.Join(storesPrefix, "limit")
+	postJSON(cmd, prefix, map[string]interface{}{
+		"rate":     rate,
+		"capacity": capacity,
+	})
 }

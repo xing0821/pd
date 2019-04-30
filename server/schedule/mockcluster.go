@@ -521,8 +521,6 @@ type MockSchedulerOptions struct {
 	MaxScheduleCost              int64
 	StoreMaxScheduleCost         int64
 	StoreBucketRate              float64
-	OfflineStoreMaxScheduleCost  int64
-	OfflineStoreBucketRate       float64
 	MaxSnapshotCount             uint64
 	MaxPendingPeerCount          uint64
 	MaxMergeRegionSize           uint64
@@ -608,16 +606,6 @@ func (mso *MockSchedulerOptions) GetStoreMaxScheduleCost() int64 {
 // GetStoreBucketRate mock method
 func (mso *MockSchedulerOptions) GetStoreBucketRate() float64 {
 	return mso.StoreBucketRate
-}
-
-// GetOfflineStoreMaxScheduleCost mock method
-func (mso *MockSchedulerOptions) GetOfflineStoreMaxScheduleCost() int64 {
-	return mso.OfflineStoreMaxScheduleCost
-}
-
-// GetOfflineStoreBucketRate mock method
-func (mso *MockSchedulerOptions) GetOfflineStoreBucketRate() float64 {
-	return mso.OfflineStoreBucketRate
 }
 
 // GetMaxSnapshotCount mock method

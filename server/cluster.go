@@ -436,8 +436,6 @@ func (c *RaftCluster) RemoveStore(storeID uint64) error {
 	}
 
 	newStore := store.Clone(core.SetStoreState(metapb.StoreState_Offline))
-	opController := c.coordinator.opController
-	opController.SetOfflineStoreLimit(newStore.GetID())
 
 	log.Warn("store has been offline",
 		zap.Uint64("store-id", newStore.GetID()),

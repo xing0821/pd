@@ -224,7 +224,11 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 	oc.operators[regionID] = op
 	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
-		oc.storesLimit[storeID].Take(opInfluence.GetStoreInfluence(storeID).StepCost)
+		stepCost := opInfluence.GetStoreInfluence(storeID).StepCost
+		if stepCost == 0 {
+			continue
+		}
+		oc.storesLimit[storeID].Take(stepCost)
 	}
 	oc.updateCounts(oc.operators)
 
@@ -273,6 +277,9 @@ func (oc *OperatorController) removeOperatorLocked(op *Operator) {
 	delete(oc.operators, regionID)
 	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
+		if opInfluence.GetStoreInfluence(storeID).StepCost == 0 {
+			continue
+		}
 		if oc.cluster.GetStore(storeID).IsOverloaded() {
 			oc.cluster.ResetStoreOverload(storeID)
 		}
@@ -610,9 +617,18 @@ func (oc *OperatorController) GetScheduleCost() int64 {
 	return scheduleCost
 }
 
-// SetOfflineStoreLimit is used to set the limit of a store which is in offline state.
-func (oc *OperatorController) SetOfflineStoreLimit(storeID uint64) {
+// SetAllStoresLimit is used to set limit of all stores.
+func (oc *OperatorController) SetAllStoresLimit(rate float64, capacity int64) {
 	oc.Lock()
 	defer oc.Unlock()
-	oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(oc.cluster.GetOfflineStoreBucketRate(), oc.cluster.GetOfflineStoreMaxScheduleCost())
+	for storeID := range oc.storesLimit {
+		oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(rate, capacity)
+	}
+}
+
+// SetStoreLimit is used to set the limit of a store.
+func (oc *OperatorController) SetStoreLimit(storeID uint64, rate float64, capacity int64) {
+	oc.Lock()
+	defer oc.Unlock()
+	oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(rate, capacity)
 }
