@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/juju/ratelimit"
+
 	"github.com/pingcap/errcode"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
@@ -366,6 +368,15 @@ func (h *Handler) SetAllStoresLimit(rate float64, capacity int64) error {
 	}
 	c.opController.SetAllStoresLimit(rate, capacity)
 	return nil
+}
+
+// GetAllStoresLimit is used to set limit of all stores.
+func (h *Handler) GetAllStoresLimit() (map[uint64]*ratelimit.Bucket, error) {
+	c, err := h.getCoordinator()
+	if err != nil {
+		return nil, err
+	}
+	return c.opController.GetAllStoresLimit(), nil
 }
 
 // SetStoreLimit is used to set the limit of a store.

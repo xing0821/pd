@@ -638,3 +638,17 @@ func (oc *OperatorController) SetStoreLimit(storeID uint64, rate float64, capaci
 	defer oc.Unlock()
 	oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(rate, capacity)
 }
+
+// GetAllStoresLimit is used to get limit of all stores.
+func (oc *OperatorController) GetAllStoresLimit() map[uint64]*ratelimit.Bucket {
+	oc.RLock()
+	defer oc.RUnlock()
+	ret := make(map[uint64]*ratelimit.Bucket)
+	for storeID, limit := range oc.storesLimit {
+		store := oc.cluster.GetStore(storeID)
+		if !store.IsTombstone() {
+			ret[storeID] = limit
+		}
+	}
+	return ret
+}

@@ -83,11 +83,13 @@ func NewSetStoreLimitCommand() *cobra.Command {
 // NewStoresCommand returns a store subcommand of rootCmd
 func NewStoresCommand() *cobra.Command {
 	s := &cobra.Command{
-		Use:   `stores [remove-tombstone|limit]`,
+		Use:   `stores [subcommand]`,
 		Short: "show the store status",
+		Run:   showStoresCommandFunc,
 	}
 	s.AddCommand(NewRemoveTombStoneCommand())
-	s.AddCommand(NewSetAllStoreLimitCommand())
+	s.AddCommand(NewSetStoresCommand())
+	s.AddCommand(NewShowStoresCommand())
 	return s
 }
 
@@ -100,12 +102,44 @@ func NewRemoveTombStoneCommand() *cobra.Command {
 	}
 }
 
-// NewSetAllStoreLimitCommand returns a limit subcommand of storesCmd.
-func NewSetAllStoreLimitCommand() *cobra.Command {
+// NewShowStoresCommand returns a s subcommand of storesCmd.
+func NewShowStoresCommand() *cobra.Command {
+	sc := &cobra.Command{
+		Use:   "show [limit]",
+		Short: "show stores of PD",
+		Run:   showStoresCommandFunc,
+	}
+	sc.AddCommand(NewShowAllLimitCommand())
+	return sc
+}
+
+// NewShowAllLimitCommand return a show limit subcommand of show subcommand
+func NewShowAllLimitCommand() *cobra.Command {
+	sc := &cobra.Command{
+		Use:   "limit",
+		Short: "show all stores' limiter",
+		Run:   showAllLimitCommandFunc,
+	}
+	return sc
+}
+
+// NewSetStoresCommand returns a s subcommand of storesCmd.
+func NewSetStoresCommand() *cobra.Command {
+	sc := &cobra.Command{
+		Use:   "set [limit]",
+		Short: "set stores of PD",
+		Run:   showStoresCommandFunc,
+	}
+	sc.AddCommand(NewSetAllLimitCommand())
+	return sc
+}
+
+// NewSetAllLimitCommand returns a limit subcommand of storesCmd.
+func NewSetAllLimitCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "limit <rate> <capacity>",
 		Short: "set all store's rate limiter",
-		Run:   setAllStoreLimitCommandFunc,
+		Run:   setAllLimitCommandFunc,
 	}
 }
 
@@ -125,6 +159,30 @@ func showStoreCommandFunc(cmd *cobra.Command, args []string) {
 	}
 	if flag := cmd.Flag("jq"); flag != nil && flag.Value.String() != "" {
 		printWithJQFilter(r, flag.Value.String())
+		return
+	}
+	cmd.Println(r)
+}
+
+func showStoresCommandFunc(cmd *cobra.Command, args []string) {
+	prefix := storesPrefix
+	r, err := doRequest(cmd, prefix, http.MethodGet)
+	if err != nil {
+		cmd.Printf("Failed to get store: %s\n", err)
+		return
+	}
+	if flag := cmd.Flag("jq"); flag != nil && flag.Value.String() != "" {
+		printWithJQFilter(r, flag.Value.String())
+		return
+	}
+	cmd.Println(r)
+}
+
+func showAllLimitCommandFunc(cmd *cobra.Command, args []string) {
+	prefix := path.Join(storesPrefix, "show", "limit")
+	r, err := doRequest(cmd, prefix, http.MethodGet)
+	if err != nil {
+		cmd.Printf("Failed to get all limit: %s\n", err)
 		return
 	}
 	cmd.Println(r)
@@ -215,7 +273,7 @@ func removeTombStoneCommandFunc(cmd *cobra.Command, args []string) {
 	cmd.Println("Success!")
 }
 
-func setAllStoreLimitCommandFunc(cmd *cobra.Command, args []string) {
+func setAllLimitCommandFunc(cmd *cobra.Command, args []string) {
 	if len(args) != 2 {
 		cmd.Println("Usage: stores limit <rate> <capacity>")
 		return

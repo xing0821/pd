@@ -409,6 +409,15 @@ func (h *storesHandler) SetAllLimit(w http.ResponseWriter, r *http.Request) {
 	h.rd.JSON(w, http.StatusOK, nil)
 }
 
+func (h *storesHandler) GetAllLimit(w http.ResponseWriter, r *http.Request) {
+	limit, err := h.GetAllStoresLimit()
+	if err != nil {
+		h.rd.JSON(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	h.rd.JSON(w, http.StatusOK, limit)
+}
+
 func (h *storesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cluster := h.GetRaftCluster()
 	if cluster == nil {
