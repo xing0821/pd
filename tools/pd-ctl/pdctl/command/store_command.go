@@ -105,7 +105,7 @@ func NewSetAllStoreLimitCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "limit <rate> <capacity>",
 		Short: "set all store's rate limiter",
-		Run:   removeTombStoneCommandFunc,
+		Run:   setAllStoreLimitCommandFunc,
 	}
 }
 
