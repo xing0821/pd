@@ -640,14 +640,20 @@ func (oc *OperatorController) SetStoreLimit(storeID uint64, rate float64, capaci
 }
 
 // GetAllStoresLimit is used to get limit of all stores.
-func (oc *OperatorController) GetAllStoresLimit() map[uint64]*ratelimit.Bucket {
+func (oc *OperatorController) GetAllStoresLimit() map[uint64]interface{} {
 	oc.RLock()
 	defer oc.RUnlock()
-	ret := make(map[uint64]*ratelimit.Bucket)
+	ret := make(map[uint64]interface{})
 	for storeID, limit := range oc.storesLimit {
 		store := oc.cluster.GetStore(storeID)
 		if !store.IsTombstone() {
-			ret[storeID] = limit
+			ret[storeID] = struct {
+				Rate     float64 `json:"rate"`
+				Capacity int64   `json:"capacity"`
+			}{
+				Rate:     limit.Rate(),
+				Capacity: limit.Capacity(),
+			}
 		}
 	}
 	return ret

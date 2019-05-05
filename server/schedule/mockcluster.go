@@ -501,7 +501,6 @@ const (
 	defaultReplicaScheduleLimit        = 8
 	defaultMergeScheduleLimit          = 8
 	defaultHotRegionScheduleLimit      = 2
-	defaultMaxScheduleCost             = 0
 	defaultStoreMaxScheduleCost        = 200
 	defaultStoreBucketRate             = 100
 	defaultTolerantSizeRatio           = 2.5
@@ -518,7 +517,6 @@ type MockSchedulerOptions struct {
 	ReplicaScheduleLimit         uint64
 	MergeScheduleLimit           uint64
 	HotRegionScheduleLimit       uint64
-	MaxScheduleCost              int64
 	StoreMaxScheduleCost         int64
 	StoreBucketRate              float64
 	MaxSnapshotCount             uint64
@@ -551,7 +549,6 @@ func NewMockSchedulerOptions() *MockSchedulerOptions {
 	mso.ReplicaScheduleLimit = defaultReplicaScheduleLimit
 	mso.MergeScheduleLimit = defaultMergeScheduleLimit
 	mso.HotRegionScheduleLimit = defaultHotRegionScheduleLimit
-	mso.MaxScheduleCost = defaultMaxScheduleCost
 	mso.StoreMaxScheduleCost = defaultStoreMaxScheduleCost
 	mso.StoreBucketRate = defaultStoreBucketRate
 	mso.MaxSnapshotCount = defaultMaxSnapshotCount
@@ -591,11 +588,6 @@ func (mso *MockSchedulerOptions) GetMergeScheduleLimit(name string) uint64 {
 // GetHotRegionScheduleLimit mock method
 func (mso *MockSchedulerOptions) GetHotRegionScheduleLimit(name string) uint64 {
 	return mso.HotRegionScheduleLimit
-}
-
-// GetMaxScheduleCost mock method
-func (mso *MockSchedulerOptions) GetMaxScheduleCost() int64 {
-	return mso.MaxScheduleCost
 }
 
 // GetStoreMaxScheduleCost mock method

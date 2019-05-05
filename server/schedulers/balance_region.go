@@ -203,7 +203,6 @@ func (s *balanceRegionScheduler) hasPotentialTarget(cluster schedule.Cluster, re
 	filters := []schedule.Filter{
 		schedule.NewExcludedFilter(nil, region.GetStoreIds()),
 		schedule.NewDistinctScoreFilter(cluster.GetLocationLabels(), cluster.GetRegionStores(region), source),
-		schedule.NewOverloadFilter(),
 	}
 
 	for _, store := range cluster.GetStores() {

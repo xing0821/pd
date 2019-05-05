@@ -81,4 +81,5 @@ func init() {
 	prometheus.MustRegister(filterCounter)
 	prometheus.MustRegister(operatorCounter)
 	prometheus.MustRegister(operatorDuration)
+	prometheus.MustRegister(storeLimit)
 }

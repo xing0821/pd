@@ -168,10 +168,6 @@ func (o *scheduleOption) GetHotRegionScheduleLimit(name string) uint64 {
 	return o.load().HotRegionScheduleLimit
 }
 
-func (o *scheduleOption) GetMaxScheduleCost() int64 {
-	return o.load().MaxScheduleCost
-}
-
 func (o *scheduleOption) GetStoreMaxScheduleCost() int64 {
 	return o.load().StoreMaxScheduleCost
 }

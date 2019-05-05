@@ -103,8 +103,8 @@ func (bc *BasicCluster) UnblockStore(storeID uint64) {
 }
 
 // SetStoreOverload stops balancer from selecting the store.
-func (bc *BasicCluster) SetStoreOverload(storeID uint64) error {
-	return bc.Stores.SetStoreOverload(storeID)
+func (bc *BasicCluster) SetStoreOverload(storeID uint64) {
+	bc.Stores.SetStoreOverload(storeID)
 }
 
 // ResetStoreOverload allows balancer to select the store.

@@ -332,13 +332,14 @@ func (h *storeHandler) SetLimit(w http.ResponseWriter, r *http.Request) {
 		h.rd.JSON(w, http.StatusBadRequest, "badformat rate")
 		return
 	}
-	capacity, ok := capacityVal.(int64)
-	if !ok || capacity < 0 {
-		h.rd.JSON(w, http.StatusBadRequest, "badformat capacity, should not less than rate")
+	capacity, ok := capacityVal.(float64)
+	cap := int64(capacity)
+	if !ok || cap < 0 {
+		h.rd.JSON(w, http.StatusBadRequest, "badformat capacity")
 		return
 	}
 
-	if err := h.SetStoreLimit(storeID, rate, capacity); err != nil {
+	if err := h.SetStoreLimit(storeID, rate, cap); err != nil {
 		h.rd.JSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -395,13 +396,14 @@ func (h *storesHandler) SetAllLimit(w http.ResponseWriter, r *http.Request) {
 		h.rd.JSON(w, http.StatusBadRequest, "badformat rate")
 		return
 	}
-	capacity, ok := capacityVal.(int64)
-	if !ok || capacity < 0 {
-		h.rd.JSON(w, http.StatusBadRequest, "badformat capacity, should not less than rate")
+	capacity, ok := capacityVal.(float64)
+	cap := int64(capacity)
+	if !ok || cap < 0 {
+		h.rd.JSON(w, http.StatusBadRequest, "badformat capacity")
 		return
 	}
 
-	if err := h.SetAllStoresLimit(rate, capacity); err != nil {
+	if err := h.SetAllStoresLimit(rate, cap); err != nil {
 		h.rd.JSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
