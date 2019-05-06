@@ -123,7 +123,7 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: 0,
 		RegionSize:  10,
 		RegionCount: 1,
-		StepCost:    100,
+		StepCost:    90,
 	})
 
 	TransferLeader{FromStore: 1, ToStore: 2}.Influence(opInfluence, region)
@@ -139,7 +139,7 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: 1,
 		RegionSize:  10,
 		RegionCount: 1,
-		StepCost:    100,
+		StepCost:    90,
 	})
 
 	RemovePeer{FromStore: 1}.Influence(opInfluence, region)
@@ -155,7 +155,7 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: 1,
 		RegionSize:  10,
 		RegionCount: 1,
-		StepCost:    100,
+		StepCost:    90,
 	})
 
 	MergeRegion{IsPassive: false}.Influence(opInfluence, region)
@@ -171,7 +171,7 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: 1,
 		RegionSize:  10,
 		RegionCount: 1,
-		StepCost:    100,
+		StepCost:    90,
 	})
 
 	MergeRegion{IsPassive: true}.Influence(opInfluence, region)
@@ -187,7 +187,7 @@ func (s *testOperatorSuite) TestInfluence(c *C) {
 		LeaderCount: 1,
 		RegionSize:  10,
 		RegionCount: 0,
-		StepCost:    101,
+		StepCost:    91,
 	})
 }
 

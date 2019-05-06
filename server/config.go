@@ -484,7 +484,7 @@ type ScheduleConfig struct {
 	// StoreMaxScheduleCost is the maximum of scheduling cost for each store.
 	StoreMaxScheduleCost int64 `toml:"store-max-schedule-cost,omitempty" json:"store-max-schedule-cost"`
 	// StoreBucketRate is the maximum of bucket rate for each store.
-	StoreBucketRate float64 `toml:"store-bucket-rate,omitempty" json:"store-bucket-rate"`
+	StoreBucketRate int64 `toml:"store-bucket-rate,omitempty" json:"store-bucket-rate"`
 	// TolerantSizeRatio is the ratio of buffer size for balance scheduler.
 	TolerantSizeRatio float64 `toml:"tolerant-size-ratio,omitempty" json:"tolerant-size-ratio"`
 	//
@@ -572,8 +572,8 @@ const (
 	defaultReplicaScheduleLimit   = 1024
 	defaultMergeScheduleLimit     = 8
 	defaultHotRegionScheduleLimit = 2
-	defaultStoreMaxScheduleCost   = 150
-	defaultStoreBucketRate        = 75
+	defaultStoreMaxScheduleCost   = 100
+	defaultStoreBucketRate        = 2
 	defaultTolerantSizeRatio      = 0
 	defaultLowSpaceRatio          = 0.8
 	defaultHighSpaceRatio         = 0.6
@@ -622,7 +622,7 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	if !meta.IsDefined("tolerant-size-ratio") {
 		adjustFloat64(&c.TolerantSizeRatio, defaultTolerantSizeRatio)
 	}
-	adjustFloat64(&c.StoreBucketRate, defaultStoreBucketRate)
+	adjustInt64(&c.StoreBucketRate, defaultStoreBucketRate)
 	adjustFloat64(&c.LowSpaceRatio, defaultLowSpaceRatio)
 	adjustFloat64(&c.HighSpaceRatio, defaultHighSpaceRatio)
 	adjustSchedulers(&c.Schedulers, defaultSchedulers)

@@ -41,7 +41,7 @@ const (
 	// SmallInfluence represents the influence of a operator step which may have a small influence on the store.
 	SmallInfluence = 1
 	// BigInfluence represents the influence of a operator step which may have a big influence on the store.
-	BigInfluence = 100
+	BigInfluence = 90
 )
 
 // OperatorStep describes the basic scheduling steps that can not be subdivided.

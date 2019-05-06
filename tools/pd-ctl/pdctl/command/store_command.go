@@ -226,7 +226,7 @@ func setStoreLimitCommandFunc(cmd *cobra.Command, args []string) {
 		cmd.Println("rate should be a number that >= 0.")
 		return
 	}
-	capacity, err := strconv.ParseInt(args[2], 10, 64)
+	capacity, err := strconv.ParseFloat(args[2], 64)
 	if err != nil || capacity < 0 {
 		cmd.Println("capacity should be a number that >= 0")
 		return
@@ -282,7 +282,7 @@ func setAllLimitCommandFunc(cmd *cobra.Command, args []string) {
 		cmd.Println("rate should be a number that >= 0.")
 		return
 	}
-	capacity, err := strconv.ParseInt(args[1], 10, 64)
+	capacity, err := strconv.ParseFloat(args[1], 64)
 	if err != nil || capacity < 0 {
 		cmd.Println("capacity should be a number that >= 0")
 		return

@@ -523,7 +523,7 @@ type MockSchedulerOptions struct {
 	MergeScheduleLimit           uint64
 	HotRegionScheduleLimit       uint64
 	StoreMaxScheduleCost         int64
-	StoreBucketRate              float64
+	StoreBucketRate              int64
 	MaxSnapshotCount             uint64
 	MaxPendingPeerCount          uint64
 	MaxMergeRegionSize           uint64
@@ -601,7 +601,7 @@ func (mso *MockSchedulerOptions) GetStoreMaxScheduleCost() int64 {
 }
 
 // GetStoreBucketRate mock method
-func (mso *MockSchedulerOptions) GetStoreBucketRate() float64 {
+func (mso *MockSchedulerOptions) GetStoreBucketRate() int64 {
 	return mso.StoreBucketRate
 }
 

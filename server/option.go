@@ -172,7 +172,7 @@ func (o *scheduleOption) GetStoreMaxScheduleCost() int64 {
 	return o.load().StoreMaxScheduleCost
 }
 
-func (o *scheduleOption) GetStoreBucketRate() float64 {
+func (o *scheduleOption) GetStoreBucketRate() int64 {
 	return o.load().StoreBucketRate
 }
 

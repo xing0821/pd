@@ -33,7 +33,7 @@ type Options interface {
 
 	// store limit
 	GetStoreMaxScheduleCost() int64
-	GetStoreBucketRate() float64
+	GetStoreBucketRate() int64
 
 	GetMaxSnapshotCount() uint64
 	GetMaxPendingPeerCount() uint64

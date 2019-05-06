@@ -705,7 +705,7 @@ func (c *clusterInfo) GetStoreMaxScheduleCost() int64 {
 	return c.opt.GetStoreMaxScheduleCost()
 }
 
-func (c *clusterInfo) GetStoreBucketRate() float64 {
+func (c *clusterInfo) GetStoreBucketRate() int64 {
 	return c.opt.GetStoreBucketRate()
 }
 

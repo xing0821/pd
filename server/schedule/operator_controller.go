@@ -596,7 +596,9 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
 		if oc.storesLimit[storeID] == nil {
-			oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(oc.cluster.GetStoreBucketRate(), oc.cluster.GetStoreMaxScheduleCost())
+			capacity := oc.cluster.GetStoreMaxScheduleCost()
+			rate := oc.cluster.GetStoreBucketRate()
+			oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(float64(capacity/rate), capacity)
 		}
 		stepCost := opInfluence.GetStoreInfluence(storeID).StepCost
 		if stepCost == 0 {
