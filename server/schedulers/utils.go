@@ -22,6 +22,13 @@ import (
 	"github.com/pingcap/pd/server/schedule"
 )
 
+const (
+	// MinTolerantSizeRatio is the minimum TolerantSizeRatio.
+	MinTolerantSizeRatio float64 = 5
+	// AdjustTolerantRatio is used to adjust TolerantSizeRatio according to region count.
+	AdjustTolerantRatio float64 = 0.01
+)
+
 func minUint64(a, b uint64) uint64 {
 	if a < b {
 		return a
@@ -52,13 +59,32 @@ func shouldBalance(cluster schedule.Cluster, source, target *core.StoreInfo, reg
 		regionSize = cluster.GetAverageRegionSize()
 	}
 
-	regionSize = int64(float64(regionSize) * cluster.GetTolerantSizeRatio())
+	regionSize = int64(float64(regionSize) * adjustTolerantRatio(cluster))
 	sourceDelta := opInfluence.GetStoreInfluence(source.GetID()).ResourceSize(kind) - regionSize
 	targetDelta := opInfluence.GetStoreInfluence(target.GetID()).ResourceSize(kind) + regionSize
 
 	// Make sure after move, source score is still greater than target score.
 	return source.ResourceScore(kind, cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), sourceDelta) >
 		target.ResourceScore(kind, cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), targetDelta)
+}
+
+func adjustTolerantRatio(cluster schedule.Cluster) float64 {
+	tolerantSizeRatio := cluster.GetTolerantSizeRatio()
+	if tolerantSizeRatio == 0 {
+		var maxRegionCount float64
+		stores := cluster.GetStores()
+		for _, store := range stores {
+			regionCount := float64(cluster.GetStoreRegionCount(store.GetID()))
+			if maxRegionCount < regionCount {
+				maxRegionCount = regionCount
+			}
+		}
+		tolerantSizeRatio = maxRegionCount * AdjustTolerantRatio
+		if tolerantSizeRatio < MinTolerantSizeRatio {
+			tolerantSizeRatio = MinTolerantSizeRatio
+		}
+	}
+	return tolerantSizeRatio
 }
 
 func adjustBalanceLimit(cluster schedule.Cluster, kind core.ResourceKind) uint64 {

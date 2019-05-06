@@ -573,8 +573,8 @@ const (
 	defaultMergeScheduleLimit     = 8
 	defaultHotRegionScheduleLimit = 2
 	defaultStoreMaxScheduleCost   = 150
-	defaultStoreBucketRate        = 50
-	defaultTolerantSizeRatio      = 25
+	defaultStoreBucketRate        = 75
+	defaultTolerantSizeRatio      = 0
 	defaultLowSpaceRatio          = 0.8
 	defaultHighSpaceRatio         = 0.6
 	// defaultHotRegionCacheHitsThreshold is the low hit number threshold of the

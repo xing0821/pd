@@ -48,16 +48,21 @@ func (mc *MockCluster) allocID() (uint64, error) {
 	return mc.Alloc()
 }
 
-// ScanRegions scan region with start key, until number greater than limit.
+// ScanRegions scans region with start key, until number greater than limit.
 func (mc *MockCluster) ScanRegions(startKey []byte, limit int) []*core.RegionInfo {
 	return mc.Regions.ScanRange(startKey, limit)
 }
 
-// LoadRegion put region info without leader
+// LoadRegion puts region info without leader
 func (mc *MockCluster) LoadRegion(regionID uint64, followerIds ...uint64) {
 	//  regions load from etcd will have no leader
 	r := mc.newMockRegionInfo(regionID, 0, followerIds...).Clone(core.WithLeader(nil))
 	mc.PutRegion(r)
+}
+
+// GetStoreRegionCount gets region count with a given store.
+func (mc *MockCluster) GetStoreRegionCount(storeID uint64) int {
+	return mc.Regions.GetStoreRegionCount(storeID)
 }
 
 // IsRegionHot checks if the region is hot

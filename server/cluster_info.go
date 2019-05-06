@@ -395,7 +395,7 @@ func (c *clusterInfo) dropRegion(id uint64) {
 	}
 }
 
-func (c *clusterInfo) getStoreRegionCount(storeID uint64) int {
+func (c *clusterInfo) GetStoreRegionCount(storeID uint64) int {
 	c.RLock()
 	defer c.RUnlock()
 	return c.core.Regions.GetStoreRegionCount(storeID)
