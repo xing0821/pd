@@ -35,13 +35,8 @@ const (
 	// RegionOperatorWaitTime is the duration that when a region operator lives
 	// longer than it, the operator will be considered timeout.
 	RegionOperatorWaitTime = 10 * time.Minute
-)
-
-const (
-	// SmallInfluence represents the influence of a operator step which may have a small influence on the store.
-	SmallInfluence = 1
-	// BigInfluence represents the influence of a operator step which may have a big influence on the store.
-	BigInfluence = 90
+	// RegionInfluence represents the influence of a operator step.
+	RegionInfluence = 1
 )
 
 // OperatorStep describes the basic scheduling steps that can not be subdivided.
@@ -103,7 +98,7 @@ func (ap AddPeer) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
 
 	to.RegionSize += region.GetApproximateSize()
 	to.RegionCount++
-	to.StepCost += BigInfluence
+	to.StepCost += RegionInfluence
 }
 
 // AddLearner is an OperatorStep that adds a region learner peer.
@@ -133,7 +128,7 @@ func (al AddLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo)
 
 	to.RegionSize += region.GetApproximateSize()
 	to.RegionCount++
-	to.StepCost += BigInfluence
+	to.StepCost += RegionInfluence
 }
 
 // PromoteLearner is an OperatorStep that promotes a region learner peer to normal voter.
@@ -157,10 +152,7 @@ func (pl PromoteLearner) IsFinish(region *core.RegionInfo) bool {
 }
 
 // Influence calculates the store difference that current step make
-func (pl PromoteLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo) {
-	to := opInfluence.GetStoreInfluence(pl.ToStore)
-	to.StepCost += SmallInfluence
-}
+func (pl PromoteLearner) Influence(opInfluence OpInfluence, region *core.RegionInfo) {}
 
 // RemovePeer is an OperatorStep that removes a region peer.
 type RemovePeer struct {
@@ -182,7 +174,6 @@ func (rp RemovePeer) Influence(opInfluence OpInfluence, region *core.RegionInfo)
 
 	from.RegionSize -= region.GetApproximateSize()
 	from.RegionCount--
-	from.StepCost += SmallInfluence
 }
 
 // MergeRegion is an OperatorStep that merge two regions.
@@ -216,7 +207,6 @@ func (mr MergeRegion) Influence(opInfluence OpInfluence, region *core.RegionInfo
 		for _, p := range region.GetPeers() {
 			o := opInfluence.GetStoreInfluence(p.GetStoreId())
 			o.RegionCount--
-			o.StepCost += SmallInfluence
 			if region.GetLeader().GetId() == p.GetId() {
 				o.LeaderCount--
 			}
@@ -244,7 +234,6 @@ func (sr SplitRegion) Influence(opInfluence OpInfluence, region *core.RegionInfo
 	for _, p := range region.GetPeers() {
 		inf := opInfluence.GetStoreInfluence(p.GetStoreId())
 		inf.RegionCount++
-		inf.StepCost += SmallInfluence
 		if region.GetLeader().GetId() == p.GetId() {
 			inf.LeaderCount++
 		}

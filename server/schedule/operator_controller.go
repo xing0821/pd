@@ -596,9 +596,8 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
 		if oc.storesLimit[storeID] == nil {
-			capacity := oc.cluster.GetStoreMaxScheduleCost()
-			rate := oc.cluster.GetStoreBucketRate()
-			oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(float64(capacity/rate), capacity)
+			rate := oc.cluster.GetStoreBalanceRate()
+			oc.newStoreLimit(storeID, rate)
 		}
 		stepCost := opInfluence.GetStoreInfluence(storeID).StepCost
 		if stepCost == 0 {
@@ -614,30 +613,30 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 	return false
 }
 
-// GetScheduleCost gets the cost of running operators.
-func (oc *OperatorController) GetScheduleCost() int64 {
-	oc.RLock()
-	defer oc.RUnlock()
-	var scheduleCost int64
-	for _, limit := range oc.storesLimit {
-		scheduleCost += limit.Capacity() - limit.Available()
-	}
-	return scheduleCost
-}
-
 // SetAllStoresLimit is used to set limit of all stores.
-func (oc *OperatorController) SetAllStoresLimit(rate float64, capacity int64) {
+func (oc *OperatorController) SetAllStoresLimit(rate float64) {
 	oc.Lock()
 	defer oc.Unlock()
 	for storeID := range oc.storesLimit {
-		oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(rate, capacity)
+		oc.newStoreLimit(storeID, rate)
 	}
 }
 
 // SetStoreLimit is used to set the limit of a store.
-func (oc *OperatorController) SetStoreLimit(storeID uint64, rate float64, capacity int64) {
+func (oc *OperatorController) SetStoreLimit(storeID uint64, rate float64) {
 	oc.Lock()
 	defer oc.Unlock()
+	oc.newStoreLimit(storeID, rate)
+}
+
+// newStoreLimit is used to create the limit of a store.
+func (oc *OperatorController) newStoreLimit(storeID uint64, rate float64) {
+	var capacity int64
+	if rate > float64(RegionInfluence) {
+		capacity = int64(rate)
+	} else {
+		capacity = RegionInfluence
+	}
 	oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(rate, capacity)
 }
 
@@ -650,11 +649,9 @@ func (oc *OperatorController) GetAllStoresLimit() map[uint64]interface{} {
 		store := oc.cluster.GetStore(storeID)
 		if !store.IsTombstone() {
 			ret[storeID] = struct {
-				Rate     float64 `json:"rate"`
-				Capacity int64   `json:"capacity"`
+				Rate float64 `json:"rate"`
 			}{
-				Rate:     limit.Rate(),
-				Capacity: limit.Capacity(),
+				Rate: limit.Rate(),
 			}
 		}
 	}

@@ -22,8 +22,11 @@ import (
 	"github.com/pingcap/pd/server/schedule"
 )
 
-// AdjustTolerantRatio is used to adjust TolerantSizeRatio according to region count.
-const AdjustTolerantRatio float64 = 0.01
+const (
+	// adjustRatio is used to adjust TolerantSizeRatio according to region count.
+	adjustRatio          float64 = 0.005
+	minTolerantSizeRatio float64 = 1.0
+)
 
 func minUint64(a, b uint64) uint64 {
 	if a < b {
@@ -75,7 +78,10 @@ func adjustTolerantRatio(cluster schedule.Cluster) float64 {
 				maxRegionCount = regionCount
 			}
 		}
-		tolerantSizeRatio = maxRegionCount * AdjustTolerantRatio
+		tolerantSizeRatio = maxRegionCount * adjustRatio
+		if tolerantSizeRatio < minTolerantSizeRatio {
+			tolerantSizeRatio = minTolerantSizeRatio
+		}
 	}
 	return tolerantSizeRatio
 }

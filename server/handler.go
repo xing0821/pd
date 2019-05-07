@@ -359,12 +359,12 @@ func (h *Handler) GetHistory(start time.Time) ([]schedule.OperatorHistory, error
 }
 
 // SetAllStoresLimit is used to set limit of all stores.
-func (h *Handler) SetAllStoresLimit(rate float64, capacity int64) error {
+func (h *Handler) SetAllStoresLimit(rate float64) error {
 	c, err := h.getCoordinator()
 	if err != nil {
 		return err
 	}
-	c.opController.SetAllStoresLimit(rate, capacity)
+	c.opController.SetAllStoresLimit(rate)
 	return nil
 }
 
@@ -378,12 +378,12 @@ func (h *Handler) GetAllStoresLimit() (map[uint64]interface{}, error) {
 }
 
 // SetStoreLimit is used to set the limit of a store.
-func (h *Handler) SetStoreLimit(storeID uint64, rate float64, capacity int64) error {
+func (h *Handler) SetStoreLimit(storeID uint64, rate float64) error {
 	c, err := h.getCoordinator()
 	if err != nil {
 		return err
 	}
-	c.opController.SetStoreLimit(storeID, rate, capacity)
+	c.opController.SetStoreLimit(storeID, rate)
 	return nil
 }
 

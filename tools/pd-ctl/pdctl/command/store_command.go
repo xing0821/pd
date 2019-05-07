@@ -74,7 +74,7 @@ func NewSetStoreWeightCommand() *cobra.Command {
 // NewSetStoreLimitCommand returns a limit subcommand of storeCmd.
 func NewSetStoreLimitCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "limit <store_id> <rate> <capacity>",
+		Use:   "limit <store_id> <rate>",
 		Short: "set a store's rate limit",
 		Run:   setStoreLimitCommandFunc,
 	}
@@ -136,7 +136,7 @@ func NewSetStoresCommand() *cobra.Command {
 // NewSetAllLimitCommand returns a set limit subcommand of set command.
 func NewSetAllLimitCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "limit <rate> <capacity>",
+		Use:   "limit <rate>",
 		Short: "set all store's rate limit",
 		Run:   setAllLimitCommandFunc,
 	}
@@ -217,8 +217,8 @@ func setStoreWeightCommandFunc(cmd *cobra.Command, args []string) {
 }
 
 func setStoreLimitCommandFunc(cmd *cobra.Command, args []string) {
-	if len(args) != 3 {
-		cmd.Println("Usage: store limit <store_id> <rate> <capacity>")
+	if len(args) != 2 {
+		cmd.Println("Usage: store limit <store_id> <rate>")
 		return
 	}
 	rate, err := strconv.ParseFloat(args[1], 64)
@@ -226,15 +226,9 @@ func setStoreLimitCommandFunc(cmd *cobra.Command, args []string) {
 		cmd.Println("rate should be a number that >= 0.")
 		return
 	}
-	capacity, err := strconv.ParseFloat(args[2], 64)
-	if err != nil || capacity < 0 {
-		cmd.Println("capacity should be a number that >= 0")
-		return
-	}
 	prefix := fmt.Sprintf(path.Join(storePrefix, "limit"), args[0])
 	postJSON(cmd, prefix, map[string]interface{}{
-		"rate":     rate,
-		"capacity": capacity,
+		"rate": rate,
 	})
 }
 
@@ -273,8 +267,8 @@ func removeTombStoneCommandFunc(cmd *cobra.Command, args []string) {
 }
 
 func setAllLimitCommandFunc(cmd *cobra.Command, args []string) {
-	if len(args) != 2 {
-		cmd.Println("Usage: stores limit <rate> <capacity>")
+	if len(args) != 1 {
+		cmd.Println("Usage: stores set limit <rate>")
 		return
 	}
 	rate, err := strconv.ParseFloat(args[0], 64)
@@ -282,14 +276,8 @@ func setAllLimitCommandFunc(cmd *cobra.Command, args []string) {
 		cmd.Println("rate should be a number that >= 0.")
 		return
 	}
-	capacity, err := strconv.ParseFloat(args[1], 64)
-	if err != nil || capacity < 0 {
-		cmd.Println("capacity should be a number that >= 0")
-		return
-	}
 	prefix := path.Join(storesPrefix, "limit")
 	postJSON(cmd, prefix, map[string]interface{}{
-		"rate":     rate,
-		"capacity": capacity,
+		"rate": rate,
 	})
 }

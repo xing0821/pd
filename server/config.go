@@ -481,10 +481,8 @@ type ScheduleConfig struct {
 	// If the number of times a region hits the hot cache is greater than this
 	// threshold, it is considered a hot region.
 	HotRegionCacheHitsThreshold uint64 `toml:"hot-region-cache-hits-threshold,omitempty" json:"hot-region-cache-hits-threshold"`
-	// StoreMaxScheduleCost is the maximum of scheduling cost for each store.
-	StoreMaxScheduleCost int64 `toml:"store-max-schedule-cost,omitempty" json:"store-max-schedule-cost"`
-	// StoreBucketRate is the maximum of bucket rate for each store.
-	StoreBucketRate int64 `toml:"store-bucket-rate,omitempty" json:"store-bucket-rate"`
+	// StoreBalanceRate is the maximum of balance rate for each store.
+	StoreBalanceRate float64 `toml:"store-balance-rate,omitempty" json:"store-balance-rate"`
 	// TolerantSizeRatio is the ratio of buffer size for balance scheduler.
 	TolerantSizeRatio float64 `toml:"tolerant-size-ratio,omitempty" json:"tolerant-size-ratio"`
 	//
@@ -542,8 +540,7 @@ func (c *ScheduleConfig) clone() *ScheduleConfig {
 		MergeScheduleLimit:           c.MergeScheduleLimit,
 		HotRegionScheduleLimit:       c.HotRegionScheduleLimit,
 		HotRegionCacheHitsThreshold:  c.HotRegionCacheHitsThreshold,
-		StoreMaxScheduleCost:         c.StoreMaxScheduleCost,
-		StoreBucketRate:              c.StoreBucketRate,
+		StoreBalanceRate:             c.StoreBalanceRate,
 		TolerantSizeRatio:            c.TolerantSizeRatio,
 		LowSpaceRatio:                c.LowSpaceRatio,
 		HighSpaceRatio:               c.HighSpaceRatio,
@@ -572,8 +569,7 @@ const (
 	defaultReplicaScheduleLimit   = 1024
 	defaultMergeScheduleLimit     = 8
 	defaultHotRegionScheduleLimit = 2
-	defaultStoreMaxScheduleCost   = 100
-	defaultStoreBucketRate        = 2
+	defaultStoreBalanceRate       = 1
 	defaultTolerantSizeRatio      = 0
 	defaultLowSpaceRatio          = 0.8
 	defaultHighSpaceRatio         = 0.6
@@ -616,13 +612,10 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	if !meta.IsDefined("hot-region-cache-hits-threshold") {
 		adjustUint64(&c.HotRegionCacheHitsThreshold, defaultHotRegionCacheHitsThreshold)
 	}
-	if !meta.IsDefined("store-max-schedule-cost") {
-		adjustInt64(&c.StoreMaxScheduleCost, defaultStoreMaxScheduleCost)
-	}
 	if !meta.IsDefined("tolerant-size-ratio") {
 		adjustFloat64(&c.TolerantSizeRatio, defaultTolerantSizeRatio)
 	}
-	adjustInt64(&c.StoreBucketRate, defaultStoreBucketRate)
+	adjustFloat64(&c.StoreBalanceRate, defaultStoreBalanceRate)
 	adjustFloat64(&c.LowSpaceRatio, defaultLowSpaceRatio)
 	adjustFloat64(&c.HighSpaceRatio, defaultHighSpaceRatio)
 	adjustSchedulers(&c.Schedulers, defaultSchedulers)
