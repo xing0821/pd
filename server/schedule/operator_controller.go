@@ -230,7 +230,7 @@ func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 		if stepCost == 0 {
 			continue
 		}
-		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "take").Set(float64(stepCost))
+		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "take").Set(float64(stepCost) / float64(RegionInfluence))
 		oc.storesLimit[storeID].Take(stepCost)
 	}
 	oc.updateCounts(oc.operators)
@@ -591,7 +591,7 @@ func (o *OperatorRecords) Put(op *Operator, status pdpb.OperatorStatus) {
 	o.ttl.Put(id, record)
 }
 
-// exceedStoreLimit return true if store exceeds the cost limit after adding the operator. Otherwise, return false.
+// exceedStoreLimit returns true if the store exceeds the cost limit after adding the operator. Otherwise, returns false.
 func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
@@ -604,7 +604,7 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 			continue
 		}
 		available := oc.storesLimit[storeID].Available()
-		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(available))
+		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(available) / float64(RegionInfluence))
 		if available < stepCost {
 			oc.cluster.SetStoreOverload(storeID)
 			return true
@@ -632,6 +632,7 @@ func (oc *OperatorController) SetStoreLimit(storeID uint64, rate float64) {
 // newStoreLimit is used to create the limit of a store.
 func (oc *OperatorController) newStoreLimit(storeID uint64, rate float64) {
 	var capacity int64
+	rate = rate * float64(RegionInfluence)
 	if rate > float64(RegionInfluence) {
 		capacity = int64(rate)
 	} else {
@@ -651,7 +652,7 @@ func (oc *OperatorController) GetAllStoresLimit() map[uint64]interface{} {
 			ret[storeID] = struct {
 				Rate float64 `json:"rate"`
 			}{
-				Rate: limit.Rate(),
+				Rate: limit.Rate() / float64(RegionInfluence),
 			}
 		}
 	}

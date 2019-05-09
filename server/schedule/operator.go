@@ -36,7 +36,7 @@ const (
 	// longer than it, the operator will be considered timeout.
 	RegionOperatorWaitTime = 10 * time.Minute
 	// RegionInfluence represents the influence of a operator step.
-	RegionInfluence = 1
+	RegionInfluence int64 = 1000
 )
 
 // OperatorStep describes the basic scheduling steps that can not be subdivided.
