@@ -283,7 +283,8 @@ func (oc *OperatorController) removeOperatorLocked(op *Operator) {
 		if opInfluence.GetStoreInfluence(storeID).StepCost == 0 {
 			continue
 		}
-		if oc.cluster.GetStore(storeID).IsOverloaded() {
+		if oc.cluster.GetStore(storeID).IsOverloaded() &&
+			oc.storesLimit[storeID].Available() >= RegionInfluence {
 			oc.cluster.ResetStoreOverload(storeID)
 		}
 	}
