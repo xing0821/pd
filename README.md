@@ -8,7 +8,7 @@
 
 PD is the abbreviation for Placement Driver. It is used to manage and schedule the [TiKV](https://github.com/tikv/tikv) cluster. 
 
-PD supports distribution and fault-tolerance by embedding [etcd](https://github.com/etcd-io/etcd). 
+PD supports distribution and fault-tolerance by embedding [etcd](https://github.com/etcd-io/etcd).
 
 ## Build
 
@@ -19,11 +19,11 @@ PD supports distribution and fault-tolerance by embedding [etcd](https://github.
 
 ### Command flags
 
-See [configuration](https://github.com/pingcap/docs/blob/master/op-guide/configuration.md#placement-driver-pd).
+See [configuration](https://github.com/pingcap/docs/blob/master/dev/reference/configuration/pd-server/configuration.md).
 
 ### Single Node with default ports
 
-You can run `pd-server` directly on your local machine, if you want to connect to PD from outside, 
+You can run `pd-server` directly on your local machine, if you want to connect to PD from outside,
 you can let PD listen on the host IP.
 
 ```bash
@@ -75,20 +75,20 @@ X-Etcd-Cluster-Id: 33dc747581249309
 
 You can use the following command to build a PD image directly:
 
-```
+```sh
 docker build -t pingcap/pd .
 ```
 
 Or you can also use following command to get PD from Docker hub:
 
-```
+```sh
 docker pull pingcap/pd
 ```
 
-Run a single node with Docker: 
+Run a single node with Docker:
 
 ```bash
-# Set correct HostIP here. 
+# Set correct HostIP here.
 export HostIP="192.168.199.105"
 
 docker run -d -p 2379:2379 -p 2380:2380 --name pd pingcap/pd \
@@ -103,9 +103,9 @@ docker run -d -p 2379:2379 -p 2380:2380 --name pd pingcap/pd \
 
 ### Cluster
 
-PD is a component in TiDB project, you must run it with TiDB and TiKV together, see 
-[TiDB-Ansible](https://github.com/pingcap/docs/blob/master/op-guide/ansible-deployment.md) to learn 
-how to set up the cluster and run them.
+PD is a component in TiDB project, you must run it with TiDB and TiKV together, see
+[TiDB-Ansible](https://github.com/pingcap/docs/blob/master/dev/how-to/deploy/orchestrated/ansible.md)
+to learn how to set up the cluster and run them.
 
-You can also use [Docker](https://github.com/pingcap/docs/blob/master/op-guide/docker-deployment.md) to 
-run the cluster.
+You can also use [Docker](https://github.com/pingcap/docs/blob/master/dev/how-to/deploy/orchestrated/docker.md)
+to run the cluster.
