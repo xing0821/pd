@@ -369,7 +369,7 @@ func (h *Handler) SetAllStoresLimit(rate float64) error {
 }
 
 // GetAllStoresLimit is used to get limit of all stores.
-func (h *Handler) GetAllStoresLimit() (map[uint64]interface{}, error) {
+func (h *Handler) GetAllStoresLimit() (map[uint64]float64, error) {
 	c, err := h.getCoordinator()
 	if err != nil {
 		return nil, err

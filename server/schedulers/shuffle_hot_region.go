@@ -110,7 +110,6 @@ func (s *shuffleHotRegionScheduler) randomSchedule(cluster schedule.Cluster, sto
 			schedule.StoreStateFilter{MoveRegion: true},
 			schedule.NewExcludedFilter(srcRegion.GetStoreIds(), srcRegion.GetStoreIds()),
 			schedule.NewDistinctScoreFilter(cluster.GetLocationLabels(), cluster.GetRegionStores(srcRegion), srcStore),
-			schedule.NewOverloadFilter(),
 		}
 		stores := cluster.GetStores()
 		destStoreIDs := make([]uint64, 0, len(stores))

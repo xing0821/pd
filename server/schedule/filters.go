@@ -425,6 +425,11 @@ func (f StoreStateFilter) filterMoveRegion(opt Options, store *core.StoreInfo) b
 	if store.GetIsBusy() {
 		return true
 	}
+
+	if store.IsOverloaded() {
+		return true
+	}
+
 	if opt.GetMaxPendingPeerCount() > 0 && store.GetPendingPeerCount() > int(opt.GetMaxPendingPeerCount()) {
 		return true
 	}

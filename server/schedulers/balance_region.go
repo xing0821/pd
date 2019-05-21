@@ -47,7 +47,6 @@ func newBalanceRegionScheduler(opController *schedule.OperatorController) schedu
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{MoveRegion: true},
 		schedule.NewCacheFilter(taintStores),
-		schedule.NewOverloadFilter(),
 	}
 	base := newBaseScheduler(opController)
 	s := &balanceRegionScheduler{

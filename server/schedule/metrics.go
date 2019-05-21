@@ -65,6 +65,7 @@ var (
 			Help:      "Bucketed histogram of processing time (s) of finished operator.",
 			Buckets:   prometheus.ExponentialBuckets(0.01, 2, 16),
 		}, []string{"type"})
+
 	storeLimit = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "pd",

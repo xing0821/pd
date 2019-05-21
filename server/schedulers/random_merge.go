@@ -36,7 +36,6 @@ type randomMergeScheduler struct {
 func newRandomMergeScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{MoveRegion: true},
-		schedule.NewOverloadFilter(),
 	}
 	base := newBaseScheduler(opController)
 	return &randomMergeScheduler{

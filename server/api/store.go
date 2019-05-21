@@ -395,7 +395,14 @@ func (h *storesHandler) GetAllLimit(w http.ResponseWriter, r *http.Request) {
 		h.rd.JSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	h.rd.JSON(w, http.StatusOK, limit)
+	ret := make(map[uint64]interface{})
+	for s, l := range limit {
+		ret[s] = struct {
+			Rate float64 `json:"rate"`
+		}{Rate: l}
+	}
+
+	h.rd.JSON(w, http.StatusOK, ret)
 }
 
 func (h *storesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

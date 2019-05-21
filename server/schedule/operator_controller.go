@@ -61,7 +61,7 @@ type OperatorController struct {
 	counts    map[OperatorKind]uint64
 	opRecords *OperatorRecords
 	// TODO: Need to clean up the unused store ID.
-	storesLimit map[uint64]*ratelimit.Bucket
+	storesLimit     map[uint64]*ratelimit.Bucket
 	opNotifierQueue operatorQueue
 }
 
@@ -632,29 +632,23 @@ func (oc *OperatorController) SetStoreLimit(storeID uint64, rate float64) {
 
 // newStoreLimit is used to create the limit of a store.
 func (oc *OperatorController) newStoreLimit(storeID uint64, rate float64) {
-	var capacity int64
-	rate = rate * float64(RegionInfluence)
-	if rate > float64(RegionInfluence) {
-		capacity = int64(rate)
-	} else {
-		capacity = RegionInfluence
+	capacity := RegionInfluence
+	if rate > 1 {
+		capacity = int64(rate * float64(RegionInfluence))
 	}
+	rate *= float64(RegionInfluence)
 	oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(rate, capacity)
 }
 
 // GetAllStoresLimit is used to get limit of all stores.
-func (oc *OperatorController) GetAllStoresLimit() map[uint64]interface{} {
+func (oc *OperatorController) GetAllStoresLimit() map[uint64]float64 {
 	oc.RLock()
 	defer oc.RUnlock()
-	ret := make(map[uint64]interface{})
+	ret := make(map[uint64]float64)
 	for storeID, limit := range oc.storesLimit {
 		store := oc.cluster.GetStore(storeID)
 		if !store.IsTombstone() {
-			ret[storeID] = struct {
-				Rate float64 `json:"rate"`
-			}{
-				Rate: limit.Rate() / float64(RegionInfluence),
-			}
+			ret[storeID] = limit.Rate() / float64(RegionInfluence)
 		}
 	}
 	return ret

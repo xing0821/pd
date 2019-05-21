@@ -37,7 +37,6 @@ type shuffleRegionScheduler struct {
 func newShuffleRegionScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{MoveRegion: true},
-		schedule.NewOverloadFilter(),
 	}
 	base := newBaseScheduler(opController)
 	return &shuffleRegionScheduler{
