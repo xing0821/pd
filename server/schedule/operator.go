@@ -36,8 +36,6 @@ const (
 	// longer than it, the operator will be considered timeout.
 	RegionOperatorWaitTime = 10 * time.Minute
 	// RegionInfluence represents the influence of a operator step, which is used by ratelimit.
-	// And due to the return type of `Available()` in ratelimit is int64,
-	// we need to enlarge this variable to make the metrics work. 1000 is enough for now.
 	RegionInfluence int64 = 1000
 )
 
