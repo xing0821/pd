@@ -76,7 +76,6 @@ func NewRegionScatterer(cluster Cluster, classifier namespace.Classifier) *Regio
 		classifier: classifier,
 		filters: []Filter{
 			StoreStateFilter{},
-			NewOverloadFilter(),
 		},
 		selected: newSelectedStores(),
 	}
