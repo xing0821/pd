@@ -581,7 +581,7 @@ const (
 	defaultHighSpaceRatio         = 0.6
 	// defaultHotRegionCacheHitsThreshold is the low hit number threshold of the
 	// hot region.
-	defautHotRegionCacheHitsThreshold  = 3
+	defaultHotRegionCacheHitsThreshold = 3
 	defaultSchedulerMaxWaitingOperator = 3
 )
 
