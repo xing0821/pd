@@ -18,6 +18,7 @@ import (
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/pd/server"
+	"github.com/pingcap/pd/server/api/helper"
 )
 
 var _ = Suite(&testRedirectorSuite{})
@@ -28,7 +29,7 @@ type testRedirectorSuite struct {
 }
 
 func (s *testRedirectorSuite) SetUpSuite(c *C) {
-	_, s.servers, s.cleanup = mustNewCluster(c, 3)
+	_, s.servers, s.cleanup = helper.MustNewCluster(c, 3)
 }
 
 func (s *testRedirectorSuite) TearDownSuite(c *C) {
@@ -36,7 +37,7 @@ func (s *testRedirectorSuite) TearDownSuite(c *C) {
 }
 
 func (s *testRedirectorSuite) TestRedirect(c *C) {
-	leader := mustWaitLeader(c, s.servers)
+	leader := helper.MustWaitLeader(c, s.servers)
 	header := mustRequestSuccess(c, leader)
 	for _, svr := range s.servers {
 		if svr != leader {
@@ -48,7 +49,7 @@ func (s *testRedirectorSuite) TestRedirect(c *C) {
 func (s *testRedirectorSuite) TestNotLeader(c *C) {
 	// Find a follower.
 	var follower *server.Server
-	leader := mustWaitLeader(c, s.servers)
+	leader := helper.MustWaitLeader(c, s.servers)
 	for _, svr := range s.servers {
 		if svr != leader {
 			follower = svr
@@ -56,9 +57,9 @@ func (s *testRedirectorSuite) TestNotLeader(c *C) {
 		}
 	}
 
-	client := newHTTPClient()
+	client := helper.NewHTTPClient()
 
-	addr := follower.GetAddr() + apiPrefix + "/api/v1/version"
+	addr := follower.GetAddr() + "/pd/api/v1/version"
 	// Request to follower without redirectorHeader is OK.
 	request, err := http.NewRequest("GET", addr, nil)
 	c.Assert(err, IsNil)
@@ -75,7 +76,7 @@ func (s *testRedirectorSuite) TestNotLeader(c *C) {
 }
 
 func mustRequest(c *C, s *server.Server) *http.Response {
-	resp, err := http.Get(s.GetAddr() + apiPrefix + "/api/v1/version")
+	resp, err := http.Get(s.GetAddr() + "/pd/api/v1/version")
 	c.Assert(err, IsNil)
 	return resp
 }

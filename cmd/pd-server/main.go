@@ -25,11 +25,11 @@ import (
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/pkg/metricutil"
 	"github.com/pingcap/pd/server"
-	"github.com/pingcap/pd/server/api"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
 	// Register schedulers.
+	"github.com/pingcap/pd/server/api"
 	_ "github.com/pingcap/pd/server/schedulers"
 	// Register namespace classifiers.
 	_ "github.com/pingcap/pd/table"

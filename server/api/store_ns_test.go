@@ -21,6 +21,8 @@ import (
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/server"
+	"github.com/pingcap/pd/server/api/helper"
+	"github.com/pingcap/pd/server/api/util"
 	_ "github.com/pingcap/pd/table"
 )
 
@@ -28,7 +30,7 @@ var _ = Suite(&testStoreNsSuite{})
 
 type testStoreNsSuite struct {
 	svr       *server.Server
-	cleanup   cleanUpFunc
+	cleanup   func()
 	urlPrefix string
 	stores    []*metapb.Store
 }
@@ -68,17 +70,17 @@ func (s *testStoreNsSuite) SetUpSuite(c *C) {
 	s.svr = svr
 	s.cleanup = func() {
 		svr.Close()
-		cleanServer(cfg)
+		helper.CleanServer(cfg)
 	}
 
-	mustWaitLeader(c, []*server.Server{s.svr})
+	helper.MustWaitLeader(c, []*server.Server{s.svr})
 
 	addr := s.svr.GetAddr()
-	s.urlPrefix = fmt.Sprintf("%s%s/api/v1", addr, apiPrefix)
+	s.urlPrefix = fmt.Sprintf("%s/pd/api/v1", addr)
 
-	mustBootstrapCluster(c, s.svr)
+	helper.MustBootstrapCluster(c, s.svr)
 	for _, store := range s.stores {
-		mustPutStore(c, s.svr, store.Id, store.State, nil)
+		helper.MustPutStore(c, s.svr, store.Id, store.State, nil)
 	}
 }
 
@@ -90,6 +92,6 @@ func (s *testStoreNsSuite) TestCreateNamespace(c *C) {
 	body := map[string]string{"namespace": "test"}
 	b, err := json.Marshal(body)
 	c.Assert(err, IsNil)
-	err = postJSON(fmt.Sprintf("%s/classifier/table/namespaces", s.urlPrefix), b)
+	err = util.PostJSON(fmt.Sprintf("%s/classifier/table/namespaces", s.urlPrefix), b)
 	c.Assert(err, IsNil)
 }
