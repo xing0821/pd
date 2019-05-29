@@ -53,8 +53,8 @@ type HeartbeatStreams interface {
 	SendMsg(region *core.RegionInfo, msg *pdpb.RegionHeartbeatResponse)
 }
 
-// SchedulerStatus is used to limit the count of operators created by a specific scheduler.
-type SchedulerStatus struct {
+// WaitingOperatorStatus is used to limit the count of each kind of operators.
+type WaitingOperatorStatus struct {
 	current uint64
 	max     uint64
 }
@@ -71,7 +71,7 @@ type OperatorController struct {
 	// TODO: Need to clean up the unused store ID.
 	storesLimit     map[uint64]*ratelimit.Bucket
 	wop             WaitingOperator
-	swo             map[string]*SchedulerStatus
+	wopStatus       map[string]*WaitingOperatorStatus
 	opNotifierQueue operatorQueue
 }
 
@@ -85,8 +85,8 @@ func NewOperatorController(cluster Cluster, hbStreams HeartbeatStreams) *Operato
 		counts:          make(map[OperatorKind]uint64),
 		opRecords:       NewOperatorRecords(),
 		storesLimit:     make(map[uint64]*ratelimit.Bucket),
-		wop:             NewRandQueue(),
-		swo:             make(map[string]*SchedulerStatus),
+		wop:             NewRandBuckets(),
+		wopStatus:       make(map[string]*WaitingOperatorStatus),
 		opNotifierQueue: make(operatorQueue, 0),
 	}
 }
@@ -181,7 +181,7 @@ func (oc *OperatorController) PushOperators() {
 func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
 	oc.Lock()
 
-	if oc.exceedStoreLimit(ops...) || !oc.checkAddOperator(ops...) {
+	if !oc.checkAddOperator(ops...) {
 		for _, op := range ops {
 			operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
 			oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
@@ -192,18 +192,18 @@ func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
 
 	op := ops[0]
 	desc := op.Desc()
-	if oc.swo[desc] == nil {
-		oc.swo[desc] = &SchedulerStatus{0, oc.cluster.GetSchedulerMaxWaitingOperator()}
+	if oc.wopStatus[desc] == nil {
+		oc.wopStatus[desc] = &WaitingOperatorStatus{0, oc.cluster.GetSchedulerMaxWaitingOperator()}
 	}
-	if oc.swo[desc].current >= oc.swo[desc].max {
+	if oc.wopStatus[desc].current >= oc.wopStatus[desc].max {
 		oc.Unlock()
 		return false
 	}
 	oc.wop.PutOperator(op)
-	oc.swo[desc].current++
-	if desc == "merge-region" {
+	if len(ops) > 1 {
 		oc.wop.PutOperator(ops[1])
 	}
+	oc.wopStatus[desc].current++
 	oc.Unlock()
 	oc.PromoteOperator()
 	return true
@@ -224,13 +224,16 @@ func (oc *OperatorController) PromoteOperator() {
 		if op.Desc() == "merge-region" {
 			ops = append(ops, oc.wop.GetOperator())
 		}
-		for _, op := range ops {
-			if !oc.checkAddOperator(op) {
+
+		if oc.exceedStoreLimit(ops...) || !oc.checkAddOperator(ops...) {
+			for _, op := range ops {
 				operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
-				continue
+				oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
 			}
+			oc.wopStatus[op.Desc()].current--
+			continue
 		}
-		oc.swo[op.Desc()].current--
+		oc.wopStatus[op.Desc()].current--
 		break
 	}
 
@@ -264,7 +267,7 @@ func (oc *OperatorController) checkAddOperator(ops ...*Operator) bool {
 }
 
 func isHigherPriorityOperator(new, old *Operator) bool {
-	return new.GetPriorityLevel() < old.GetPriorityLevel()
+	return new.GetPriorityLevel() > old.GetPriorityLevel()
 }
 
 func (oc *OperatorController) promoteOperatorLocked(op *Operator) bool {

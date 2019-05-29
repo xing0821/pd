@@ -23,44 +23,28 @@ var _ = Suite(&testWaitingOperatorSuite{})
 
 type testWaitingOperatorSuite struct{}
 
-func (s *testWaitingOperatorSuite) TestPriorityQueue(c *C) {
-	pq := NewPriorityQueue()
-	addOperators(pq)
-	res := []uint64{2, 1, 3, 4}
-	for i := 0; i < 4; i++ {
-		c.Assert(pq.GetOperator().regionID, Equals, res[i])
-	}
-}
-
-func (s *testWaitingOperatorSuite) TestRandQueue(c *C) {
-	rq := NewRandQueue()
-	addOperators(rq)
-	for i := 0; i < 4; i++ {
-		c.Assert(rq.GetOperator(), NotNil)
-	}
-}
-
 func (s *testWaitingOperatorSuite) TestRandBuckets(c *C) {
 	rb := NewRandBuckets()
 	addOperators(rb)
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 3; i++ {
 		c.Assert(rb.GetOperator(), NotNil)
 	}
+	c.Assert(rb.GetOperator(), IsNil)
 }
 
 func addOperators(wop WaitingOperator) {
-	for i := 1; i <= 4; i++ {
-		var op *Operator
-		if i == 2 {
-			op = NewOperator("testOperator1", uint64(i), &metapb.RegionEpoch{}, OpRegion, []OperatorStep{
-				RemovePeer{FromStore: uint64(i)},
-			}...)
-			op.SetPriorityLevel(core.HighPriority)
-		} else {
-			op = NewOperator("testOperator2", uint64(i), &metapb.RegionEpoch{}, OpRegion, []OperatorStep{
-				RemovePeer{FromStore: uint64(i)},
-			}...)
-		}
-		wop.PutOperator(op)
-	}
+	op := NewOperator("testOperatorNormal", uint64(1), &metapb.RegionEpoch{}, OpRegion, []OperatorStep{
+		RemovePeer{FromStore: uint64(1)},
+	}...)
+	wop.PutOperator(op)
+	op = NewOperator("testOperatorHigh", uint64(2), &metapb.RegionEpoch{}, OpRegion, []OperatorStep{
+		RemovePeer{FromStore: uint64(2)},
+	}...)
+	op.SetPriorityLevel(core.HighPriority)
+	wop.PutOperator(op)
+	op = NewOperator("testOperatorLow", uint64(3), &metapb.RegionEpoch{}, OpRegion, []OperatorStep{
+		RemovePeer{FromStore: uint64(3)},
+	}...)
+	op.SetPriorityLevel(core.LowPriority)
+	wop.PutOperator(op)
 }
