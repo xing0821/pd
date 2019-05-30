@@ -574,6 +574,9 @@ func CreateMoveRegionOperator(desc string, cluster Cluster, region *core.RegionI
 	var steps []OperatorStep
 	// Add missing peers.
 	for id := range storeIDs {
+		if region.GetStorePeer(id) != nil {
+			continue
+		}
 		peer, err := cluster.AllocPeer(id)
 		if err != nil {
 			return nil, err
@@ -592,6 +595,12 @@ func CreateMoveRegionOperator(desc string, cluster Cluster, region *core.RegionI
 	for _, peer := range region.GetPeers() {
 		if _, ok := storeIDs[peer.GetStoreId()]; ok {
 			continue
+		}
+		if region.GetLeader().GetId() == peer.GetId() {
+			for targetID := range storeIDs {
+				steps = append(steps, TransferLeader{FromStore: peer.GetStoreId(), ToStore: targetID})
+				break
+			}
 		}
 		steps = append(steps, RemovePeer{FromStore: peer.GetStoreId()})
 	}

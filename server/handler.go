@@ -421,13 +421,14 @@ func (h *Handler) AddTransferRegionOperator(regionID uint64, storeIDs map[uint64
 		return ErrRegionNotFound(regionID)
 	}
 
+	if len(storeIDs) > c.cluster.GetMaxReplicas() {
+		return errors.Errorf("the number of stores is %v, beyond the max replicas", len(storeIDs))
+	}
+
 	for id := range storeIDs {
 		store := c.cluster.GetStore(id)
 		if store == nil {
 			return core.NewStoreNotFoundErr(id)
-		}
-		if region.GetStorePeer(id) != nil {
-			continue
 		}
 		if store.IsTombstone() {
 			return errcode.Op("operator.add").AddTo(core.StoreTombstonedErr{StoreID: id})
