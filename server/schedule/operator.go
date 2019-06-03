@@ -625,6 +625,7 @@ func CreateMoveLeaderOperator(desc string, cluster Cluster, region *core.RegionI
 		return nil, err
 	}
 	st := CreateAddPeerSteps(newStore, peerID, cluster)
+	st = append(st, TransferLeader{ToStore: newStore, FromStore: oldStore})
 	steps = append(st, steps...)
 	return NewOperator(desc, region.GetID(), region.GetRegionEpoch(), removeKind|kind|OpLeader|OpRegion, steps...), nil
 }
