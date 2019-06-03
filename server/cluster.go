@@ -65,6 +65,7 @@ type RaftCluster struct {
 // ClusterStatus saves some state information
 type ClusterStatus struct {
 	RaftBootstrapTime time.Time `json:"raft_bootstrap_time,omitempty"`
+	IsInitialized     bool      `json:"is_initialized"`
 }
 
 func newRaftCluster(s *Server, clusterID uint64) *RaftCluster {
@@ -78,18 +79,43 @@ func newRaftCluster(s *Server, clusterID uint64) *RaftCluster {
 }
 
 func (c *RaftCluster) loadClusterStatus() (*ClusterStatus, error) {
-	data, err := c.s.kv.Load((c.s.kv.ClusterStatePath("raft_bootstrap_time")))
+	bootstrapTime, err := c.loadBootstrapTime()
 	if err != nil {
 		return nil, err
 	}
-	if len(data) == 0 {
-		return &ClusterStatus{}, nil
+	var isInitialized bool
+	if bootstrapTime != zeroTime {
+		isInitialized = c.isInitialized()
 	}
-	t, err := parseTimestamp([]byte(data))
+	return &ClusterStatus{
+		RaftBootstrapTime: bootstrapTime,
+		IsInitialized:     isInitialized,
+	}, nil
+}
+
+func (c *RaftCluster) isInitialized() bool {
+	if c.cachedCluster.getRegionCount() > 1 {
+		return true
+	}
+	region := c.cachedCluster.searchRegion(nil)
+	return region != nil &&
+		len(region.GetVoters()) >= int(c.s.GetReplicationConfig().MaxReplicas) &&
+		len(region.GetPendingPeers()) == 0
+}
+
+// loadBootstrapTime loads the saved bootstrap time from etcd. It returns zero
+// value of time.Time when there is error or the cluster is not bootstrapped
+// yet.
+func (c *RaftCluster) loadBootstrapTime() (time.Time, error) {
+	var t time.Time
+	data, err := c.s.kv.Load(c.s.kv.ClusterStatePath("raft_bootstrap_time"))
 	if err != nil {
-		return nil, err
+		return t, err
 	}
-	return &ClusterStatus{RaftBootstrapTime: t}, nil
+	if data == "" {
+		return t, nil
+	}
+	return parseTimestamp([]byte(data))
 }
 
 func (c *RaftCluster) start() error {
@@ -402,11 +428,27 @@ func (c *RaftCluster) putStore(store *metapb.Store) error {
 		)
 	}
 	// Check location labels.
-	for _, k := range c.cachedCluster.GetLocationLabels() {
+	keysSet := make(map[string]struct{})
+	for _, k := range cluster.GetLocationLabels() {
+		keysSet[k] = struct{}{}
 		if v := s.GetLabelValue(k); len(v) == 0 {
-			log.Warn("missing location label",
+			log.Warn("label configuration is incorrect",
 				zap.Stringer("store", s.GetMeta()),
 				zap.String("label-key", k))
+			if cluster.GetStrictlyMatchLabel() {
+				return errors.Errorf("label configuration is incorrect, need to specify the key: %s ", k)
+			}
+		}
+	}
+	for _, label := range s.GetLabels() {
+		key := label.GetKey()
+		if _, ok := keysSet[key]; !ok {
+			log.Warn("not found the key match with the store label",
+				zap.Stringer("store", s.GetMeta()),
+				zap.String("label-key", key))
+			if cluster.GetStrictlyMatchLabel() {
+				return errors.Errorf("key matching the label was not found in the PD, store label key: %s ", key)
+			}
 		}
 	}
 	return cluster.putStore(s)

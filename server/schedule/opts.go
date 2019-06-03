@@ -19,10 +19,6 @@ import (
 	"github.com/pingcap/kvproto/pkg/metapb"
 )
 
-// Simulating is an option to overpass the impact of accelerated time. Should
-// only turned on by the simulator.
-var Simulating bool
-
 // Options for schedulers.
 type Options interface {
 	GetLeaderScheduleLimit() uint64
@@ -43,6 +39,7 @@ type Options interface {
 
 	GetMaxReplicas() int
 	GetLocationLabels() []string
+	GetStrictlyMatchLabel() bool
 
 	GetHotRegionCacheHitsThreshold() int
 	GetTolerantSizeRatio() float64
