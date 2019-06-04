@@ -509,8 +509,8 @@ func CreateAddPeerOperator(desc string, cluster Cluster, region *core.RegionInfo
 
 // CreateAddLearnerOperator creates an operator that adds a new learner.
 func CreateAddLearnerOperator(desc string, cluster Cluster, region *core.RegionInfo, peerID uint64, toStoreID uint64, kind OperatorKind) *Operator {
-	steps := []OperatorStep{AddLearner{ToStore: toStoreID, PeerID: peerID}}
-	return NewOperator(desc, region.GetID(), region.GetRegionEpoch(), kind|OpRegion, steps...)
+	step := AddLearner{ToStore: toStoreID, PeerID: peerID}
+	return NewOperator(desc, region.GetID(), region.GetRegionEpoch(), kind|OpRegion, step)
 }
 
 // CreatePromoteLearnerOperator creates an operator that promotes a learner.
@@ -565,8 +565,8 @@ func CreateAddLightPeerSteps(newStore uint64, peerID uint64, cluster Cluster) []
 
 // CreateTransferLeaderOperator creates an operator that transfers the leader from a source store to a target store.
 func CreateTransferLeaderOperator(desc string, region *core.RegionInfo, sourceStoreID uint64, targetStoreID uint64, kind OperatorKind) *Operator {
-	steps := TransferLeader{FromStore: sourceStoreID, ToStore: targetStoreID}
-	return NewOperator(desc, region.GetID(), region.GetRegionEpoch(), kind|OpLeader, steps)
+	step := TransferLeader{FromStore: sourceStoreID, ToStore: targetStoreID}
+	return NewOperator(desc, region.GetID(), region.GetRegionEpoch(), kind|OpLeader, step)
 }
 
 // CreateMoveRegionOperator creates an operator that moves a region to specified stores.
