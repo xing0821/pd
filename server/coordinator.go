@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pingcap/pd/server/statistics"
+
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server/core"
@@ -256,11 +258,11 @@ func (c *coordinator) stop() {
 // Hack to retrieve info from scheduler.
 // TODO: remove it.
 type hasHotStatus interface {
-	GetHotReadStatus() *core.StoreHotRegionInfos
-	GetHotWriteStatus() *core.StoreHotRegionInfos
+	GetHotReadStatus() *statistics.StoreHotRegionInfos
+	GetHotWriteStatus() *statistics.StoreHotRegionInfos
 }
 
-func (c *coordinator) getHotWriteRegions() *core.StoreHotRegionInfos {
+func (c *coordinator) getHotWriteRegions() *statistics.StoreHotRegionInfos {
 	c.RLock()
 	defer c.RUnlock()
 	s, ok := c.schedulers[hotRegionScheduleName]
@@ -273,7 +275,7 @@ func (c *coordinator) getHotWriteRegions() *core.StoreHotRegionInfos {
 	return nil
 }
 
-func (c *coordinator) getHotReadRegions() *core.StoreHotRegionInfos {
+func (c *coordinator) getHotReadRegions() *statistics.StoreHotRegionInfos {
 	c.RLock()
 	defer c.RUnlock()
 	s, ok := c.schedulers[hotRegionScheduleName]

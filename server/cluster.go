@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pingcap/pd/server/statistics"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/pingcap/errcode"
 	"github.com/pingcap/failpoint"
@@ -326,10 +328,17 @@ func (c *RaftCluster) GetStoreRegions(storeID uint64) []*core.RegionInfo {
 }
 
 // GetRegionStats returns region statistics from cluster.
-func (c *RaftCluster) GetRegionStats(startKey, endKey []byte) *core.RegionStats {
+func (c *RaftCluster) GetRegionStats(startKey, endKey []byte) *statistics.RegionStats {
 	c.RLock()
 	defer c.RUnlock()
 	return c.cachedCluster.getRegionStats(startKey, endKey)
+}
+
+// GetStoresStats returns stores' statistics from cluster.
+func (c *RaftCluster) GetStoresStats() *statistics.StoresStats {
+	c.Lock()
+	defer c.Unlock()
+	return c.cachedCluster.storesStats
 }
 
 // DropCacheRegion removes a region from the cache.
@@ -652,7 +661,7 @@ func (c *RaftCluster) collectMetrics() {
 	cluster := c.cachedCluster
 	statsMap := newStoreStatisticsMap(c.cachedCluster.opt, c.GetNamespaceClassifier())
 	for _, s := range cluster.GetStores() {
-		statsMap.Observe(s)
+		statsMap.Observe(s, cluster.storesStats)
 	}
 	statsMap.Collect()
 

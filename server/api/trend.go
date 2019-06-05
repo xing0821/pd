@@ -18,9 +18,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pingcap/pd/server/statistics"
+
 	"github.com/pingcap/pd/pkg/typeutil"
 	"github.com/pingcap/pd/server"
-	"github.com/pingcap/pd/server/core"
 	"github.com/unrolled/render"
 )
 
@@ -106,7 +107,7 @@ func (h *trendHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *trendHandler) getTrendStores() ([]trendStore, error) {
-	var readStats, writeStats core.StoreHotRegionsStat
+	var readStats, writeStats statistics.StoreHotRegionsStat
 	if hotRead := h.GetHotReadRegions(); hotRead != nil {
 		readStats = hotRead.AsLeader
 	}
@@ -140,7 +141,7 @@ func (h *trendHandler) getTrendStores() ([]trendStore, error) {
 	return trendStores, nil
 }
 
-func (h *trendHandler) getStoreFlow(stats core.StoreHotRegionsStat, storeID uint64) (storeFlow uint64, regionFlows []uint64) {
+func (h *trendHandler) getStoreFlow(stats statistics.StoreHotRegionsStat, storeID uint64) (storeFlow uint64, regionFlows []uint64) {
 	if stats == nil {
 		return
 	}
