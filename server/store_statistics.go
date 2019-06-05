@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/pingcap/pd/server/statistics"
+
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
