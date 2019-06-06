@@ -18,16 +18,16 @@ import (
 	"time"
 )
 
-// weight is used to represent the weight of different priorities of operators.
-var weight = []float64{1.0, 4.0, 9.0}
+// PriorityWeight is used to represent the weight of different priorities of operators.
+var PriorityWeight = []float64{1.0, 4.0, 9.0}
 
-// WaitingOperator is an interface of waiting operator.
+// WaitingOperator is an interface of waiting operators.
 type WaitingOperator interface {
 	PutOperator(op *Operator)
-	GetOperator() *Operator
+	GetOperator() []*Operator
 }
 
-// Bucket is used to maintain the operators created by a specific scheduler
+// Bucket is used to maintain the operators created by a specific scheduler.
 type Bucket struct {
 	weight float64
 	ops    []*Operator
@@ -39,12 +39,12 @@ type RandBuckets struct {
 	buckets     []*Bucket
 }
 
-// NewRandBuckets create a random buckets.
+// NewRandBuckets creates a random buckets.
 func NewRandBuckets() *RandBuckets {
 	var buckets []*Bucket
-	for i := 0; i < len(weight); i++ {
+	for i := 0; i < len(PriorityWeight); i++ {
 		buckets = append(buckets, &Bucket{
-			weight: weight[i],
+			weight: PriorityWeight[i],
 		})
 	}
 	return &RandBuckets{buckets: buckets}
@@ -61,11 +61,10 @@ func (b *RandBuckets) PutOperator(op *Operator) {
 }
 
 // GetOperator gets an operator from the random buckets.
-func (b *RandBuckets) GetOperator() *Operator {
+func (b *RandBuckets) GetOperator() []*Operator {
 	if b.totalWeight == 0 {
 		return nil
 	}
-	rand.Seed(time.Now().UnixNano())
 	r := rand.Float64()
 	var sum float64
 	for _, bucket := range b.buckets {
@@ -77,11 +76,34 @@ func (b *RandBuckets) GetOperator() *Operator {
 			if len(bucket.ops) == 1 {
 				b.totalWeight -= bucket.weight
 			}
-			res := bucket.ops[0]
-			bucket.ops = bucket.ops[1:]
+			var res []*Operator
+			res = append(res, bucket.ops[0])
+			// Merge operation has two operators, and thus it should be handled specifically.
+			if bucket.ops[0].Desc() == "merge-region" {
+				res = append(res, bucket.ops[1])
+				bucket.ops = bucket.ops[2:]
+			} else {
+				bucket.ops = bucket.ops[1:]
+			}
 			return res
 		}
 		sum += proportion
 	}
 	return nil
+}
+
+// WaitingOperatorStatus is used to limit the count of each kind of operators.
+type WaitingOperatorStatus struct {
+	ops map[string]uint64
+}
+
+// NewWaitingOperatorStatus creates a new WaitingOperatorStatus.
+func NewWaitingOperatorStatus() *WaitingOperatorStatus {
+	return &WaitingOperatorStatus{
+		make(map[string]uint64),
+	}
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }

@@ -53,12 +53,6 @@ type HeartbeatStreams interface {
 	SendMsg(region *core.RegionInfo, msg *pdpb.RegionHeartbeatResponse)
 }
 
-// WaitingOperatorStatus is used to limit the count of each kind of operators.
-type WaitingOperatorStatus struct {
-	current uint64
-	max     uint64
-}
-
 // OperatorController is used to limit the speed of scheduling.
 type OperatorController struct {
 	sync.RWMutex
@@ -71,7 +65,7 @@ type OperatorController struct {
 	// TODO: Need to clean up the unused store ID.
 	storesLimit     map[uint64]*ratelimit.Bucket
 	wop             WaitingOperator
-	wopStatus       map[string]*WaitingOperatorStatus
+	wopStatus       *WaitingOperatorStatus
 	opNotifierQueue operatorQueue
 }
 
@@ -86,7 +80,7 @@ func NewOperatorController(cluster Cluster, hbStreams HeartbeatStreams) *Operato
 		opRecords:       NewOperatorRecords(),
 		storesLimit:     make(map[uint64]*ratelimit.Bucket),
 		wop:             NewRandBuckets(),
-		wopStatus:       make(map[string]*WaitingOperatorStatus),
+		wopStatus:       NewWaitingOperatorStatus(),
 		opNotifierQueue: make(operatorQueue, 0),
 	}
 }
@@ -104,7 +98,7 @@ func (oc *OperatorController) Dispatch(region *core.RegionInfo, source string) {
 		if op.IsFinish() {
 			log.Info("operator finish", zap.Uint64("region-id", region.GetID()), zap.Reflect("operator", op))
 			operatorCounter.WithLabelValues(op.Desc(), "finish").Inc()
-			operatorDuration.WithLabelValues(op.Desc()).Observe(op.ElapsedTime().Seconds())
+			operatorDuration.WithLabelValues(op.Desc()).Observe(op.RunningTime().Seconds())
 			oc.pushHistory(op)
 			oc.opRecords.Put(op, pdpb.OperatorStatus_SUCCESS)
 			oc.RemoveOperator(op)
@@ -192,18 +186,16 @@ func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
 
 	op := ops[0]
 	desc := op.Desc()
-	if oc.wopStatus[desc] == nil {
-		oc.wopStatus[desc] = &WaitingOperatorStatus{0, oc.cluster.GetSchedulerMaxWaitingOperator()}
-	}
-	if oc.wopStatus[desc].current >= oc.wopStatus[desc].max {
+	if oc.wopStatus.ops[desc] >= oc.cluster.GetSchedulerMaxWaitingOperator() {
 		oc.Unlock()
 		return false
 	}
 	oc.wop.PutOperator(op)
+	// This step is especially for the merge operation.
 	if len(ops) > 1 {
 		oc.wop.PutOperator(ops[1])
 	}
-	oc.wopStatus[desc].current++
+	oc.wopStatus.ops[desc]++
 	oc.Unlock()
 	oc.PromoteOperator()
 	return true
@@ -215,14 +207,9 @@ func (oc *OperatorController) PromoteOperator() {
 	defer oc.Unlock()
 	var ops []*Operator
 	for {
-		ops = ops[:0]
-		op := oc.wop.GetOperator()
-		if op == nil {
+		ops = oc.wop.GetOperator()
+		if ops == nil {
 			return
-		}
-		ops = append(ops, op)
-		if op.Desc() == "merge-region" {
-			ops = append(ops, oc.wop.GetOperator())
 		}
 
 		if oc.exceedStoreLimit(ops...) || !oc.checkAddOperator(ops...) {
@@ -230,10 +217,10 @@ func (oc *OperatorController) PromoteOperator() {
 				operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
 				oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
 			}
-			oc.wopStatus[op.Desc()].current--
+			oc.wopStatus.ops[ops[0].Desc()]--
 			continue
 		}
-		oc.wopStatus[op.Desc()].current--
+		oc.wopStatus.ops[ops[0].Desc()]--
 		break
 	}
 
@@ -285,13 +272,16 @@ func (oc *OperatorController) promoteOperatorLocked(op *Operator) bool {
 	}
 
 	oc.operators[regionID] = op
+	op.promoteTime = time.Now()
+	operatorCounter.WithLabelValues(op.Desc(), "promote").Inc()
+	operatorWaitDuration.WithLabelValues(op.Desc()).Observe(op.ElapsedTime().Seconds())
 	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
 		stepCost := opInfluence.GetStoreInfluence(storeID).StepCost
 		if stepCost == 0 {
 			continue
 		}
-		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "take").Set(float64(stepCost) / float64(RegionInfluence))
+		storeLimitGauge.WithLabelValues(strconv.FormatUint(storeID, 10), "take").Set(float64(stepCost) / float64(RegionInfluence))
 		oc.storesLimit[storeID].Take(stepCost)
 	}
 	oc.updateCounts(oc.operators)
@@ -684,7 +674,7 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 		}
 
 		available := oc.getOrCreateStoreLimit(storeID).Available()
-		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(available) / float64(RegionInfluence))
+		storeLimitGauge.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(available) / float64(RegionInfluence))
 		if available < stepCost {
 			return true
 		}

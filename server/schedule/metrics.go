@@ -58,7 +58,16 @@ var (
 			Buckets:   prometheus.ExponentialBuckets(0.01, 2, 16),
 		}, []string{"type"})
 
-	storeLimit = prometheus.NewGaugeVec(
+	operatorWaitDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "pd",
+			Subsystem: "schedule",
+			Name:      "waiting_operators_duration_seconds",
+			Help:      "Bucketed histogram of waiting time (s) of operator for being promoted.",
+			Buckets:   prometheus.ExponentialBuckets(0.01, 2, 16),
+		}, []string{"type"})
+
+	storeLimitGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "pd",
 			Subsystem: "schedule",
@@ -73,5 +82,6 @@ func init() {
 	prometheus.MustRegister(filterCounter)
 	prometheus.MustRegister(operatorCounter)
 	prometheus.MustRegister(operatorDuration)
-	prometheus.MustRegister(storeLimit)
+	prometheus.MustRegister(operatorWaitDuration)
+	prometheus.MustRegister(storeLimitGauge)
 }
