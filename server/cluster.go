@@ -19,8 +19,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pingcap/pd/server/statistics"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/pingcap/errcode"
 	"github.com/pingcap/failpoint"
@@ -31,6 +29,7 @@ import (
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
 	syncer "github.com/pingcap/pd/server/region_syncer"
+	"github.com/pingcap/pd/server/statistics"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -336,8 +335,8 @@ func (c *RaftCluster) GetRegionStats(startKey, endKey []byte) *statistics.Region
 
 // GetStoresStats returns stores' statistics from cluster.
 func (c *RaftCluster) GetStoresStats() *statistics.StoresStats {
-	c.Lock()
-	defer c.Unlock()
+	c.RLock()
+	defer c.RUnlock()
 	return c.cachedCluster.storesStats
 }
 
