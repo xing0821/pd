@@ -19,8 +19,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pingcap/pd/server/statistics"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/pingcap/errcode"
 	"github.com/pingcap/failpoint"
