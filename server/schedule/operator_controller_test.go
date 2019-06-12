@@ -81,7 +81,7 @@ func (t *testOperatorControllerSuite) TestOperatorStatus(c *C) {
 	c.Assert(oc.GetOperatorStatus(1).Status, Equals, pdpb.OperatorStatus_RUNNING)
 	c.Assert(oc.GetOperatorStatus(2).Status, Equals, pdpb.OperatorStatus_RUNNING)
 	op1.promoteTime = time.Now().Add(-10 * time.Minute)
-	region2 = tc.ApplyOperatorStep(region2, op2)
+	region2 = ApplyOperatorStep(region2, op2)
 	tc.PutRegion(region2)
 	oc.Dispatch(region1, "test")
 	oc.Dispatch(region2, "test")
