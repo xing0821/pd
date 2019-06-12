@@ -102,12 +102,12 @@ func (oc *OperatorController) Dispatch(region *core.RegionInfo, source string) {
 			oc.pushHistory(op)
 			oc.opRecords.Put(op, pdpb.OperatorStatus_SUCCESS)
 			oc.RemoveOperator(op)
-			oc.PromoteOperator()
+			oc.PromoteWaitingOperator()
 		} else if timeout {
 			log.Info("operator timeout", zap.Uint64("region-id", region.GetID()), zap.Reflect("operator", op))
 			oc.RemoveTimeoutOperator(op)
 			oc.opRecords.Put(op, pdpb.OperatorStatus_TIMEOUT)
-			oc.PromoteOperator()
+			oc.PromoteWaitingOperator()
 		}
 	}
 }
@@ -171,8 +171,8 @@ func (oc *OperatorController) PushOperators() {
 	}
 }
 
-// AddOperator adds operators to the running operators.
-func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
+// AddWaitingOperator adds operators to waiting operators.
+func (oc *OperatorController) AddWaitingOperator(ops ...*Operator) bool {
 	oc.Lock()
 
 	if !oc.checkAddOperator(ops...) {
@@ -197,12 +197,30 @@ func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
 	}
 	oc.wopStatus.ops[desc]++
 	oc.Unlock()
-	oc.PromoteOperator()
+	oc.PromoteWaitingOperator()
 	return true
 }
 
-// PromoteOperator promotes operators from waiting operators.
-func (oc *OperatorController) PromoteOperator() {
+// AddOperator adds operators to the running operators.
+func (oc *OperatorController) AddOperator(ops ...*Operator) bool {
+	oc.Lock()
+	defer oc.Unlock()
+
+	if oc.exceedStoreLimit(ops...) || !oc.checkAddOperator(ops...) {
+		for _, op := range ops {
+			operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
+			oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
+		}
+		return false
+	}
+	for _, op := range ops {
+		oc.addOperatorLocked(op)
+	}
+	return true
+}
+
+// PromoteWaitingOperator promotes operators from waiting operators.
+func (oc *OperatorController) PromoteWaitingOperator() {
 	oc.Lock()
 	defer oc.Unlock()
 	var ops []*Operator
@@ -225,7 +243,7 @@ func (oc *OperatorController) PromoteOperator() {
 	}
 
 	for _, op := range ops {
-		oc.promoteOperatorLocked(op)
+		oc.addOperatorLocked(op)
 	}
 }
 
@@ -257,7 +275,7 @@ func isHigherPriorityOperator(new, old *Operator) bool {
 	return new.GetPriorityLevel() > old.GetPriorityLevel()
 }
 
-func (oc *OperatorController) promoteOperatorLocked(op *Operator) bool {
+func (oc *OperatorController) addOperatorLocked(op *Operator) bool {
 	regionID := op.RegionID()
 
 	log.Info("add operator", zap.Uint64("region-id", regionID), zap.Reflect("operator", op))
@@ -272,8 +290,8 @@ func (oc *OperatorController) promoteOperatorLocked(op *Operator) bool {
 	}
 
 	oc.operators[regionID] = op
-	op.promoteTime = time.Now()
-	operatorCounter.WithLabelValues(op.Desc(), "promote").Inc()
+	op.startTime = time.Now()
+	operatorCounter.WithLabelValues(op.Desc(), "start").Inc()
 	operatorWaitDuration.WithLabelValues(op.Desc()).Observe(op.ElapsedTime().Seconds())
 	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
