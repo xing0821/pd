@@ -278,16 +278,6 @@ func (oc *OperatorController) GetOperatorStatus(id uint64) *OperatorWithStatus {
 func (oc *OperatorController) removeOperatorLocked(op *Operator) {
 	regionID := op.RegionID()
 	delete(oc.operators, regionID)
-	opInfluence := NewTotalOpInfluence([]*Operator{op}, oc.cluster)
-	for storeID := range opInfluence.storesInfluence {
-		if opInfluence.GetStoreInfluence(storeID).StepCost == 0 {
-			continue
-		}
-		if oc.cluster.GetStore(storeID).IsOverloaded() &&
-			oc.storesLimit[storeID].Available() >= RegionInfluence {
-			oc.cluster.ResetStoreOverload(storeID)
-		}
-	}
 	oc.updateCounts(oc.operators)
 	operatorCounter.WithLabelValues(op.Desc(), "remove").Inc()
 }
@@ -638,7 +628,9 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 		available := oc.storesLimit[storeID].Available()
 		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(available) / float64(RegionInfluence))
 		if available < stepCost {
-			oc.cluster.SetStoreOverload(storeID)
+			oc.cluster.AttachOverloadStatus(storeID, func() bool {
+				return oc.storesLimit[storeID].Available() < RegionInfluence
+			})
 			return true
 		}
 	}
