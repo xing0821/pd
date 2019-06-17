@@ -14,15 +14,10 @@
 package statistics
 
 import (
-	"fmt"
-	"strconv"
 	"sync"
-	"time"
 
-	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pingcap/pd/server/core"
-	"github.com/pingcap/pd/server/namespace"
 )
 
 // StoresStats is a cache hold hot regions.
@@ -188,28 +183,4 @@ func (r *RollingStoreStats) GetKeysReadRate() float64 {
 	r.RLock()
 	defer r.RUnlock()
 	return r.keysReadRate.Median()
-}
-
-const (
-	unknown   = "unknown"
-	labelType = "label"
-)
-
-// ScheduleOptions is an interface to access configurations.
-type ScheduleOptions interface {
-	GetLocationLabels() []string
-	GetMaxStoreDownTime() time.Duration
-	GetLowSpaceRatio() float64
-	GetHighSpaceRatio() float64
-	GetTolerantSizeRatio() float64
-	GetLeaderScheduleLimit(name string) uint64
-	GetRegionScheduleLimit(name string) uint64
-	GetReplicaScheduleLimit(name string) uint64
-	GetMergeScheduleLimit(name string) uint64
-	GetMaxReplicas(name string) int
-	IsRaftLearnerEnabled() bool
-	IsMakeUpReplicaEnabled() bool
-	IsRemoveExtraReplicaEnabled() bool
-	IsRemoveDownReplicaEnabled() bool
-	IsReplaceOfflineReplicaEnabled() bool
 }
