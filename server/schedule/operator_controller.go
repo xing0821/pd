@@ -617,24 +617,25 @@ func (o *OperatorRecords) Put(op *Operator, status pdpb.OperatorStatus) {
 func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
-		if oc.storesLimit[storeID] == nil {
-			rate := oc.cluster.GetStoreBalanceRate()
-			oc.newStoreLimit(storeID, rate)
-		}
-		stepCost := opInfluence.GetStoreInfluence(storeID).StepCost
+		id := storeID
+		stepCost := opInfluence.GetStoreInfluence(id).StepCost
 		if stepCost == 0 {
 			continue
 		}
-		available := oc.storesLimit[storeID].Available()
-		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(available) / float64(RegionInfluence))
+
+		if oc.storesLimit[id] == nil {
+			rate := oc.cluster.GetStoreBalanceRate()
+			oc.newStoreLimit(id, rate)
+			oc.cluster.AttachOverloadStatus(id, func() bool {
+				oc.RLock()
+				defer oc.RUnlock()
+				return oc.storesLimit[id].Available() < RegionInfluence
+			})
+		}
+
+		available := oc.storesLimit[id].Available()
+		storeLimit.WithLabelValues(strconv.FormatUint(id, 10), "available").Set(float64(available) / float64(RegionInfluence))
 		if available < stepCost {
-			if !oc.cluster.GetStore(storeID).IsAttached() {
-				oc.cluster.AttachOverloadStatus(storeID, func() bool {
-					oc.RLock()
-					defer oc.RUnlock()
-					return oc.storesLimit[storeID].Available() < RegionInfluence
-				})
-			}
 			return true
 		}
 	}

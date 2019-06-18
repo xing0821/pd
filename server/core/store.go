@@ -93,11 +93,6 @@ func (s *StoreInfo) IsOverloaded() bool {
 	return s.overloaded()
 }
 
-// IsAttached returns if the store is attached with the overloaded status.
-func (s *StoreInfo) IsAttached() bool {
-	return s.overloaded != nil
-}
-
 // IsUp checks if the store's state is Up.
 func (s *StoreInfo) IsUp() bool {
 	return s.GetState() == metapb.StoreState_Up

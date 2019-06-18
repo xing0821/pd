@@ -783,9 +783,6 @@ func (s *testOperatorControllerSuite) TestStoreOverloaded(c *C) {
 	op1 := lb.Schedule(tc)[0]
 	c.Assert(op1, NotNil)
 	c.Assert(oc.AddOperator(op1), IsTrue)
-	op2 := lb.Schedule(tc)[0]
-	c.Assert(op2, NotNil)
-	c.Assert(oc.AddOperator(op2), IsFalse)
 	for i := 0; i < 10; i++ {
 		c.Assert(lb.Schedule(tc), IsNil)
 	}
