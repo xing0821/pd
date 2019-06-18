@@ -629,6 +629,8 @@ func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(available) / float64(RegionInfluence))
 		if available < stepCost {
 			oc.cluster.AttachOverloadStatus(storeID, func() bool {
+				oc.RLock()
+				defer oc.RUnlock()
 				return oc.storesLimit[storeID].Available() < RegionInfluence
 			})
 			return true
