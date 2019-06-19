@@ -617,24 +617,13 @@ func (o *OperatorRecords) Put(op *Operator, status pdpb.OperatorStatus) {
 func (oc *OperatorController) exceedStoreLimit(ops ...*Operator) bool {
 	opInfluence := NewTotalOpInfluence(ops, oc.cluster)
 	for storeID := range opInfluence.storesInfluence {
-		id := storeID
-		stepCost := opInfluence.GetStoreInfluence(id).StepCost
+		stepCost := opInfluence.GetStoreInfluence(storeID).StepCost
 		if stepCost == 0 {
 			continue
 		}
 
-		if oc.storesLimit[id] == nil {
-			rate := oc.cluster.GetStoreBalanceRate()
-			oc.newStoreLimit(id, rate)
-			oc.cluster.AttachOverloadStatus(id, func() bool {
-				oc.RLock()
-				defer oc.RUnlock()
-				return oc.storesLimit[id].Available() < RegionInfluence
-			})
-		}
-
-		available := oc.storesLimit[id].Available()
-		storeLimit.WithLabelValues(strconv.FormatUint(id, 10), "available").Set(float64(available) / float64(RegionInfluence))
+		available := oc.getOrCreateStoreLimit(storeID).Available()
+		storeLimit.WithLabelValues(strconv.FormatUint(storeID, 10), "available").Set(float64(available) / float64(RegionInfluence))
 		if available < stepCost {
 			return true
 		}
@@ -666,6 +655,20 @@ func (oc *OperatorController) newStoreLimit(storeID uint64, rate float64) {
 	}
 	rate *= float64(RegionInfluence)
 	oc.storesLimit[storeID] = ratelimit.NewBucketWithRate(rate, capacity)
+}
+
+// getOrCreateStoreLimit is used to get or create the limit of a store.
+func (oc *OperatorController) getOrCreateStoreLimit(storeID uint64) *ratelimit.Bucket {
+	if oc.storesLimit[storeID] == nil {
+		rate := oc.cluster.GetStoreBalanceRate()
+		oc.newStoreLimit(storeID, rate)
+		oc.cluster.AttachOverloadStatus(storeID, func() bool {
+			oc.RLock()
+			defer oc.RUnlock()
+			return oc.storesLimit[storeID].Available() < RegionInfluence
+		})
+	}
+	return oc.storesLimit[storeID]
 }
 
 // GetAllStoresLimit is used to get limit of all stores.
