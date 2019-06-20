@@ -177,7 +177,7 @@ func (oc *OperatorController) AddWaitingOperator(ops ...*Operator) bool {
 
 	if !oc.checkAddOperator(ops...) {
 		for _, op := range ops {
-			operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
+			operatorWaitCounter.WithLabelValues(op.Desc(), "add_canceled").Inc()
 			oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
 		}
 		oc.Unlock()
@@ -188,9 +188,11 @@ func (oc *OperatorController) AddWaitingOperator(ops ...*Operator) bool {
 	desc := op.Desc()
 	if oc.wopStatus.ops[desc] >= oc.cluster.GetSchedulerMaxWaitingOperator() {
 		oc.Unlock()
+		operatorWaitCounter.WithLabelValues(op.Desc(), "exceed_max").Inc()
 		return false
 	}
 	oc.wop.PutOperator(op)
+	operatorWaitCounter.WithLabelValues(op.Desc(), "put").Inc()
 	// This step is especially for the merge operation.
 	if len(ops) > 1 {
 		oc.wop.PutOperator(ops[1])
@@ -229,10 +231,11 @@ func (oc *OperatorController) PromoteWaitingOperator() {
 		if ops == nil {
 			return
 		}
+		operatorWaitCounter.WithLabelValues(ops[0].Desc(), "get").Inc()
 
 		if oc.exceedStoreLimit(ops...) || !oc.checkAddOperator(ops...) {
 			for _, op := range ops {
-				operatorCounter.WithLabelValues(op.Desc(), "canceled").Inc()
+				operatorWaitCounter.WithLabelValues(op.Desc(), "promote_canceled").Inc()
 				oc.opRecords.Put(op, pdpb.OperatorStatus_CANCEL)
 			}
 			oc.wopStatus.ops[ops[0].Desc()]--
