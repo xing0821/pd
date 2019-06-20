@@ -374,6 +374,13 @@ func (oc *OperatorController) GetOperators() []*Operator {
 	return operators
 }
 
+// GetWaitingOperators gets operators from the running operators.
+func (oc *OperatorController) GetWaitingOperators() []*Operator {
+	oc.RLock()
+	defer oc.RUnlock()
+	return oc.wop.ListOperator()
+}
+
 // SendScheduleCommand sends a command to the region.
 func (oc *OperatorController) SendScheduleCommand(region *core.RegionInfo, step OperatorStep, source string) {
 	log.Info("send schedule command", zap.Uint64("region-id", region.GetID()), zap.Stringer("step", step), zap.String("source", source))

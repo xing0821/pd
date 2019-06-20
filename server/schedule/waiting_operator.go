@@ -25,6 +25,7 @@ var PriorityWeight = []float64{1.0, 4.0, 9.0}
 type WaitingOperator interface {
 	PutOperator(op *Operator)
 	GetOperator() []*Operator
+	ListOperator() []*Operator
 }
 
 // Bucket is used to maintain the operators created by a specific scheduler.
@@ -60,6 +61,18 @@ func (b *RandBuckets) PutOperator(op *Operator) {
 	bucket.ops = append(bucket.ops, op)
 }
 
+// ListOperator lists all operator in the random buckets.
+func (b *RandBuckets) ListOperator() []*Operator {
+	var ops []*Operator
+	for i := range b.buckets {
+		bucket := b.buckets[i]
+		for i := range bucket.ops {
+			ops := append(ops, bucket.ops[i])
+		}
+	}
+	return ops
+}
+
 // GetOperator gets an operator from the random buckets.
 func (b *RandBuckets) GetOperator() []*Operator {
 	if b.totalWeight == 0 {
@@ -67,7 +80,8 @@ func (b *RandBuckets) GetOperator() []*Operator {
 	}
 	r := rand.Float64()
 	var sum float64
-	for _, bucket := range b.buckets {
+	for i := range b.buckets {
+		bucket := b.buckets[i]
 		if len(bucket.ops) == 0 {
 			continue
 		}
