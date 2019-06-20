@@ -67,7 +67,7 @@ func (b *RandBuckets) ListOperator() []*Operator {
 	for i := range b.buckets {
 		bucket := b.buckets[i]
 		for i := range bucket.ops {
-			ops := append(ops, bucket.ops[i])
+			ops = append(ops, bucket.ops[i])
 		}
 	}
 	return ops

@@ -92,4 +92,5 @@ func init() {
 	prometheus.MustRegister(operatorDuration)
 	prometheus.MustRegister(operatorWaitDuration)
 	prometheus.MustRegister(storeLimitGauge)
+	prometheus.MustRegister(operatorWaitCounter)
 }
