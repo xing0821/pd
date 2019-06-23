@@ -27,7 +27,8 @@ func (s *testWaitingOperatorSuite) TestRandBuckets(c *C) {
 	rb := NewRandBuckets()
 	addOperators(rb)
 	for i := 0; i < 3; i++ {
-		c.Assert(rb.GetOperator(), NotNil)
+		op := rb.GetOperator()
+		c.Assert(op, NotNil)
 	}
 	c.Assert(rb.GetOperator(), IsNil)
 }
@@ -47,4 +48,58 @@ func addOperators(wop WaitingOperator) {
 	}...)
 	op.SetPriorityLevel(core.LowPriority)
 	wop.PutOperator(op)
+}
+
+func (s *testWaitingOperatorSuite) TestListOperator(c *C) {
+	rb := NewRandBuckets()
+	addOperators(rb)
+	c.Assert(len(rb.ListOperator()), Equals, 3)
+}
+
+func (s *testWaitingOperatorSuite) TestRandomBucketsWithMergeRegion(c *C) {
+	rb := NewRandBuckets()
+	for j := 0; j < 100; j++ {
+		// adds operators
+		op := NewOperator("merge-region", uint64(1), &metapb.RegionEpoch{}, OpRegion|OpMerge, []OperatorStep{
+			MergeRegion{
+				FromRegion: &metapb.Region{
+					Id:          1,
+					StartKey:    []byte{},
+					EndKey:      []byte{},
+					RegionEpoch: &metapb.RegionEpoch{}},
+				ToRegion: &metapb.Region{Id: 2,
+					StartKey:    []byte{},
+					EndKey:      []byte{},
+					RegionEpoch: &metapb.RegionEpoch{}},
+				IsPassive: false,
+			},
+		}...)
+		rb.PutOperator(op)
+		op = NewOperator("merge-region", uint64(2), &metapb.RegionEpoch{}, OpRegion|OpMerge, []OperatorStep{
+			MergeRegion{
+				FromRegion: &metapb.Region{
+					Id:          1,
+					StartKey:    []byte{},
+					EndKey:      []byte{},
+					RegionEpoch: &metapb.RegionEpoch{}},
+				ToRegion: &metapb.Region{Id: 2,
+					StartKey:    []byte{},
+					EndKey:      []byte{},
+					RegionEpoch: &metapb.RegionEpoch{}},
+				IsPassive: true,
+			},
+		}...)
+		rb.PutOperator(op)
+		op = NewOperator("testOperatorHigh", uint64(3), &metapb.RegionEpoch{}, OpRegion, []OperatorStep{
+			RemovePeer{FromStore: uint64(3)},
+		}...)
+		op.SetPriorityLevel(core.HighPriority)
+		rb.PutOperator(op)
+
+		for i := 0; i < 2; i++ {
+			op := rb.GetOperator()
+			c.Assert(op, NotNil)
+		}
+		c.Assert(rb.GetOperator(), IsNil)
+	}
 }

@@ -58,6 +58,14 @@ var (
 			Buckets:   prometheus.ExponentialBuckets(0.01, 2, 16),
 		}, []string{"type"})
 
+	operatorWaitCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "pd",
+			Subsystem: "schedule",
+			Name:      "operators_waiting_count",
+			Help:      "Counter of schedule waiting operators.",
+		}, []string{"type", "event"})
+
 	operatorWaitDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "pd",
@@ -84,4 +92,5 @@ func init() {
 	prometheus.MustRegister(operatorDuration)
 	prometheus.MustRegister(operatorWaitDuration)
 	prometheus.MustRegister(storeLimitGauge)
+	prometheus.MustRegister(operatorWaitCounter)
 }
