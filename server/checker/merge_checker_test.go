@@ -118,10 +118,10 @@ func (s *testMergeCheckerSuite) TestBasic(c *C) {
 	ops = s.mc.Check(s.regions[2])
 	c.Assert(ops, NotNil)
 	for _, op := range ops {
-		op.startTime = time.Now()
-		op.startTime = op.startTime.Add(-LeaderOperatorWaitTime - time.Second)
+		op.SetStartTime(time.Now())
+		op.SetStartTime(op.GetStartTime().Add(-schedule.LeaderOperatorWaitTime - time.Second))
 		c.Assert(op.IsTimeout(), IsFalse)
-		op.startTime = op.startTime.Add(-RegionOperatorWaitTime - time.Second)
+		op.SetStartTime(op.GetStartTime().Add(-schedule.RegionOperatorWaitTime - time.Second))
 		c.Assert(op.IsTimeout(), IsTrue)
 	}
 

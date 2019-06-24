@@ -753,7 +753,7 @@ func (s *testReplicaCheckerSuite) TestStorageThreshold(c *C) {
 	opt := mockoption.NewScheduleOptions()
 	opt.LocationLabels = []string{"zone"}
 	tc := mockcluster.NewCluster(opt)
-	rc := schedule.NewReplicaChecker(tc, namespace.DefaultClassifier)
+	rc := checker.NewReplicaChecker(tc, namespace.DefaultClassifier)
 
 	tc.AddLabelsStore(1, 1, map[string]string{"zone": "z1"})
 	tc.UpdateStorageRatio(1, 0.5, 0.5)
