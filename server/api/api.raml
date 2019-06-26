@@ -735,7 +735,7 @@ types:
         description: PD server failed to proceed the request.
 
   /state:
-    description: The specific store's state.
+    description: The state for the specific store.
     post:
       description: Set the store's state.
       queryParameters:
@@ -753,7 +753,7 @@ types:
           description: PD server failed to proceed the request.
 
   /label:
-    description: The specific store's label.
+    description: The label for the specific store.
     post:
       description: Set the store's label.
       body:
@@ -769,7 +769,7 @@ types:
           description: PD server failed to proceed the request.
 
   /weight:
-    description: The specific store's weight.
+    description: The weight for the specific store.
     post:
       description: Set the store's leader/region weight.
       body:
@@ -786,7 +786,7 @@ types:
           description: PD server failed to proceed the request.
 
   /limit:
-    description: The specific store's balance rate limit.
+    description: The balance rate limit for the specific store.
     post:
       description: Set the store's balance rate limit.
       body:
