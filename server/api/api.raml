@@ -668,7 +668,7 @@ types:
         description: PD server failed to proceed the request.
 
   /limit:
-    description: The all stores' balance rate limit.
+    description: The balance rate limit for all stores.
     get:
       description: Get all stores' balance rate limit.
       responses:
@@ -686,7 +686,7 @@ types:
           type: object
       responses:
         200:
-          description: The all stores' balance rate limit is updated.
+          description: All stores' balance rate limits are updated.
         400:
           description: The input is invalid.
         500:
