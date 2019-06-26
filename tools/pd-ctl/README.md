@@ -120,8 +120,9 @@ Usage:
     "max-store-down-time": "30m0s",
     "merge-schedule-limit": 8,
     "patrol-region-interval": "100ms",
-    "region-schedule-limit": 4,
-    "replica-schedule-limit": 8,
+    "region-schedule-limit": 64,
+    "replica-schedule-limit": 64,
+    "scheduler-max-waiting-operator": 3,
     "schedulers-v2": [
       {
         "args": null,
@@ -146,7 +147,7 @@ Usage:
     ],
     "split-merge-interval": "1h0m0s",
     "store-balance-rate": 1,
-    "tolerant-size-ratio": 5
+    "tolerant-size-ratio": 0
   }
 }
 >> config show all                            // Display all config information
