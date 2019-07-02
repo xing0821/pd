@@ -288,7 +288,13 @@ func (h *balanceHotRegionsScheduler) balanceByPeer(cluster schedule.Cluster, sto
 	for _, i := range h.r.Perm(storesStat[srcStoreID].RegionsStat.Len()) {
 		rs := storesStat[srcStoreID].RegionsStat[i]
 		srcRegion := cluster.GetRegion(rs.RegionID)
-		if srcRegion == nil || len(srcRegion.GetDownPeers()) != 0 || len(srcRegion.GetPendingPeers()) != 0 {
+		if srcRegion == nil || len(srcRegion.GetDownPeers()) != 0 || len(srcRegion.GetPendingPeers()) != 0 || len(srcRegion.GetLearners()) != 0 {
+			continue
+		}
+
+		if len(srcRegion.GetPeers()) != cluster.GetMaxReplicas() {
+			log.Debug("region has abnormal replica count", zap.String("scheduler", h.GetName()), zap.Uint64("region-id", srcRegion.GetID()))
+			schedulerCounter.WithLabelValues(h.GetName(), "abnormal_replica").Inc()
 			continue
 		}
 
