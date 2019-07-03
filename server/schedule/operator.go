@@ -749,11 +749,11 @@ func matchPeerSteps(cluster Cluster, source *core.RegionInfo, target *core.Regio
 			}
 			if cluster.IsRaftLearnerEnabled() {
 				addSteps = append(addSteps,
-					AddLearner{ToStore: storeID, PeerID: peer.Id},
+					AddLightLearner{ToStore: storeID, PeerID: peer.Id},
 					PromoteLearner{ToStore: storeID, PeerID: peer.Id},
 				)
 			} else {
-				addSteps = append(addSteps, AddPeer{ToStore: storeID, PeerID: peer.Id})
+				addSteps = append(addSteps, AddLightPeer{ToStore: storeID, PeerID: peer.Id})
 			}
 			toAdds = append(toAdds, addSteps)
 

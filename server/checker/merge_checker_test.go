@@ -14,16 +14,22 @@
 package checker
 
 import (
+	"testing"
 	"time"
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/pkg/mock/mockcluster"
+	"github.com/pingcap/pd/pkg/mock/mockhbstream"
 	"github.com/pingcap/pd/pkg/mock/mockoption"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
 	"github.com/pingcap/pd/server/schedule"
 )
+
+func TestChecker(t *testing.T) {
+	TestingT(t)
+}
 
 var _ = Suite(&testMergeCheckerSuite{})
 
@@ -152,10 +158,10 @@ func (s *testMergeCheckerSuite) TestMatchPeers(c *C) {
 	ops := s.mc.Check(s.regions[2])
 	s.checkSteps(c, ops[0], []schedule.OperatorStep{
 		schedule.TransferLeader{FromStore: 6, ToStore: 5},
-		schedule.AddLearner{ToStore: 1, PeerID: 1},
+		schedule.AddLightLearner{ToStore: 1, PeerID: 1},
 		schedule.PromoteLearner{ToStore: 1, PeerID: 1},
 		schedule.RemovePeer{FromStore: 2},
-		schedule.AddLearner{ToStore: 4, PeerID: 2},
+		schedule.AddLightLearner{ToStore: 4, PeerID: 2},
 		schedule.PromoteLearner{ToStore: 4, PeerID: 2},
 		schedule.RemovePeer{FromStore: 6},
 		schedule.MergeRegion{
@@ -185,7 +191,7 @@ func (s *testMergeCheckerSuite) TestMatchPeers(c *C) {
 	s.cluster.PutRegion(s.regions[2])
 	ops = s.mc.Check(s.regions[2])
 	s.checkSteps(c, ops[0], []schedule.OperatorStep{
-		schedule.AddLearner{ToStore: 4, PeerID: 3},
+		schedule.AddLightLearner{ToStore: 4, PeerID: 3},
 		schedule.PromoteLearner{ToStore: 4, PeerID: 3},
 		schedule.RemovePeer{FromStore: 6},
 		schedule.MergeRegion{
@@ -234,13 +240,13 @@ func (s *testMergeCheckerSuite) TestMatchPeers(c *C) {
 	s.cluster.PutRegion(s.regions[2])
 	ops = s.mc.Check(s.regions[2])
 	s.checkSteps(c, ops[0], []schedule.OperatorStep{
-		schedule.AddLearner{ToStore: 1, PeerID: 4},
+		schedule.AddLightLearner{ToStore: 1, PeerID: 4},
 		schedule.PromoteLearner{ToStore: 1, PeerID: 4},
 		schedule.RemovePeer{FromStore: 3},
-		schedule.AddLearner{ToStore: 4, PeerID: 5},
+		schedule.AddLightLearner{ToStore: 4, PeerID: 5},
 		schedule.PromoteLearner{ToStore: 4, PeerID: 5},
 		schedule.RemovePeer{FromStore: 6},
-		schedule.AddLearner{ToStore: 5, PeerID: 6},
+		schedule.AddLightLearner{ToStore: 5, PeerID: 6},
 		schedule.PromoteLearner{ToStore: 5, PeerID: 6},
 		schedule.TransferLeader{FromStore: 2, ToStore: 1},
 		schedule.RemovePeer{FromStore: 2},
@@ -257,4 +263,22 @@ func (s *testMergeCheckerSuite) TestMatchPeers(c *C) {
 			IsPassive:  true,
 		},
 	})
+}
+
+func (s *testMergeCheckerSuite) TestStorelimit(c *C) {
+	oc := schedule.NewOperatorController(s.cluster, mockhbstream.NewHeartbeatStream())
+	s.cluster.ScheduleOptions.SplitMergeInterval = time.Hour
+	s.cluster.ScheduleOptions.StoreBalanceRate = 0.0
+	s.regions[2] = s.regions[2].Clone(core.SetPeers([]*metapb.Peer{
+		{Id: 109, StoreId: 2},
+		{Id: 110, StoreId: 3},
+		{Id: 111, StoreId: 6},
+	}), core.WithLeader(&metapb.Peer{Id: 109, StoreId: 2}))
+	s.cluster.PutRegion(s.regions[2])
+	ops := s.mc.Check(s.regions[2])
+	c.Assert(oc.AddOperator(ops...), IsTrue)
+	for _, op := range ops {
+		oc.RemoveOperator(op)
+	}
+	c.Assert(oc.AddOperator(ops...), IsTrue)
 }
