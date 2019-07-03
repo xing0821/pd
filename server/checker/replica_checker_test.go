@@ -36,7 +36,6 @@ var _ = Suite(&testReplicaCheckerSuite{})
 type testReplicaCheckerSuite struct {
 	cluster *mockcluster.Cluster
 	rc      *ReplicaChecker
-	regions []*core.RegionInfo
 }
 
 func (s *testReplicaCheckerSuite) SetUpTest(c *C) {
@@ -100,14 +99,9 @@ func (s *testReplicaCheckerSuite) TestReplacePendingPeer(c *C) {
 			StoreId: 3,
 		},
 	}
-	s.regions = []*core.RegionInfo{
-		core.NewRegionInfo(
-			&metapb.Region{Id: 1, Peers: peers}, peers[1],
-			core.WithPendingPeers(peers[0:1]),
-		),
-	}
-	s.cluster.PutRegion(s.regions[0])
-	op := s.rc.Check(s.regions[0])
+	r := core.NewRegionInfo(&metapb.Region{Id: 1, Peers: peers}, peers[1], core.WithPendingPeers(peers[0:1]))
+	s.cluster.PutRegion(r)
+	op := s.rc.Check(r)
 	c.Assert(op, NotNil)
 	c.Assert(op.Step(0).(schedule.RemovePeer).FromStore, Equals, uint64(1))
 	c.Assert(op.Step(1).(schedule.AddLearner).ToStore, Equals, uint64(4))
