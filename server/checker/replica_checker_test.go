@@ -103,7 +103,7 @@ func (s *testReplicaCheckerSuite) TestReplacePendingPeer(c *C) {
 	s.cluster.PutRegion(r)
 	op := s.rc.Check(r)
 	c.Assert(op, NotNil)
-	c.Assert(op.Step(0).(schedule.RemovePeer).FromStore, Equals, uint64(1))
-	c.Assert(op.Step(1).(schedule.AddLearner).ToStore, Equals, uint64(4))
-	c.Assert(op.Step(2).(schedule.PromoteLearner).ToStore, Equals, uint64(4))
+	c.Assert(op.Step(0).(schedule.AddLearner).ToStore, Equals, uint64(4))
+	c.Assert(op.Step(1).(schedule.PromoteLearner).ToStore, Equals, uint64(4))
+	c.Assert(op.Step(2).(schedule.RemovePeer).FromStore, Equals, uint64(1))
 }

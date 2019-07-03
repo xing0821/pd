@@ -911,17 +911,6 @@ func CreateMovePeerOperator(desc string, cluster Cluster, region *core.RegionInf
 	return NewOperator(desc, brief, region.GetID(), region.GetRegionEpoch(), removeKind|kind|OpRegion, steps...), nil
 }
 
-// CreateMovePendingPeerOperator creates an operator that replaces an old pending peer with a new peer.
-func CreateMovePendingPeerOperator(desc string, cluster Cluster, region *core.RegionInfo, kind OperatorKind, oldStore, newStore uint64, peerID uint64) (*Operator, error) {
-	removeKind, steps, err := removePeerSteps(cluster, region, oldStore, append(getRegionFollowerIDs(region), newStore))
-	if err != nil {
-		return nil, err
-	}
-	st := CreateAddPeerSteps(newStore, peerID, cluster)
-	steps = append(steps, st...)
-	return NewOperator(desc, region.GetID(), region.GetRegionEpoch(), removeKind|kind|OpRegion, steps...), nil
-}
-
 // CreateMoveLeaderOperator creates an operator that replaces an old leader with a new leader.
 func CreateMoveLeaderOperator(desc string, cluster Cluster, region *core.RegionInfo, kind OpKind, oldStore, newStore uint64, peerID uint64) (*Operator, error) {
 	removeKind, steps, err := removePeerSteps(cluster, region, oldStore, []uint64{newStore})
