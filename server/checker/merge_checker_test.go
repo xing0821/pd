@@ -158,10 +158,10 @@ func (s *testMergeCheckerSuite) TestMatchPeers(c *C) {
 	ops := s.mc.Check(s.regions[2])
 	s.checkSteps(c, ops[0], []schedule.OperatorStep{
 		schedule.TransferLeader{FromStore: 6, ToStore: 5},
-		schedule.AddLightLearner{ToStore: 1, PeerID: 1},
+		schedule.AddLearner{ToStore: 1, PeerID: 1},
 		schedule.PromoteLearner{ToStore: 1, PeerID: 1},
 		schedule.RemovePeer{FromStore: 2},
-		schedule.AddLightLearner{ToStore: 4, PeerID: 2},
+		schedule.AddLearner{ToStore: 4, PeerID: 2},
 		schedule.PromoteLearner{ToStore: 4, PeerID: 2},
 		schedule.RemovePeer{FromStore: 6},
 		schedule.MergeRegion{
@@ -191,7 +191,7 @@ func (s *testMergeCheckerSuite) TestMatchPeers(c *C) {
 	s.cluster.PutRegion(s.regions[2])
 	ops = s.mc.Check(s.regions[2])
 	s.checkSteps(c, ops[0], []schedule.OperatorStep{
-		schedule.AddLightLearner{ToStore: 4, PeerID: 3},
+		schedule.AddLearner{ToStore: 4, PeerID: 3},
 		schedule.PromoteLearner{ToStore: 4, PeerID: 3},
 		schedule.RemovePeer{FromStore: 6},
 		schedule.MergeRegion{
@@ -240,13 +240,13 @@ func (s *testMergeCheckerSuite) TestMatchPeers(c *C) {
 	s.cluster.PutRegion(s.regions[2])
 	ops = s.mc.Check(s.regions[2])
 	s.checkSteps(c, ops[0], []schedule.OperatorStep{
-		schedule.AddLightLearner{ToStore: 1, PeerID: 4},
+		schedule.AddLearner{ToStore: 1, PeerID: 4},
 		schedule.PromoteLearner{ToStore: 1, PeerID: 4},
 		schedule.RemovePeer{FromStore: 3},
-		schedule.AddLightLearner{ToStore: 4, PeerID: 5},
+		schedule.AddLearner{ToStore: 4, PeerID: 5},
 		schedule.PromoteLearner{ToStore: 4, PeerID: 5},
 		schedule.RemovePeer{FromStore: 6},
-		schedule.AddLightLearner{ToStore: 5, PeerID: 6},
+		schedule.AddLearner{ToStore: 5, PeerID: 6},
 		schedule.PromoteLearner{ToStore: 5, PeerID: 6},
 		schedule.TransferLeader{FromStore: 2, ToStore: 1},
 		schedule.RemovePeer{FromStore: 2},
@@ -268,17 +268,38 @@ func (s *testMergeCheckerSuite) TestMatchPeers(c *C) {
 func (s *testMergeCheckerSuite) TestStorelimit(c *C) {
 	oc := schedule.NewOperatorController(s.cluster, mockhbstream.NewHeartbeatStream())
 	s.cluster.ScheduleOptions.SplitMergeInterval = time.Hour
-	s.cluster.ScheduleOptions.StoreBalanceRate = 0.0
-	s.regions[2] = s.regions[2].Clone(core.SetPeers([]*metapb.Peer{
-		{Id: 109, StoreId: 2},
-		{Id: 110, StoreId: 3},
-		{Id: 111, StoreId: 6},
-	}), core.WithLeader(&metapb.Peer{Id: 109, StoreId: 2}))
+	s.cluster.ScheduleOptions.StoreBalanceRate = 60
+	s.regions[2] = s.regions[2].Clone(
+		core.SetPeers([]*metapb.Peer{
+			{Id: 109, StoreId: 2},
+			{Id: 110, StoreId: 3},
+			{Id: 111, StoreId: 6},
+		}),
+		core.WithLeader(&metapb.Peer{Id: 109, StoreId: 2}),
+	)
 	s.cluster.PutRegion(s.regions[2])
 	ops := s.mc.Check(s.regions[2])
-	c.Assert(oc.AddOperator(ops...), IsTrue)
-	for _, op := range ops {
-		oc.RemoveOperator(op)
+	c.Assert(ops, NotNil)
+	// The size of Region is less or equal than 1MB.
+	for i := 0; i < 50; i++ {
+		c.Assert(oc.AddOperator(ops...), IsTrue)
+		for _, op := range ops {
+			oc.RemoveOperator(op)
+		}
 	}
-	c.Assert(oc.AddOperator(ops...), IsTrue)
+	s.regions[2] = s.regions[2].Clone(
+		core.SetApproximateSize(2),
+		core.SetApproximateKeys(2),
+	)
+	s.cluster.PutRegion(s.regions[2])
+	ops = s.mc.Check(s.regions[2])
+	c.Assert(ops, NotNil)
+	// The size of Region is more than 1MB but no more than 20MB.
+	for i := 0; i < 5; i++ {
+		c.Assert(oc.AddOperator(ops...), IsTrue)
+		for _, op := range ops {
+			oc.RemoveOperator(op)
+		}
+	}
+	c.Assert(oc.AddOperator(ops...), IsFalse)
 }
