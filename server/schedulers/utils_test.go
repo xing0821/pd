@@ -73,7 +73,7 @@ func (s *testRegionUnhealthySuite) TestIsRegionUnhealthy(c *C) {
 	r3 := core.NewRegionInfo(&metapb.Region{Peers: peers[:3]}, peers[0], core.WithLearners([]*metapb.Peer{peers[2]}))
 	r4 := core.NewRegionInfo(&metapb.Region{Peers: peers[:2]}, peers[0])
 	c.Assert(isRegionUnhealthy(r1), IsTrue)
-	c.Assert(isRegionUnhealthy(r2), IsTrue)
+	c.Assert(isRegionUnhealthy(r2), IsFalse)
 	c.Assert(isRegionUnhealthy(r3), IsTrue)
 	c.Assert(isRegionUnhealthy(r4), IsFalse)
 }

@@ -50,7 +50,7 @@ func minDuration(a, b time.Duration) time.Duration {
 }
 
 func isRegionUnhealthy(region *core.RegionInfo) bool {
-	return len(region.GetDownPeers()) != 0 || len(region.GetPendingPeers()) != 0 || len(region.GetLearners()) != 0
+	return len(region.GetDownPeers()) != 0 || len(region.GetLearners()) != 0
 }
 
 func shouldBalance(cluster schedule.Cluster, source, target *core.StoreInfo, region *core.RegionInfo, kind core.ResourceKind, opInfluence schedule.OpInfluence) bool {
