@@ -39,7 +39,8 @@ const (
 	RegionOperatorWaitTime = 10 * time.Minute
 	// RegionInfluence represents the influence of a operator step, which is used by ratelimit.
 	RegionInfluence int64 = 1000
-	// smallRegionInfluence represents the influence of a operator step, which is used by ratelimit.
+	// smallRegionInfluence represents the influence of a operator step
+	// when the region size is smaller than smallRegionThreshold, which is used by ratelimit.
 	smallRegionInfluence int64 = 200
 	// smallRegionThreshold is used to represent a region which can be regarded as a small region once the size is small than it.
 	smallRegionThreshold int64 = 20
