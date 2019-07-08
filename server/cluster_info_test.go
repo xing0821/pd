@@ -21,6 +21,7 @@ import (
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pingcap/pd/pkg/mock/mockid"
 	"github.com/pingcap/pd/server/core"
+	"github.com/pingcap/pd/server/kv"
 )
 
 var _ = Suite(&testStoresInfoSuite{})
@@ -288,7 +289,7 @@ func (s *testClusterInfoSuite) TestLoadClusterInfo(c *C) {
 func (s *testClusterInfoSuite) TestStoreHeartbeat(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	cluster := newClusterInfo(mockid.NewIDAllocator(), opt, core.NewKV(core.NewMemoryKV()))
+	cluster := newClusterInfo(mockid.NewIDAllocator(), opt, core.NewKV(kv.NewMemoryKV()))
 
 	n, np := uint64(3), uint64(3)
 	stores := newTestStores(n)
@@ -334,7 +335,7 @@ func (s *testClusterInfoSuite) TestStoreHeartbeat(c *C) {
 func (s *testClusterInfoSuite) TestRegionHeartbeat(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	cluster := newClusterInfo(mockid.NewIDAllocator(), opt, core.NewKV(core.NewMemoryKV()))
+	cluster := newClusterInfo(mockid.NewIDAllocator(), opt, core.NewKV(kv.NewMemoryKV()))
 
 	n, np := uint64(3), uint64(3)
 

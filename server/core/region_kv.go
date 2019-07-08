@@ -21,6 +21,7 @@ import (
 
 	"github.com/pingcap/kvproto/pkg/metapb"
 	log "github.com/pingcap/log"
+	"github.com/pingcap/pd/server/kv"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -29,7 +30,7 @@ var dirtyFlushTick = time.Second
 
 // RegionKV is used to save regions.
 type RegionKV struct {
-	*leveldbKV
+	*kv.LeveldbKV
 	mu           sync.RWMutex
 	batchRegions map[string]*metapb.Region
 	batchSize    int
@@ -49,13 +50,13 @@ const (
 
 // NewRegionKV returns a kv storage that is used to save regions.
 func NewRegionKV(path string) (*RegionKV, error) {
-	levelDB, err := newLeveldbKV(path)
+	levelDB, err := kv.NewLeveldbKV(path)
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	kv := &RegionKV{
-		leveldbKV:    levelDB,
+		LeveldbKV:    levelDB,
 		batchSize:    defaultBatchSize,
 		flushRate:    defaultFlushRegionRate,
 		batchRegions: make(map[string]*metapb.Region, defaultBatchSize),
@@ -114,11 +115,11 @@ func (kv *RegionKV) SaveRegion(region *metapb.Region) error {
 	return nil
 }
 
-func deleteRegion(kv KVBase, region *metapb.Region) error {
-	return kv.Delete(regionPath(region.GetId()))
+func deleteRegion(kv kv.Base, region *metapb.Region) error {
+	return kv.Remove(regionPath(region.GetId()))
 }
 
-func loadRegions(kv KVBase, regions *RegionsInfo) error {
+func loadRegions(kv kv.Base, regions *RegionsInfo) error {
 	nextID := uint64(0)
 	endKey := regionPath(math.MaxUint64)
 
@@ -180,5 +181,5 @@ func (kv *RegionKV) Close() error {
 		log.Error("meet error before close the region storage", zap.Error(err))
 	}
 	kv.cancel()
-	return kv.db.Close()
+	return errors.WithStack(kv.LeveldbKV.Close())
 }

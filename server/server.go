@@ -34,6 +34,7 @@ import (
 	"github.com/pingcap/pd/pkg/etcdutil"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server/core"
+	"github.com/pingcap/pd/server/kv"
 	"github.com/pingcap/pd/server/namespace"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
@@ -220,7 +221,7 @@ func (s *Server) startServer() error {
 	s.member, s.memberValue = s.memberInfo()
 
 	s.idAlloc = &idAllocator{s: s}
-	kvBase := newEtcdKVBase(s)
+	kvBase := kv.NewEtcdKVBase(s.client, s.rootPath)
 	path := filepath.Join(s.cfg.DataDir, "region-meta")
 	regionKV, err := core.NewRegionKV(path)
 	if err != nil {
@@ -406,7 +407,7 @@ func (s *Server) bootstrapCluster(req *pdpb.BootstrapRequest) (*pdpb.BootstrapRe
 
 	// TODO: we must figure out a better way to handle bootstrap failed, maybe intervene manually.
 	bootstrapCmp := clientv3.Compare(clientv3.CreateRevision(clusterRootPath), "=", 0)
-	resp, err := s.txn().If(bootstrapCmp).Then(ops...).Commit()
+	resp, err := kv.NewSlowLogTxn(s.client).If(bootstrapCmp).Then(ops...).Commit()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -493,16 +494,11 @@ func (s *Server) GetClassifier() namespace.Classifier {
 	return s.classifier
 }
 
-// txn returns an etcd client transaction wrapper.
-// The wrapper will set a request timeout to the context and log slow transactions.
-func (s *Server) txn() clientv3.Txn {
-	return newSlowLogTxn(s.client)
-}
-
-// leaderTxn returns txn() with a leader comparison to guarantee that
+// LeaderTxn returns txn() with a leader comparison to guarantee that
 // the transaction can be executed only if the server is leader.
-func (s *Server) leaderTxn(cs ...clientv3.Cmp) clientv3.Txn {
-	return s.txn().If(append(cs, s.leaderCmp())...)
+func (s *Server) LeaderTxn(cs ...clientv3.Cmp) clientv3.Txn {
+	txn := kv.NewSlowLogTxn(s.client)
+	return txn.If(append(cs, s.leaderCmp())...)
 }
 
 // GetConfig gets the config information.
@@ -784,7 +780,7 @@ func (s *Server) getMemberLeaderPriorityPath(id uint64) string {
 // SetMemberLeaderPriority saves a member's priority to be elected as the etcd leader.
 func (s *Server) SetMemberLeaderPriority(id uint64, priority int) error {
 	key := s.getMemberLeaderPriorityPath(id)
-	res, err := s.leaderTxn().Then(clientv3.OpPut(key, strconv.Itoa(priority))).Commit()
+	res, err := s.LeaderTxn().Then(clientv3.OpPut(key, strconv.Itoa(priority))).Commit()
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -797,7 +793,7 @@ func (s *Server) SetMemberLeaderPriority(id uint64, priority int) error {
 // DeleteMemberLeaderPriority removes a member's priority config.
 func (s *Server) DeleteMemberLeaderPriority(id uint64) error {
 	key := s.getMemberLeaderPriorityPath(id)
-	res, err := s.leaderTxn().Then(clientv3.OpDelete(key)).Commit()
+	res, err := s.LeaderTxn().Then(clientv3.OpDelete(key)).Commit()
 	if err != nil {
 		return errors.WithStack(err)
 	}

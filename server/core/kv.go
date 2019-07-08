@@ -23,6 +23,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/pingcap/kvproto/pkg/metapb"
+	"github.com/pingcap/pd/server/kv"
 	"github.com/pkg/errors"
 )
 
@@ -40,15 +41,15 @@ const (
 
 // KV wraps all kv operations, keep it stateless.
 type KV struct {
-	KVBase
+	kv.Base
 	regionKV    *RegionKV
 	useRegionKV int32
 }
 
-// NewKV creates KV instance with KVBase.
-func NewKV(base KVBase) *KV {
+// NewKV creates KV instance with Base.
+func NewKV(base kv.Base) *KV {
 	return &KV{
-		KVBase: base,
+		Base: base,
 	}
 }
 
@@ -96,27 +97,27 @@ func (kv *KV) storeRegionWeightPath(storeID uint64) string {
 
 // LoadMeta loads cluster meta from KV store.
 func (kv *KV) LoadMeta(meta *metapb.Cluster) (bool, error) {
-	return loadProto(kv.KVBase, clusterPath, meta)
+	return loadProto(kv.Base, clusterPath, meta)
 }
 
 // SaveMeta save cluster meta to KV store.
 func (kv *KV) SaveMeta(meta *metapb.Cluster) error {
-	return saveProto(kv.KVBase, clusterPath, meta)
+	return saveProto(kv.Base, clusterPath, meta)
 }
 
 // LoadStore loads one store from KV.
 func (kv *KV) LoadStore(storeID uint64, store *metapb.Store) (bool, error) {
-	return loadProto(kv.KVBase, kv.storePath(storeID), store)
+	return loadProto(kv.Base, kv.storePath(storeID), store)
 }
 
 // SaveStore saves one store to KV.
 func (kv *KV) SaveStore(store *metapb.Store) error {
-	return saveProto(kv.KVBase, kv.storePath(store.GetId()), store)
+	return saveProto(kv.Base, kv.storePath(store.GetId()), store)
 }
 
 // DeleteStore deletes one store from KV.
 func (kv *KV) DeleteStore(store *metapb.Store) error {
-	return kv.Delete(kv.storePath(store.GetId()))
+	return kv.Remove(kv.storePath(store.GetId()))
 }
 
 // LoadRegion loads one regoin from KV.
@@ -124,7 +125,7 @@ func (kv *KV) LoadRegion(regionID uint64, region *metapb.Region) (bool, error) {
 	if atomic.LoadInt32(&kv.useRegionKV) > 0 {
 		return loadProto(kv.regionKV, regionPath(regionID), region)
 	}
-	return loadProto(kv.KVBase, regionPath(regionID), region)
+	return loadProto(kv.Base, regionPath(regionID), region)
 }
 
 // LoadRegions loads all regions from KV to RegionsInfo.
@@ -132,7 +133,7 @@ func (kv *KV) LoadRegions(regions *RegionsInfo) error {
 	if atomic.LoadInt32(&kv.useRegionKV) > 0 {
 		return loadRegions(kv.regionKV, regions)
 	}
-	return loadRegions(kv.KVBase, regions)
+	return loadRegions(kv.Base, regions)
 }
 
 // SaveRegion saves one region to KV.
@@ -140,7 +141,7 @@ func (kv *KV) SaveRegion(region *metapb.Region) error {
 	if atomic.LoadInt32(&kv.useRegionKV) > 0 {
 		return kv.regionKV.SaveRegion(region)
 	}
-	return saveProto(kv.KVBase, regionPath(region.GetId()), region)
+	return saveProto(kv.Base, regionPath(region.GetId()), region)
 }
 
 // DeleteRegion deletes one region from KV.
@@ -148,7 +149,7 @@ func (kv *KV) DeleteRegion(region *metapb.Region) error {
 	if atomic.LoadInt32(&kv.useRegionKV) > 0 {
 		return deleteRegion(kv.regionKV, region)
 	}
-	return deleteRegion(kv.KVBase, region)
+	return deleteRegion(kv.Base, region)
 }
 
 // SaveConfig stores marshalable cfg to the configPath.
@@ -275,7 +276,7 @@ func (kv *KV) LoadGCSafePoint() (uint64, error) {
 	return safePoint, nil
 }
 
-func loadProto(kv KVBase, key string, msg proto.Message) (bool, error) {
+func loadProto(kv kv.Base, key string, msg proto.Message) (bool, error) {
 	value, err := kv.Load(key)
 	if err != nil {
 		return false, err
@@ -287,7 +288,7 @@ func loadProto(kv KVBase, key string, msg proto.Message) (bool, error) {
 	return true, errors.WithStack(err)
 }
 
-func saveProto(kv KVBase, key string, msg proto.Message) error {
+func saveProto(kv kv.Base, key string, msg proto.Message) error {
 	value, err := proto.Marshal(msg)
 	if err != nil {
 		return errors.WithStack(err)

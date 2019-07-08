@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-
 	. "github.com/pingcap/check"
 	"github.com/pingcap/pd/server/core"
+	"github.com/pingcap/pd/server/kv"
 )
 
 var _ = Suite(&testConfigSuite{})
@@ -46,7 +46,7 @@ func (s *testConfigSuite) TestBadFormatJoinAddr(c *C) {
 func (s *testConfigSuite) TestReloadConfig(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	kv := core.NewKV(core.NewMemoryKV())
+	kv := core.NewKV(kv.NewMemoryKV())
 	scheduleCfg := opt.load()
 	scheduleCfg.MaxSnapshotCount = 10
 	opt.SetMaxReplicas(5)

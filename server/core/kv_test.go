@@ -19,6 +19,7 @@ import (
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/metapb"
+	"github.com/pingcap/pd/server/kv"
 	"github.com/pkg/errors"
 )
 
@@ -28,7 +29,7 @@ type testKVSuite struct {
 }
 
 func (s *testKVSuite) TestBasic(c *C) {
-	kv := NewKV(NewMemoryKV())
+	kv := NewKV(kv.NewMemoryKV())
 
 	c.Assert(kv.storePath(123), Equals, "raft/s/00000000000000000123")
 	c.Assert(regionPath(123), Equals, "raft/r/00000000000000000123")
@@ -87,7 +88,7 @@ func mustSaveStores(c *C, kv *KV, n int) []*metapb.Store {
 }
 
 func (s *testKVSuite) TestLoadStores(c *C) {
-	kv := NewKV(NewMemoryKV())
+	kv := NewKV(kv.NewMemoryKV())
 	cache := NewStoresInfo()
 
 	n := 10
@@ -101,7 +102,7 @@ func (s *testKVSuite) TestLoadStores(c *C) {
 }
 
 func (s *testKVSuite) TestStoreWeight(c *C) {
-	kv := NewKV(NewMemoryKV())
+	kv := NewKV(kv.NewMemoryKV())
 	cache := NewStoresInfo()
 	const n = 3
 
@@ -132,7 +133,7 @@ func mustSaveRegions(c *C, kv *KV, n int) []*metapb.Region {
 }
 
 func (s *testKVSuite) TestLoadRegions(c *C) {
-	kv := NewKV(NewMemoryKV())
+	kv := NewKV(kv.NewMemoryKV())
 	cache := NewRegionsInfo()
 
 	n := 10
@@ -146,7 +147,7 @@ func (s *testKVSuite) TestLoadRegions(c *C) {
 }
 
 func (s *testKVSuite) TestLoadRegionsExceedRangeLimit(c *C) {
-	kv := NewKV(&KVWithMaxRangeLimit{KVBase: NewMemoryKV(), rangeLimit: 500})
+	kv := NewKV(&KVWithMaxRangeLimit{Base: kv.NewMemoryKV(), rangeLimit: 500})
 	cache := NewRegionsInfo()
 
 	n := 1000
@@ -159,7 +160,7 @@ func (s *testKVSuite) TestLoadRegionsExceedRangeLimit(c *C) {
 }
 
 func (s *testKVSuite) TestLoadGCSafePoint(c *C) {
-	kv := NewKV(NewMemoryKV())
+	kv := NewKV(kv.NewMemoryKV())
 	testData := []uint64{0, 1, 2, 233, 2333, 23333333333, math.MaxUint64}
 
 	r, e := kv.LoadGCSafePoint()
@@ -175,7 +176,7 @@ func (s *testKVSuite) TestLoadGCSafePoint(c *C) {
 }
 
 type KVWithMaxRangeLimit struct {
-	KVBase
+	kv.Base
 	rangeLimit int
 }
 
@@ -183,7 +184,7 @@ func (kv *KVWithMaxRangeLimit) LoadRange(key, endKey string, limit int) ([]strin
 	if limit > kv.rangeLimit {
 		return nil, nil, errors.Errorf("limit %v exceed max rangeLimit %v", limit, kv.rangeLimit)
 	}
-	return kv.KVBase.LoadRange(key, endKey, limit)
+	return kv.Base.LoadRange(key, endKey, limit)
 }
 
 func newTestRegionMeta(regionID uint64) *metapb.Region {

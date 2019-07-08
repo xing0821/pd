@@ -26,6 +26,7 @@ import (
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pingcap/pd/pkg/mock/mockid"
 	"github.com/pingcap/pd/server/core"
+	"github.com/pingcap/pd/server/kv"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
@@ -47,7 +48,7 @@ type testClusterSuite struct {
 }
 
 type testErrorKV struct {
-	core.KVBase
+	kv.Base
 }
 
 func (kv *testErrorKV) Save(key, value string) error {
@@ -502,7 +503,7 @@ func (s *testClusterSuite) TestConcurrentHandleRegion(c *C) {
 	c.Assert(err, IsNil)
 	s.svr.cluster.RLock()
 	s.svr.cluster.cachedCluster.Lock()
-	s.svr.cluster.cachedCluster.kv = core.NewKV(core.NewMemoryKV())
+	s.svr.cluster.cachedCluster.kv = core.NewKV(kv.NewMemoryKV())
 	s.svr.cluster.cachedCluster.Unlock()
 	s.svr.cluster.RUnlock()
 	var stores []*metapb.Store
@@ -592,7 +593,7 @@ type testGetStoresSuite struct {
 func (s *testGetStoresSuite) SetUpSuite(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	s.cluster = newClusterInfo(mockid.NewIDAllocator(), opt, core.NewKV(core.NewMemoryKV()))
+	s.cluster = newClusterInfo(mockid.NewIDAllocator(), opt, core.NewKV(kv.NewMemoryKV()))
 
 	stores := newTestStores(200)
 

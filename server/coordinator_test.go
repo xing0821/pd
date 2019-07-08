@@ -27,6 +27,7 @@ import (
 	"github.com/pingcap/pd/pkg/mock/mockid"
 	"github.com/pingcap/pd/pkg/testutil"
 	"github.com/pingcap/pd/server/core"
+	"github.com/pingcap/pd/server/kv"
 	"github.com/pingcap/pd/server/namespace"
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pingcap/pd/server/schedulers"
@@ -56,7 +57,7 @@ func newTestClusterInfo(opt *scheduleOption) *testClusterInfo {
 	return &testClusterInfo{clusterInfo: newClusterInfo(
 		mockid.NewIDAllocator(),
 		opt,
-		core.NewKV(core.NewMemoryKV()),
+		core.NewKV(kv.NewMemoryKV()),
 	)}
 }
 
@@ -1012,7 +1013,7 @@ func getHeartBeatStreams(c *C, tc *testClusterInfo) *heartbeatStreams {
 	config := NewTestSingleConfig(c)
 	svr, err := CreateServer(config, nil)
 	c.Assert(err, IsNil)
-	kvBase := newEtcdKVBase(svr)
+	kvBase := kv.NewEtcdKVBase(svr.client, svr.rootPath)
 	path := filepath.Join(svr.cfg.DataDir, "region-meta")
 	regionKV, err := core.NewRegionKV(path)
 	c.Assert(err, IsNil)

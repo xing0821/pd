@@ -25,6 +25,7 @@ import (
 	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/etcdutil"
 	"github.com/pingcap/pd/pkg/logutil"
+	"github.com/pingcap/pd/server/kv"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/mvcc/mvccpb"
@@ -235,7 +236,7 @@ func (s *Server) campaignLeader() error {
 
 	leaderKey := s.getLeaderPath()
 	// The leader key must not exist, so the CreateRevision is 0.
-	resp, err := s.txn().
+	resp, err := kv.NewSlowLogTxn(s.client).
 		If(clientv3.Compare(clientv3.CreateRevision(leaderKey), "=", 0)).
 		Then(clientv3.OpPut(leaderKey, s.memberValue, clientv3.WithLease(leaseResp.ID))).
 		Commit()
@@ -390,7 +391,7 @@ func (s *Server) ResignLeader(nextLeader string) error {
 func (s *Server) deleteLeaderKey() error {
 	// delete leader itself and let others start a new election again.
 	leaderKey := s.getLeaderPath()
-	resp, err := s.leaderTxn().Then(clientv3.OpDelete(leaderKey)).Commit()
+	resp, err := s.LeaderTxn().Then(clientv3.OpDelete(leaderKey)).Commit()
 	if err != nil {
 		return errors.WithStack(err)
 	}
