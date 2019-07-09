@@ -481,6 +481,11 @@ func (s *Server) GetAllocator() *id.AllocatorImpl {
 	return s.idAllocator
 }
 
+// GetAllocator returns the ID allocator of server.
+func (s *Server) GetAllocator() *id.AllocatorImpl {
+	return s.idAllocator
+}
+
 // ID returns the unique etcd ID for this server in etcd cluster.
 func (s *Server) ID() uint64 {
 	return s.id
