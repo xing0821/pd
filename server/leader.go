@@ -175,7 +175,7 @@ func (s *Server) MoveEtcdLeader(ctx context.Context, old, new uint64) error {
 // getLeader gets server leader from etcd.
 func getLeader(c *clientv3.Client, leaderPath string) (*pdpb.Member, int64, error) {
 	leader := &pdpb.Member{}
-	ok, rev, err := getProtoMsgWithModRev(c, leaderPath, leader)
+	ok, rev, err := etcdutil.GetProtoMsgWithModRev(c, leaderPath, leader)
 	if err != nil {
 		return nil, 0, err
 	}

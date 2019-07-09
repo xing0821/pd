@@ -34,6 +34,7 @@ import (
 	"github.com/pingcap/pd/pkg/etcdutil"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server/core"
+	"github.com/pingcap/pd/server/id"
 	"github.com/pingcap/pd/server/kv"
 	"github.com/pingcap/pd/server/namespace"
 	"github.com/pkg/errors"
@@ -89,7 +90,7 @@ type Server struct {
 	// for id allocator, we can use one allocator for
 	// store, region and peer, because we just need
 	// a unique ID.
-	idAlloc *idAllocator
+	idAllocator *id.AllocatorImpl
 	// for storage operation.
 	storage *core.Storage
 	// for namespace.
@@ -220,7 +221,7 @@ func (s *Server) startServer() error {
 	s.rootPath = path.Join(pdRootPath, strconv.FormatUint(s.clusterID, 10))
 	s.member, s.memberValue = s.memberInfo()
 
-	s.idAlloc = &idAllocator{s: s}
+	s.idAllocator = id.NewAllocatorImpl(s.client, s.rootPath, s.memberValue)
 	kvBase := kv.NewEtcdKVBase(s.client, s.rootPath)
 	path := filepath.Join(s.cfg.DataDir, "region-meta")
 	regionStorage, err := core.NewRegionStorage(path)
@@ -230,7 +231,7 @@ func (s *Server) startServer() error {
 	s.storage = core.NewStorage(kvBase).SetRegionStorage(regionStorage)
 	s.cluster = newRaftCluster(s, s.clusterID)
 	s.hbStreams = newHeartbeatStreams(s.clusterID, s.cluster)
-	if s.classifier, err = namespace.CreateClassifier(s.cfg.NamespaceClassifier, s.storage, s.idAlloc); err != nil {
+	if s.classifier, err = namespace.CreateClassifier(s.cfg.NamespaceClassifier, s.storage, s.idAllocator); err != nil {
 		return err
 	}
 
@@ -472,6 +473,11 @@ func (s *Server) GetClient() *clientv3.Client {
 // GetStorage returns the backend storage of server.
 func (s *Server) GetStorage() *core.Storage {
 	return s.storage
+}
+
+// GetAllocator returns the ID allocator of server.
+func (s *Server) GetAllocator() *id.AllocatorImpl {
+	return s.idAllocator
 }
 
 // ID returns the unique etcd ID for this server in etcd cluster.
@@ -767,10 +773,6 @@ func (s *Server) GetClusterStatus() (*ClusterStatus, error) {
 	s.cluster.Lock()
 	defer s.cluster.Unlock()
 	return s.cluster.loadClusterStatus()
-}
-
-func (s *Server) getAllocIDPath() string {
-	return path.Join(s.rootPath, "alloc_id")
 }
 
 func (s *Server) getMemberLeaderPriorityPath(id uint64) string {

@@ -22,7 +22,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	log "github.com/pingcap/log"
@@ -87,48 +86,6 @@ func CheckPDVersion(opt *scheduleOption) {
 	}
 }
 
-// A helper function to get value with key from etcd.
-func getValue(c *clientv3.Client, key string, opts ...clientv3.OpOption) ([]byte, error) {
-	resp, err := get(c, key, opts...)
-	if err != nil {
-		return nil, err
-	}
-	if resp == nil {
-		return nil, nil
-	}
-	return resp.Kvs[0].Value, nil
-}
-
-func get(c *clientv3.Client, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
-	resp, err := etcdutil.EtcdKVGet(c, key, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	if n := len(resp.Kvs); n == 0 {
-		return nil, nil
-	} else if n > 1 {
-		return nil, errors.Errorf("invalid get value resp %v, must only one", resp.Kvs)
-	}
-	return resp, nil
-}
-
-// Return boolean to indicate whether the key exists or not.
-func getProtoMsgWithModRev(c *clientv3.Client, key string, msg proto.Message, opts ...clientv3.OpOption) (bool, int64, error) {
-	resp, err := get(c, key, opts...)
-	if err != nil {
-		return false, 0, err
-	}
-	if resp == nil {
-		return false, 0, nil
-	}
-	value := resp.Kvs[0].Value
-	if err = proto.Unmarshal(value, msg); err != nil {
-		return false, 0, errors.WithStack(err)
-	}
-	return true, resp.Kvs[0].ModRevision, nil
-}
-
 func initOrGetClusterID(c *clientv3.Client, key string) (uint64, error) {
 	ctx, cancel := context.WithTimeout(c.Ctx(), requestTimeout)
 	defer cancel()
@@ -168,6 +125,7 @@ func initOrGetClusterID(c *clientv3.Client, key string) (uint64, error) {
 	return bytesToUint64(response.Kvs[0].Value)
 }
 
+// bytesToUint64 is transfer bytes to uint64.
 func bytesToUint64(b []byte) (uint64, error) {
 	if len(b) != 8 {
 		return 0, errors.Errorf("invalid data, must 8 bytes, but %d", len(b))
@@ -176,6 +134,7 @@ func bytesToUint64(b []byte) (uint64, error) {
 	return binary.BigEndian.Uint64(b), nil
 }
 
+// uint64ToBytes is transfer uint64 to bytes.
 func uint64ToBytes(v uint64) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, v)

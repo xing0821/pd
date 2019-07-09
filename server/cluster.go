@@ -128,7 +128,7 @@ func (c *RaftCluster) start() error {
 		return nil
 	}
 
-	cluster, err := loadClusterInfo(c.s.idAlloc, c.s.storage, c.s.scheduleOpt)
+	cluster, err := loadClusterInfo(c.s.idAllocator, c.s.storage, c.s.scheduleOpt)
 	if err != nil {
 		return err
 	}

@@ -20,12 +20,12 @@ type IDAllocator struct {
 	base uint64
 }
 
-// NewIDAllocator create a new IDAllocator
+// NewIDAllocator create a new IDAllocator.
 func NewIDAllocator() *IDAllocator {
 	return &IDAllocator{base: 0}
 }
 
-// Alloc return a new id
+// Alloc return a new id.
 func (alloc *IDAllocator) Alloc() (uint64, error) {
 	return atomic.AddUint64(&alloc.base, 1), nil
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/pingcap/failpoint"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	log "github.com/pingcap/log"
+	"github.com/pingcap/pd/pkg/etcdutil"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
@@ -47,7 +48,7 @@ func (s *Server) getTimestampPath() string {
 }
 
 func (s *Server) loadTimestamp() (time.Time, error) {
-	data, err := getValue(s.client, s.getTimestampPath())
+	data, err := etcdutil.GetValue(s.client, s.getTimestampPath())
 	if err != nil {
 		return zeroTime, err
 	}
