@@ -1,4 +1,4 @@
-// Copyright 2019 PingCAP, Inc.
+// Copyright 2016 PingCAP, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,20 +11,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package id
+package tso
 
 import "github.com/prometheus/client_golang/prometheus"
 
 var (
-	idGauge = prometheus.NewGaugeVec(
+	tsoCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "pd",
+			Subsystem: "tso",
+			Name:      "events",
+			Help:      "Counter of tso events",
+		}, []string{"type"})
+
+	tsoGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "pd",
 			Subsystem: "cluster",
-			Name:      "id",
-			Help:      "Record of id allocator.",
+			Name:      "tso",
+			Help:      "Record of tso metadata.",
 		}, []string{"type"})
 )
 
 func init() {
-	prometheus.MustRegister(idGauge)
+	prometheus.MustRegister(tsoCounter)
+	prometheus.MustRegister(tsoGauge)
 }
