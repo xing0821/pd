@@ -265,7 +265,7 @@ func (s *testMergeCheckerSuite) TestMatchPeers(c *C) {
 }
 
 func (s *testMergeCheckerSuite) TestStorelimit(c *C) {
-	oc := schedule.NewOperatorController(s.cluster, mockhbstream.NewHeartbeatStream())
+	oc := NewOperatorController(s.cluster, mockhbstream.NewHeartbeatStream())
 	s.cluster.ScheduleOptions.SplitMergeInterval = time.Hour
 	s.cluster.ScheduleOptions.StoreBalanceRate = 60
 	s.regions[2] = s.regions[2].Clone(
