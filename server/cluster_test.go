@@ -503,7 +503,7 @@ func (s *testClusterSuite) TestConcurrentHandleRegion(c *C) {
 	c.Assert(err, IsNil)
 	s.svr.cluster.RLock()
 	s.svr.cluster.cachedCluster.Lock()
-	s.svr.cluster.cachedCluster.kv = core.NewKV(kv.NewMemoryKV())
+	s.svr.cluster.cachedCluster.storage = core.NewStorage(kv.NewMemoryKV())
 	s.svr.cluster.cachedCluster.Unlock()
 	s.svr.cluster.RUnlock()
 	var stores []*metapb.Store
@@ -593,7 +593,7 @@ type testGetStoresSuite struct {
 func (s *testGetStoresSuite) SetUpSuite(c *C) {
 	_, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	s.cluster = newClusterInfo(mockid.NewIDAllocator(), opt, core.NewKV(kv.NewMemoryKV()))
+	s.cluster = newClusterInfo(mockid.NewIDAllocator(), opt, core.NewStorage(kv.NewMemoryKV()))
 
 	stores := newTestStores(200)
 
@@ -657,8 +657,8 @@ func (s *testClusterSuite) TestSetScheduleOpt(c *C) {
 	c.Assert(len(s.svr.scheduleOpt.loadLabelPropertyConfig()[typ]), Equals, 0)
 
 	//PUT GET failed
-	oldKV := s.svr.kv
-	s.svr.kv = core.NewKV(&testErrorKV{})
+	oldStorage := s.svr.storage
+	s.svr.storage = core.NewStorage(&testErrorKV{})
 	replicateCfg.MaxReplicas = 7
 	scheduleCfg.MaxSnapshotCount = 20
 	pdServerCfg.UseRegionStorage = false
@@ -676,11 +676,11 @@ func (s *testClusterSuite) TestSetScheduleOpt(c *C) {
 	c.Assert(len(s.svr.scheduleOpt.loadLabelPropertyConfig()[typ]), Equals, 0)
 
 	//DELETE failed
-	s.svr.kv = oldKV
+	s.svr.storage = oldStorage
 	c.Assert(s.svr.SetNamespaceConfig("testNS", nsConfig), IsNil)
 	c.Assert(s.svr.SetReplicationConfig(*replicateCfg), IsNil)
 
-	s.svr.kv = core.NewKV(&testErrorKV{})
+	s.svr.storage = core.NewStorage(&testErrorKV{})
 	c.Assert(s.svr.DeleteLabelProperty(typ, labelKey, labelValue), NotNil)
 	c.Assert(s.svr.GetNamespaceConfig("testNS").LeaderScheduleLimit, Equals, uint64(200))
 	c.Assert(s.svr.DeleteNamespaceConfig("testNS"), NotNil)

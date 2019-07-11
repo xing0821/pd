@@ -41,8 +41,8 @@ type testTableNamespaceSuite struct {
 }
 
 func (s *testTableNamespaceSuite) newClassifier(c *C) *tableNamespaceClassifier {
-	kvMem := core.NewKV(kv.NewMemoryKV())
-	classifier, err := NewTableNamespaceClassifier(kvMem, mockid.NewIDAllocator())
+	memStorage := core.NewStorage(kv.NewMemoryKV())
+	classifier, err := NewTableNamespaceClassifier(memStorage, mockid.NewIDAllocator())
 	c.Assert(err, IsNil)
 	tableClassifier := classifier.(*tableNamespaceClassifier)
 	testNamespace1 := Namespace{
@@ -136,8 +136,8 @@ func (s *testTableNamespaceSuite) TestTableNameSpaceGetRegionNamespace(c *C) {
 }
 
 func (s *testTableNamespaceSuite) TestNamespaceOperation(c *C) {
-	kvMem := core.NewKV(kv.NewMemoryKV())
-	classifier, err := NewTableNamespaceClassifier(kvMem, mockid.NewIDAllocator())
+	memStorage := core.NewStorage(kv.NewMemoryKV())
+	classifier, err := NewTableNamespaceClassifier(memStorage, mockid.NewIDAllocator())
 	c.Assert(err, IsNil)
 	tableClassifier := classifier.(*tableNamespaceClassifier)
 	nsInfo := tableClassifier.nsInfo

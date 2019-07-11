@@ -57,7 +57,7 @@ func newTestClusterInfo(opt *scheduleOption) *testClusterInfo {
 	return &testClusterInfo{clusterInfo: newClusterInfo(
 		mockid.NewIDAllocator(),
 		opt,
-		core.NewKV(kv.NewMemoryKV()),
+		core.NewStorage(kv.NewMemoryKV()),
 	)}
 }
 
@@ -623,7 +623,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	c.Assert(co.removeScheduler("balance-hot-region-scheduler"), IsNil)
 	c.Assert(co.removeScheduler("label-scheduler"), IsNil)
 	c.Assert(co.schedulers, HasLen, 2)
-	c.Assert(co.cluster.opt.persist(co.cluster.kv), IsNil)
+	c.Assert(co.cluster.opt.persist(co.cluster.storage), IsNil)
 	co.stop()
 	co.wg.Wait()
 	// make a new coordinator for testing
@@ -635,7 +635,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	// suppose we add a new default enable scheduler
 	newOpt.AddSchedulerCfg("adjacent-region", []string{})
 	c.Assert(newOpt.GetSchedulers(), HasLen, 5)
-	c.Assert(newOpt.reload(co.cluster.kv), IsNil)
+	c.Assert(newOpt.reload(co.cluster.storage), IsNil)
 	c.Assert(newOpt.GetSchedulers(), HasLen, 7)
 	tc.clusterInfo.opt = newOpt
 
@@ -647,7 +647,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	// suppose restart PD again
 	_, newOpt, err = newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	c.Assert(newOpt.reload(tc.kv), IsNil)
+	c.Assert(newOpt.reload(tc.storage), IsNil)
 	tc.clusterInfo.opt = newOpt
 	co = newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
 	co.run()
@@ -666,13 +666,13 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	// the scheduler that is not enable by default will be completely deleted
 	c.Assert(co.cluster.opt.GetSchedulers(), HasLen, 6)
 	c.Assert(co.schedulers, HasLen, 4)
-	c.Assert(co.cluster.opt.persist(co.cluster.kv), IsNil)
+	c.Assert(co.cluster.opt.persist(co.cluster.storage), IsNil)
 	co.stop()
 	co.wg.Wait()
 
 	_, newOpt, err = newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	c.Assert(newOpt.reload(co.cluster.kv), IsNil)
+	c.Assert(newOpt.reload(co.cluster.storage), IsNil)
 	tc.clusterInfo.opt = newOpt
 	co = newCoordinator(tc.clusterInfo, hbStreams, namespace.DefaultClassifier)
 
@@ -1015,9 +1015,9 @@ func getHeartBeatStreams(c *C, tc *testClusterInfo) *heartbeatStreams {
 	c.Assert(err, IsNil)
 	kvBase := kv.NewEtcdKVBase(svr.client, svr.rootPath)
 	path := filepath.Join(svr.cfg.DataDir, "region-meta")
-	regionKV, err := core.NewRegionKV(path)
+	regionStorage, err := core.NewRegionStorage(path)
 	c.Assert(err, IsNil)
-	svr.kv = core.NewKV(kvBase).SetRegionKV(regionKV)
+	svr.storage = core.NewStorage(kvBase).SetRegionStorage(regionStorage)
 	cluster := newRaftCluster(svr, tc.getClusterID())
 	cluster.cachedCluster = tc.clusterInfo
 	hbStreams := newHeartbeatStreams(tc.getClusterID(), cluster)
