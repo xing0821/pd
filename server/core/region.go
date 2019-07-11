@@ -838,9 +838,7 @@ type HexRegionMeta struct {
 }
 
 func (h HexRegionMeta) String() string {
-	var b strings.Builder
-	b.WriteString(proto.CompactTextString(h.Region))
-	return strings.TrimSpace(b.String())
+	return strings.TrimSpace(proto.CompactTextString(h.Region))
 }
 
 // RegionsToHexMeta converts regions' meta keys to hex format. Used for formating
