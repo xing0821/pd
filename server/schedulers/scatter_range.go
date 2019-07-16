@@ -30,6 +30,7 @@ func init() {
 		if len(args) != 3 {
 			return nil, errors.New("should specify the range and the name")
 		}
+		log.Info("key range before:", zap.String("range", fmt.Sprintf("{%s} -> {%s}", core.HexRegionKey([]byte(args[0])), core.HexRegionKey([]byte(args[1])))))
 		startKey, err := url.QueryUnescape(args[0])
 		if err != nil {
 			return nil, err
@@ -38,6 +39,7 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
+		log.Info("key range:", zap.String("range", fmt.Sprintf("{%s} -> {%s}", core.HexRegionKey([]byte(startKey)), core.HexRegionKey([]byte(endKey)))))
 		name := args[2]
 		return newScatterRangeScheduler(opController, []string{startKey, endKey, name}), nil
 	})
@@ -80,7 +82,6 @@ func (l *scatterRangeScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool
 func (l *scatterRangeScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
 	schedulerCounter.WithLabelValues(l.GetName(), "schedule").Inc()
 	// isolate a new cluster according to the key range
-	log.Info("key range:", zap.String("range", fmt.Sprintf("{%s} -> {%s}", core.HexRegionKey(l.startKey), core.HexRegionKey(l.endKey))))
 	c := schedule.GenRangeCluster(cluster, l.startKey, l.endKey)
 	c.SetTolerantSizeRatio(2)
 	ops := l.balanceLeader.Schedule(c)
