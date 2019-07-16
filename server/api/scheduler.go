@@ -84,12 +84,12 @@ func (h *schedulerHandler) Post(w http.ResponseWriter, r *http.Request) {
 		var unescapeStartKey, unescapeEndKey string
 		startKey, ok := input["start_key"].(string)
 		if ok {
-			unescapeStartKey, _ := url.QueryUnescape(startKey)
+			unescapeStartKey, _ = url.QueryUnescape(startKey)
 			args = append(args, unescapeStartKey)
 		}
 		endKey, ok := input["end_key"].(string)
 		if ok {
-			unescapeEndKey, _ := url.QueryUnescape(endKey)
+			unescapeEndKey, _ = url.QueryUnescape(endKey)
 			args = append(args, unescapeEndKey)
 		}
 		name, ok := input["range_name"].(string)
