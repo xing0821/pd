@@ -75,8 +75,8 @@ func (r *RangeCluster) updateStoreInfo(s *core.StoreInfo) *core.StoreInfo {
 	regionSize := r.regions.GetStoreRegionSize(id)
 	pendingPeerCount := r.regions.GetStorePendingPeerCount(id)
 	newStats := proto.Clone(s.GetStoreStats()).(*pdpb.StoreStats)
-	newStats.UsedSize = uint64(float64(s.GetRegionSize())/amplification) * (1 << 20)
-	newStats.Available = s.GetCapacity() - s.GetUsedSize()
+	newStats.UsedSize = uint64(float64(regionSize)/amplification) * (1 << 20)
+	newStats.Available = s.GetCapacity() - newStats.UsedSize
 	newStore := s.Clone(
 		core.SetStoreStats(newStats),
 		core.SetLeaderCount(leaderCount),
