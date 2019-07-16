@@ -16,6 +16,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/gorilla/mux"
 	log "github.com/pingcap/log"
@@ -80,19 +81,23 @@ func (h *schedulerHandler) Post(w http.ResponseWriter, r *http.Request) {
 		}
 	case "scatter-range":
 		var args []string
+		var unescapeStartKey, unescapeEndKey string
 		startKey, ok := input["start_key"].(string)
 		if ok {
-			args = append(args, startKey)
+			unescapeStartKey, _ := url.QueryUnescape(startKey)
+			args = append(args, unescapeStartKey)
 		}
 		endKey, ok := input["end_key"].(string)
 		if ok {
-			args = append(args, endKey)
+			unescapeEndKey, _ := url.QueryUnescape(endKey)
+			args = append(args, unescapeEndKey)
 		}
 		name, ok := input["range_name"].(string)
 		if ok {
 			args = append(args, name)
 		}
 		log.Info("key", zap.String("key", fmt.Sprintf("++++++++++++startKey: %v, endKey: %v++++++++\n", []byte(string(startKey)), []byte(string(endKey)))))
+		log.Info("unescape-key", zap.String("unescape-key", fmt.Sprintf("++++++++++++startKey: %v, endKey: %v++++++++\n", []byte(unescapeStartKey), []byte(unescapeEndKey))))
 		if err := h.AddScatterRangeScheduler(args...); err != nil {
 			h.r.JSON(w, http.StatusInternalServerError, err.Error())
 			return
