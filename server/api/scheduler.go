@@ -18,6 +18,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pingcap/pd/server"
+	log "github.com/sirupsen/logrus"
 	"github.com/unrolled/render"
 )
 
@@ -89,6 +90,7 @@ func (h *schedulerHandler) Post(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			args = append(args, name)
 		}
+		log.Infof("++++++++++++startKey: %v, endKey: %v\n++++++++", string(startKey), string(endKey))
 		if err := h.AddScatterRangeScheduler(args...); err != nil {
 			h.r.JSON(w, http.StatusInternalServerError, err.Error())
 			return
