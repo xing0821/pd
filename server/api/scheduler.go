@@ -14,15 +14,11 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server"
-	"github.com/pingcap/pd/server/core"
 	"github.com/unrolled/render"
-	"go.uber.org/zap"
 )
 
 type schedulerHandler struct {
@@ -93,7 +89,6 @@ func (h *schedulerHandler) Post(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			args = append(args, name)
 		}
-		log.Info("parameter:", zap.String("range", fmt.Sprintf("{%s} -> {%s}", core.HexRegionKey([]byte(startKey)), core.HexRegionKey([]byte(endKey)))))
 		if err := h.AddScatterRangeScheduler(args...); err != nil {
 			h.r.JSON(w, http.StatusInternalServerError, err.Error())
 			return
