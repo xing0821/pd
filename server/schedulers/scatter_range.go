@@ -17,6 +17,10 @@ import (
 	"fmt"
 	"net/url"
 
+	"go.uber.org/zap"
+
+	"github.com/pingcap/log"
+	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pkg/errors"
 )
@@ -76,6 +80,7 @@ func (l *scatterRangeScheduler) IsScheduleAllowed(cluster schedule.Cluster) bool
 func (l *scatterRangeScheduler) Schedule(cluster schedule.Cluster) []*schedule.Operator {
 	schedulerCounter.WithLabelValues(l.GetName(), "schedule").Inc()
 	// isolate a new cluster according to the key range
+	log.Info("key range:", zap.String("range", fmt.Sprintf("{%s} -> {%s}", core.HexRegionKey(l.startKey), core.HexRegionKey(l.endKey))))
 	c := schedule.GenRangeCluster(cluster, l.startKey, l.endKey)
 	c.SetTolerantSizeRatio(2)
 	ops := l.balanceLeader.Schedule(c)
