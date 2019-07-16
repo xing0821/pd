@@ -41,12 +41,10 @@ func GenRangeCluster(cluster Cluster, startKey, endKey []byte) *RangeCluster {
 	for !loopEnd {
 		collect := cluster.ScanRegions(scanKey, scanLimit)
 		if len(collect) == 0 {
-			log.Info("length = 0")
 			break
 		}
 		for _, r := range collect {
 			if bytes.Compare(r.GetStartKey(), endKey) < 0 {
-				log.Info("no set region")
 				regions.SetRegion(r)
 			} else {
 				loopEnd = true
@@ -59,7 +57,7 @@ func GenRangeCluster(cluster Cluster, startKey, endKey []byte) *RangeCluster {
 			scanKey = r.GetEndKey()
 		}
 	}
-	log.Info("range", zap.Reflect("regions", regions))
+	log.Info("range", zap.Int("regions", regions.Length()))
 	return &RangeCluster{
 		Cluster: cluster,
 		regions: regions,
