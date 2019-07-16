@@ -14,12 +14,14 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server"
-	log "github.com/sirupsen/logrus"
 	"github.com/unrolled/render"
+	"go.uber.org/zap"
 )
 
 type schedulerHandler struct {
@@ -90,7 +92,7 @@ func (h *schedulerHandler) Post(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			args = append(args, name)
 		}
-		log.Infof("++++++++++++startKey: %v, endKey: %v\n++++++++", string(startKey), string(endKey))
+		log.Info("key", zap.String("key", fmt.Sprintf("++++++++++++startKey: %v, endKey: %v++++++++\n", []byte(string(startKey)), []byte(string(endKey)))))
 		if err := h.AddScatterRangeScheduler(args...); err != nil {
 			h.r.JSON(w, http.StatusInternalServerError, err.Error())
 			return
