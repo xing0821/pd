@@ -187,6 +187,14 @@ func (l *balanceLeaderScheduler) createOperator(region *core.RegionInfo, source,
 		return nil
 	}
 
+	log.Info("balance leader",
+		zap.String("scheduler", l.GetName()), zap.Uint64("region-id", regionID), zap.Uint64("source-store", sourceID), zap.Uint64("target-store", targetID),
+		zap.Int64("source-size", source.GetLeaderSize()), zap.Float64("source-score", source.LeaderScore(0)),
+		zap.Int64("source-influence", opInfluence.GetStoreInfluence(sourceID).ResourceSize(core.LeaderKind)),
+		zap.Int64("target-size", target.GetLeaderSize()), zap.Float64("target-score", target.LeaderScore(0)),
+		zap.Int64("target-influence", opInfluence.GetStoreInfluence(targetID).ResourceSize(core.LeaderKind)),
+		zap.Int64("average-region-size", cluster.GetAverageRegionSize()))
+
 	schedulerCounter.WithLabelValues(l.GetName(), "new_operator").Inc()
 	sourceLabel := strconv.FormatUint(sourceID, 10)
 	targetLabel := strconv.FormatUint(targetID, 10)

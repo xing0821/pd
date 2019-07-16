@@ -18,9 +18,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/pingcap/kvproto/pkg/pdpb"
-	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/server/core"
-	"go.uber.org/zap"
 )
 
 // RangeCluster isolates the cluster by range.
@@ -57,7 +55,6 @@ func GenRangeCluster(cluster Cluster, startKey, endKey []byte) *RangeCluster {
 			scanKey = r.GetEndKey()
 		}
 	}
-	log.Info("range", zap.Int("regions", regions.Length()))
 	return &RangeCluster{
 		Cluster: cluster,
 		regions: regions,
