@@ -17,9 +17,11 @@ import (
 	"time"
 
 	"github.com/montanaflynn/stats"
+	log "github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/cache"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
+	"go.uber.org/zap"
 )
 
 const (
@@ -65,6 +67,11 @@ func shouldBalance(cluster schedule.Cluster, source, target *core.StoreInfo, reg
 	regionSize = int64(float64(regionSize) * adjustTolerantRatio(cluster))
 	sourceDelta := opInfluence.GetStoreInfluence(source.GetID()).ResourceSize(kind) - regionSize
 	targetDelta := opInfluence.GetStoreInfluence(target.GetID()).ResourceSize(kind) + regionSize
+
+	log.Info("balance leader score",
+		zap.Uint64("region-id", region.GetID()), zap.Uint64("source-store", source.GetID()), zap.Uint64("target-store", target.GetID()),
+		zap.Float64("source-score", source.ResourceScore(kind, cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), sourceDelta)),
+		zap.Float64("target-score", target.ResourceScore(kind, cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), targetDelta)))
 
 	// Make sure after move, source score is still greater than target score.
 	return source.ResourceScore(kind, cluster.GetHighSpaceRatio(), cluster.GetLowSpaceRatio(), sourceDelta) >
