@@ -20,6 +20,7 @@ import (
 	"github.com/pingcap/pd/pkg/cache"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -29,35 +30,50 @@ func init() {
 	})
 }
 
-// balanceLeaderRetryLimit is the limit to retry schedule for selected source store and target store.
-const balanceLeaderRetryLimit = 10
+const (
+	// balanceLeaderRetryLimit is the limit to retry schedule for selected source store and target store.
+	balanceLeaderRetryLimit = 10
+	scatterRangeLeaderName  = "scatter-range-leader"
+)
 
 type balanceLeaderScheduler struct {
 	*baseScheduler
-	selector     *schedule.BalanceSelector
-	taintStores  *cache.TTLUint64
-	opController *schedule.OperatorController
+	name          string
+	selector      *schedule.BalanceSelector
+	taintStores   *cache.TTLUint64
+	opController  *schedule.OperatorController
+	leaderCounter *prometheus.CounterVec
 }
 
 // newBalanceLeaderScheduler creates a scheduler that tends to keep leaders on
 // each store balanced.
-func newBalanceLeaderScheduler(opController *schedule.OperatorController) schedule.Scheduler {
+func newBalanceLeaderScheduler(opController *schedule.OperatorController, name ...string) schedule.Scheduler {
 	taintStores := newTaintCache()
 	filters := []schedule.Filter{
 		schedule.StoreStateFilter{TransferLeader: true},
 		schedule.NewCacheFilter(taintStores),
 	}
 	base := newBaseScheduler(opController)
+
 	s := &balanceLeaderScheduler{
 		baseScheduler: base,
 		selector:      schedule.NewBalanceSelector(core.LeaderKind, filters),
 		taintStores:   taintStores,
 		opController:  opController,
 	}
+	if len(name) != 0 {
+		s.leaderCounter = scatterRangeLeaderCounter
+		s.name = name[0]
+	} else {
+		s.leaderCounter = balanceLeaderCounter
+	}
 	return s
 }
 
 func (l *balanceLeaderScheduler) GetName() string {
+	if l.name != "" {
+		return l.name
+	}
 	return "balance-leader-scheduler"
 }
 
@@ -97,26 +113,26 @@ func (l *balanceLeaderScheduler) Schedule(cluster schedule.Cluster) []*schedule.
 	targetStoreLabel := strconv.FormatUint(targetID, 10)
 	sourceAddress := source.GetAddress()
 	targetAddress := target.GetAddress()
-	balanceLeaderCounter.WithLabelValues("high_score", sourceAddress, sourceStoreLabel).Inc()
-	balanceLeaderCounter.WithLabelValues("low_score", targetAddress, targetStoreLabel).Inc()
+	l.leaderCounter.WithLabelValues("high_score", sourceAddress, sourceStoreLabel).Inc()
+	l.leaderCounter.WithLabelValues("low_score", targetAddress, targetStoreLabel).Inc()
 
 	opInfluence := l.opController.GetOpInfluence(cluster)
 	for i := 0; i < balanceLeaderRetryLimit; i++ {
 		if op := l.transferLeaderOut(source, cluster, opInfluence); op != nil {
-			balanceLeaderCounter.WithLabelValues("transfer_out", sourceAddress, sourceStoreLabel).Inc()
+			l.leaderCounter.WithLabelValues("transfer_out", sourceAddress, sourceStoreLabel).Inc()
 			return op
 		}
 		if op := l.transferLeaderIn(target, cluster, opInfluence); op != nil {
-			balanceLeaderCounter.WithLabelValues("transfer_in", targetAddress, targetStoreLabel).Inc()
+			l.leaderCounter.WithLabelValues("transfer_in", targetAddress, targetStoreLabel).Inc()
 			return op
 		}
 	}
 
 	// If no operator can be created for the selected stores, ignore them for a while.
 	log.Debug("no operator created for selected stores", zap.String("scheduler", l.GetName()), zap.Uint64("source", sourceID), zap.Uint64("target", targetID))
-	balanceLeaderCounter.WithLabelValues("add_taint", sourceAddress, sourceStoreLabel).Inc()
+	l.leaderCounter.WithLabelValues("add_taint", sourceAddress, sourceStoreLabel).Inc()
 	l.taintStores.Put(sourceID)
-	balanceLeaderCounter.WithLabelValues("add_taint", targetAddress, targetStoreLabel).Inc()
+	l.leaderCounter.WithLabelValues("add_taint", targetAddress, targetStoreLabel).Inc()
 	l.taintStores.Put(targetID)
 	return nil
 }
@@ -190,8 +206,8 @@ func (l *balanceLeaderScheduler) createOperator(region *core.RegionInfo, source,
 	schedulerCounter.WithLabelValues(l.GetName(), "new_operator").Inc()
 	sourceLabel := strconv.FormatUint(sourceID, 10)
 	targetLabel := strconv.FormatUint(targetID, 10)
-	balanceLeaderCounter.WithLabelValues("move_leader", source.GetAddress()+"-out", sourceLabel).Inc()
-	balanceLeaderCounter.WithLabelValues("move_leader", target.GetAddress()+"-in", targetLabel).Inc()
+	l.leaderCounter.WithLabelValues("move_leader", source.GetAddress()+"-out", sourceLabel).Inc()
+	l.leaderCounter.WithLabelValues("move_leader", target.GetAddress()+"-in", targetLabel).Inc()
 	op := schedule.CreateTransferLeaderOperator("balance-leader", region, region.GetLeader().GetStoreId(), targetID, schedule.OpBalance)
 	return []*schedule.Operator{op}
 }
