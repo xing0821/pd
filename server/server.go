@@ -30,9 +30,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
-	log "github.com/pingcap/log"
+	"github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/etcdutil"
 	"github.com/pingcap/pd/pkg/logutil"
+	"github.com/pingcap/pd/pkg/typeutil"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/id"
 	"github.com/pingcap/pd/server/kv"
@@ -252,7 +253,7 @@ func (s *Server) initClusterID() error {
 		s.clusterID, err = initOrGetClusterID(s.client, pdClusterIDPath)
 		return err
 	}
-	s.clusterID, err = bytesToUint64(resp.Kvs[0].Value)
+	s.clusterID, err = typeutil.BytesToUint64(resp.Kvs[0].Value)
 	return err
 }
 
@@ -385,7 +386,7 @@ func (s *Server) bootstrapCluster(req *pdpb.BootstrapRequest) (*pdpb.BootstrapRe
 	bootstrapKey := makeBootstrapTimeKey(clusterRootPath)
 	nano := time.Now().UnixNano()
 
-	timeData := uint64ToBytes(uint64(nano))
+	timeData := typeutil.Uint64ToBytes(uint64(nano))
 	ops = append(ops, clientv3.OpPut(bootstrapKey, string(timeData)))
 
 	// Set store meta

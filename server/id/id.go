@@ -14,12 +14,12 @@
 package id
 
 import (
-	"encoding/binary"
 	"path"
 	"sync"
 
-	log "github.com/pingcap/log"
+	"github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/etcdutil"
+	"github.com/pingcap/pd/pkg/typeutil"
 	"github.com/pingcap/pd/server/kv"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
@@ -44,12 +44,12 @@ type AllocatorImpl struct {
 	member   string
 }
 
-// NewAllocatorImpl create a new IDAllocator.
+// NewAllocatorImpl creates a new IDAllocator.
 func NewAllocatorImpl(client *clientv3.Client, rootPath string, member string) *AllocatorImpl {
 	return &AllocatorImpl{client: client, rootPath: rootPath, member: member}
 }
 
-// Alloc return a new id
+// Alloc returns a new id.
 func (alloc *AllocatorImpl) Alloc() (uint64, error) {
 	alloc.mu.Lock()
 	defer alloc.mu.Unlock()
@@ -86,7 +86,7 @@ func (alloc *AllocatorImpl) generate() (uint64, error) {
 		cmp = clientv3.Compare(clientv3.CreateRevision(key), "=", 0)
 	} else {
 		// update the key
-		end, err = bytesToUint64(value)
+		end, err = typeutil.BytesToUint64(value)
 		if err != nil {
 			return 0, err
 		}
@@ -95,7 +95,7 @@ func (alloc *AllocatorImpl) generate() (uint64, error) {
 	}
 
 	end += allocStep
-	value = uint64ToBytes(end)
+	value = typeutil.Uint64ToBytes(end)
 	txn := kv.NewSlowLogTxn(alloc.client)
 	leaderPath := path.Join(alloc.rootPath, "leader")
 	t := txn.If(append([]clientv3.Cmp{cmp}, clientv3.Compare(clientv3.Value(leaderPath), "=", alloc.member))...)
@@ -114,20 +114,4 @@ func (alloc *AllocatorImpl) generate() (uint64, error) {
 
 func (alloc *AllocatorImpl) getAllocIDPath() string {
 	return path.Join(alloc.rootPath, "alloc_id")
-}
-
-// bytesToUint64 is transfer bytes to uint64.
-func bytesToUint64(b []byte) (uint64, error) {
-	if len(b) != 8 {
-		return 0, errors.Errorf("invalid data, must 8 bytes, but %d", len(b))
-	}
-
-	return binary.BigEndian.Uint64(b), nil
-}
-
-// uint64ToBytes is transfer uint64 to bytes.
-func uint64ToBytes(v uint64) []byte {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, v)
-	return b
 }

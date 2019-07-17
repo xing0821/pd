@@ -15,7 +15,6 @@ package server
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -24,8 +23,9 @@ import (
 
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
-	log "github.com/pingcap/log"
+	"github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/etcdutil"
+	"github.com/pingcap/pd/pkg/typeutil"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
@@ -93,7 +93,7 @@ func initOrGetClusterID(c *clientv3.Client, key string) (uint64, error) {
 	// Generate a random cluster ID.
 	ts := uint64(time.Now().Unix())
 	clusterID := (ts << 32) + uint64(rand.Uint32())
-	value := uint64ToBytes(clusterID)
+	value := typeutil.Uint64ToBytes(clusterID)
 
 	// Multiple PDs may try to init the cluster ID at the same time.
 	// Only one PD can commit this transaction, then other PDs can get
@@ -122,23 +122,7 @@ func initOrGetClusterID(c *clientv3.Client, key string) (uint64, error) {
 		return 0, errors.Errorf("txn returns invalid range response: %v", resp)
 	}
 
-	return bytesToUint64(response.Kvs[0].Value)
-}
-
-// bytesToUint64 is transfer bytes to uint64.
-func bytesToUint64(b []byte) (uint64, error) {
-	if len(b) != 8 {
-		return 0, errors.Errorf("invalid data, must 8 bytes, but %d", len(b))
-	}
-
-	return binary.BigEndian.Uint64(b), nil
-}
-
-// uint64ToBytes is transfer uint64 to bytes.
-func uint64ToBytes(v uint64) []byte {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, v)
-	return b
+	return typeutil.BytesToUint64(response.Kvs[0].Value)
 }
 
 // GetMembers return a slice of Members.
@@ -163,7 +147,7 @@ func GetMembers(etcdClient *clientv3.Client) ([]*pdpb.Member, error) {
 }
 
 func parseTimestamp(data []byte) (time.Time, error) {
-	nano, err := bytesToUint64(data)
+	nano, err := typeutil.BytesToUint64(data)
 	if err != nil {
 		return zeroTime, err
 	}
