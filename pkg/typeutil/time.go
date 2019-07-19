@@ -18,7 +18,7 @@ import "time"
 // ZeroTime is a zero time.
 var ZeroTime = time.Time{}
 
-// ParseTimestamp returns a time for a given byte slice.
+// ParseTimestamp returns a timestamp for a given byte slice.
 func ParseTimestamp(data []byte) (time.Time, error) {
 	nano, err := BytesToUint64(data)
 	if err != nil {
@@ -28,7 +28,7 @@ func ParseTimestamp(data []byte) (time.Time, error) {
 	return time.Unix(0, int64(nano)), nil
 }
 
-// SubTimeByWallClock returns the duration between two different time.
+// SubTimeByWallClock returns the duration between two different timestamps.
 func SubTimeByWallClock(after time.Time, before time.Time) time.Duration {
 	return time.Duration(after.UnixNano() - before.UnixNano())
 }
