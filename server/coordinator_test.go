@@ -19,6 +19,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pingcap/pd/server/id"
+	syncer "github.com/pingcap/pd/server/region_syncer"
+
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/eraftpb"
 	"github.com/pingcap/kvproto/pkg/metapb"
