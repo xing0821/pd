@@ -19,9 +19,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pingcap/pd/server/id"
-	syncer "github.com/pingcap/pd/server/region_syncer"
-
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/eraftpb"
 	"github.com/pingcap/kvproto/pkg/metapb"
@@ -31,8 +28,10 @@ import (
 	"github.com/pingcap/pd/pkg/testutil"
 	"github.com/pingcap/pd/server/config"
 	"github.com/pingcap/pd/server/core"
+	"github.com/pingcap/pd/server/id"
 	"github.com/pingcap/pd/server/kv"
 	"github.com/pingcap/pd/server/namespace"
+	syncer "github.com/pingcap/pd/server/region_syncer"
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/schedulers"

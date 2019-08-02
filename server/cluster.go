@@ -982,9 +982,7 @@ func (c *RaftCluster) checkStores() {
 	var offlineStores []*metapb.Store
 	var upStoreCount int
 
-	c.RLock()
-	stores := c.core.GetStores()
-	c.RUnlock()
+	stores := c.GetStores()
 	for _, store := range stores {
 		// the store has already been tombstone
 		if store.IsTombstone() {
@@ -1063,9 +1061,7 @@ func (c *RaftCluster) checkOperators() {
 	for _, op := range opController.GetOperators() {
 		// after region is merged, it will not heartbeat anymore
 		// the operator of merged region will not timeout actively
-		c.RLock()
-		region := c.core.GetRegion(op.RegionID())
-		c.RUnlock()
+		region := c.GetRegion(op.RegionID())
 		if region == nil {
 			log.Debug("remove operator cause region is merged",
 				zap.Uint64("region-id", op.RegionID()),
@@ -1085,9 +1081,7 @@ func (c *RaftCluster) checkOperators() {
 
 func (c *RaftCluster) collectMetrics() {
 	statsMap := statistics.NewStoreStatisticsMap(c.opt, c.GetNamespaceClassifier())
-	c.RLock()
-	stores := c.core.GetStores()
-	c.RUnlock()
+	stores := c.GetStores()
 	for _, s := range stores {
 		statsMap.Observe(s, c.storesStats)
 	}
