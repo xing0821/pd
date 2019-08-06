@@ -86,7 +86,7 @@ func run(simCase string) {
 			simutil.Logger.Fatal("run server error", zap.Error(err))
 		}
 		for {
-			if local.IsLeader() {
+			if !local.IsClosed() && local.member.IsLeader() {
 				break
 			}
 			time.Sleep(100 * time.Millisecond)
