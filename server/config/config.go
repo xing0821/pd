@@ -520,8 +520,6 @@ type ScheduleConfig struct {
 	HighSpaceRatio float64 `toml:"high-space-ratio,omitempty" json:"high-space-ratio"`
 	// SchedulerMaxWaitingOperator is the max coexist operators for each scheduler.
 	SchedulerMaxWaitingOperator uint64 `toml:"scheduler-max-waiting-operator,omitempty" json:"scheduler-max-waiting-operator"`
-	// DisableLearner is the option to disable using AddLearnerNode instead of AddNode.
-	DisableLearner bool `toml:"disable-raft-learner" json:"disable-raft-learner,string"`
 
 	// DisableRemoveDownReplica is the option to prevent replica checker from
 	// removing down replicas.
@@ -570,7 +568,6 @@ func (c *ScheduleConfig) Clone() *ScheduleConfig {
 		LowSpaceRatio:                c.LowSpaceRatio,
 		HighSpaceRatio:               c.HighSpaceRatio,
 		SchedulerMaxWaitingOperator:  c.SchedulerMaxWaitingOperator,
-		DisableLearner:               c.DisableLearner,
 		DisableRemoveDownReplica:     c.DisableRemoveDownReplica,
 		DisableReplaceOfflineReplica: c.DisableReplaceOfflineReplica,
 		DisableMakeUpReplica:         c.DisableMakeUpReplica,

@@ -548,10 +548,6 @@ func (h *Handler) AddAddLearnerOperator(regionID uint64, toStoreID uint64) error
 		return err
 	}
 
-	if !c.cluster.IsRaftLearnerEnabled() {
-		return ErrOperatorNotFound
-	}
-
 	newPeer, err := c.cluster.AllocPeer(toStoreID)
 	if err != nil {
 		return err
