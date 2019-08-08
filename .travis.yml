@@ -19,6 +19,7 @@ matrix:
       - go get github.com/mattn/goveralls
     env:
       - TRAVIS_COVERAGE=1
+      - CODECOV_TOKEN="60b4ec5a-ae12-4ec2-8dc7-ecf8266c4a03"
     script:
       - make ci
     after_success:
