@@ -255,7 +255,7 @@ func (s *TestServer) GetStores() []*metapb.Store {
 func (s *TestServer) GetStore(storeID uint64) (*core.StoreInfo, error) {
 	s.RLock()
 	defer s.RUnlock()
-	return s.server.GetRaftCluster().TryGetStore(storeID)
+	return s.server.GetRaftCluster().GetStore(storeID)
 }
 
 // GetRaftCluster returns Raft cluster.

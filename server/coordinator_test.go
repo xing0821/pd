@@ -99,7 +99,7 @@ func (c *testCluster) addLeaderRegion(regionID uint64, leaderID uint64, follower
 }
 
 func (c *testCluster) updateLeaderCount(storeID uint64, leaderCount int) error {
-	store := c.GetStore(storeID)
+	store, _ := c.GetStore(storeID)
 	newStore := store.Clone(
 		core.SetLeaderCount(leaderCount),
 		core.SetLeaderSize(int64(leaderCount)*10),
@@ -123,7 +123,7 @@ func (c *testCluster) addLeaderStore(storeID uint64, leaderCount int) error {
 }
 
 func (c *testCluster) setStoreDown(storeID uint64) error {
-	store := c.GetStore(storeID)
+	store, _ := c.GetStore(storeID)
 	newStore := store.Clone(
 		core.SetStoreState(metapb.StoreState_Up),
 		core.SetLastHeartbeatTS(time.Time{}),
@@ -134,7 +134,7 @@ func (c *testCluster) setStoreDown(storeID uint64) error {
 }
 
 func (c *testCluster) setStoreOffline(storeID uint64) error {
-	store := c.GetStore(storeID)
+	store, _ := c.GetStore(storeID)
 	newStore := store.Clone(core.SetStoreState(metapb.StoreState_Offline))
 	c.Lock()
 	defer c.Unlock()

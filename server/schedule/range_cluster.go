@@ -89,12 +89,12 @@ func (r *RangeCluster) updateStoreInfo(s *core.StoreInfo) *core.StoreInfo {
 }
 
 // GetStore searches for a store by ID.
-func (r *RangeCluster) GetStore(id uint64) *core.StoreInfo {
-	s := r.Cluster.GetStore(id)
-	if s != nil {
-		return r.updateStoreInfo(s)
+func (r *RangeCluster) GetStore(id uint64) (*core.StoreInfo, error) {
+	s, err := r.Cluster.GetStore(id)
+	if err != nil {
+		return nil, err
 	}
-	return s
+	return r.updateStoreInfo(s), nil
 }
 
 // GetStores returns all Stores in the cluster.

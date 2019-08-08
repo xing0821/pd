@@ -79,7 +79,7 @@ func (h *labelsHandler) GetStores(w http.ResponseWriter, r *http.Request) {
 
 	stores = filter.filter(stores)
 	for _, s := range stores {
-		store, err := cluster.TryGetStore(s.GetId())
+		store, err := cluster.GetStore(s.GetId())
 		if err != nil {
 			h.rd.JSON(w, http.StatusInternalServerError, err.Error())
 			return

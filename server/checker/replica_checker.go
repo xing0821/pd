@@ -164,9 +164,9 @@ func (r *ReplicaChecker) checkDownPeer(region *core.RegionInfo) *operator.Operat
 		if peer == nil {
 			continue
 		}
-		store := r.cluster.GetStore(peer.GetStoreId())
-		if store == nil {
-			log.Info("lost the store, maybe you are recovering the PD cluster", zap.Uint64("store-id", peer.GetStoreId()))
+		store, err := r.cluster.GetStore(peer.GetStoreId())
+		if err != nil {
+			log.Warn("lost the store, maybe you are recovering the PD cluster", zap.Error(err))
 			return nil
 		}
 		if store.DownTime() < r.cluster.GetMaxStoreDownTime() {
@@ -192,9 +192,9 @@ func (r *ReplicaChecker) checkOfflinePeer(region *core.RegionInfo) *operator.Ope
 	}
 
 	for _, peer := range region.GetPeers() {
-		store := r.cluster.GetStore(peer.GetStoreId())
-		if store == nil {
-			log.Info("lost the store, maybe you are recovering the PD cluster", zap.Uint64("store-id", peer.GetStoreId()))
+		store, err := r.cluster.GetStore(peer.GetStoreId())
+		if err != nil {
+			log.Warn("lost the store, maybe you are recovering the PD cluster", zap.Error(err))
 			return nil
 		}
 		if store.IsUp() {

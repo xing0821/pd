@@ -738,9 +738,16 @@ func getRegionFollowerIDs(region *core.RegionInfo) []uint64 {
 // removePeerSteps returns the steps to safely remove a peer. It prevents removing leader by transfer its leadership first.
 func removePeerSteps(cluster Cluster, region *core.RegionInfo, storeID uint64, followerIDs []uint64) (kind OpKind, steps []OpStep, err error) {
 	if region.GetLeader() != nil && region.GetLeader().GetStoreId() == storeID {
+		var follower *core.StoreInfo
 		for _, id := range followerIDs {
-			follower := cluster.GetStore(id)
-			if follower != nil && !cluster.CheckLabelProperty(opt.RejectLeader, follower.GetLabels()) {
+			follower, err = cluster.GetStore(id)
+			if err != nil {
+				log.Error("failed to get the store",
+					zap.Uint64("store-id", id),
+					zap.Error(err))
+				continue
+			}
+			if !cluster.CheckLabelProperty(opt.RejectLeader, follower.GetLabels()) {
 				steps = append(steps, TransferLeader{FromStore: storeID, ToStore: id})
 				kind = OpLeader
 				break
@@ -748,7 +755,7 @@ func removePeerSteps(cluster Cluster, region *core.RegionInfo, storeID uint64, f
 		}
 		if len(steps) == 0 {
 			err = errors.New("no suitable follower to become region leader")
-			log.Debug("fail to create remove peer operator", zap.Uint64("region-id", region.GetID()), zap.Error(err))
+			log.Debug("failed to create remove peer operator", zap.Uint64("region-id", region.GetID()), zap.Error(err))
 			return
 		}
 	}

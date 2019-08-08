@@ -112,8 +112,8 @@ func (c *namespaceCluster) GetStores() []*core.StoreInfo {
 }
 
 // GetStore searches for a store by ID.
-func (c *namespaceCluster) GetStore(id uint64) *core.StoreInfo {
-	return c.stores[id]
+func (c *namespaceCluster) GetStore(id uint64) (*core.StoreInfo, error) {
+	return c.stores[id], nil
 }
 
 // GetRegion searches for a region by ID.

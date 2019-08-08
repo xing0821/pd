@@ -43,6 +43,6 @@ var functionList = []string{"count", "label_values", "count_leader", "isolation_
 type Cluster interface {
 	GetRegion(id uint64) *core.RegionInfo
 	GetStores() []*core.StoreInfo
-	GetStore(id uint64) *core.StoreInfo
+	GetStore(id uint64) (*core.StoreInfo, error)
 	GetRegionStores(region *core.RegionInfo) []*core.StoreInfo
 }

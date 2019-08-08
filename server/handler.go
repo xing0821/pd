@@ -101,7 +101,7 @@ func (h *Handler) GetStores() ([]*core.StoreInfo, error) {
 	storeMetas := cluster.GetMetaStores()
 	stores := make([]*core.StoreInfo, 0, len(storeMetas))
 	for _, s := range storeMetas {
-		store, err := cluster.TryGetStore(s.GetId())
+		store, err := cluster.GetStore(s.GetId())
 		if err != nil {
 			return nil, err
 		}
@@ -429,9 +429,10 @@ func (h *Handler) AddTransferRegionOperator(regionID uint64, storeIDs map[uint64
 		return errors.Errorf("the number of stores is %v, beyond the max replicas", len(storeIDs))
 	}
 
+	var store *core.StoreInfo
 	for id := range storeIDs {
-		store := c.cluster.GetStore(id)
-		if store == nil {
+		store, err = c.cluster.GetStore(id)
+		if err != nil {
 			return core.NewStoreNotFoundErr(id)
 		}
 		if store.IsTombstone() {
@@ -466,8 +467,8 @@ func (h *Handler) AddTransferPeerOperator(regionID uint64, fromStoreID, toStoreI
 		return errors.Errorf("region has no peer in store %v", fromStoreID)
 	}
 
-	toStore := c.cluster.GetStore(toStoreID)
-	if toStore == nil {
+	toStore, err := c.cluster.GetStore(toStoreID)
+	if err != nil {
 		return core.NewStoreNotFoundErr(toStoreID)
 	}
 	if toStore.IsTombstone() {
@@ -505,8 +506,8 @@ func (h *Handler) checkAdminAddPeerOperator(regionID uint64, toStoreID uint64) (
 		return nil, nil, errors.Errorf("region already has peer in store %v", toStoreID)
 	}
 
-	toStore := c.cluster.GetStore(toStoreID)
-	if toStore == nil {
+	toStore, err := c.cluster.GetStore(toStoreID)
+	if err != nil {
 		return nil, nil, core.NewStoreNotFoundErr(toStoreID)
 	}
 	if toStore.IsTombstone() {

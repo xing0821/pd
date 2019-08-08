@@ -238,8 +238,12 @@ func (l *balanceAdjacentRegionScheduler) unsafeToBalance(cluster schedule.Cluste
 	if len(region.GetPeers()) != cluster.GetMaxReplicas() {
 		return true
 	}
-	store := cluster.GetStore(region.GetLeader().GetStoreId())
-	if store == nil {
+	storeID := region.GetLeader().GetStoreId()
+	store, err := cluster.GetStore(storeID)
+	if err != nil {
+		log.Error("failed to get the store",
+			zap.Uint64("store-id", storeID),
+			zap.Error(err))
 		return true
 	}
 	s := l.selector.SelectSource(cluster, []*core.StoreInfo{store})
@@ -264,7 +268,7 @@ func (l *balanceAdjacentRegionScheduler) disperseLeader(cluster schedule.Cluster
 	}
 	storesInfo := make([]*core.StoreInfo, 0, len(diffPeers))
 	for _, p := range diffPeers {
-		if store := cluster.GetStore(p.GetStoreId()); store != nil {
+		if store, err := cluster.GetStore(p.GetStoreId()); err == nil {
 			storesInfo = append(storesInfo, store)
 		}
 	}
@@ -285,8 +289,11 @@ func (l *balanceAdjacentRegionScheduler) dispersePeer(cluster schedule.Cluster, 
 	// scoreGuard guarantees that the distinct score will not decrease.
 	leaderStoreID := region.GetLeader().GetStoreId()
 	stores := cluster.GetRegionStores(region)
-	source := cluster.GetStore(leaderStoreID)
-	if source == nil {
+	source, err := cluster.GetStore(leaderStoreID)
+	if err != nil {
+		log.Error("failed to get the source store",
+			zap.Uint64("store-id", leaderStoreID),
+			zap.Error(err))
 		return nil
 	}
 

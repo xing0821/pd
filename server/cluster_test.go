@@ -331,11 +331,12 @@ func (s *baseCluster) testPutStore(c *C, clusterID uint64, store *metapb.Store) 
 func (s *baseCluster) resetStoreState(c *C, storeID uint64, state metapb.StoreState) {
 	cluster := s.svr.GetRaftCluster()
 	c.Assert(cluster, NotNil)
-	store := cluster.GetStore(storeID)
+	store, err := cluster.GetStore(storeID)
+	c.Assert(err, IsNil)
 	c.Assert(store, NotNil)
 	newStore := store.Clone(core.SetStoreState(state))
 	cluster.Lock()
-	err := cluster.putStoreLocked(newStore)
+	err = cluster.putStoreLocked(newStore)
 	cluster.Unlock()
 	c.Assert(err, IsNil)
 }
@@ -1002,7 +1003,8 @@ func (s *testClusterInfoSuite) TestStoreHeartbeat(c *C) {
 
 		c.Assert(cluster.handleStoreHeartbeat(storeStats), IsNil)
 
-		s := cluster.GetStore(store.GetID())
+		s, err := cluster.GetStore(store.GetID())
+		c.Assert(err, IsNil)
 		c.Assert(s.GetLastHeartbeatTS().IsZero(), IsFalse)
 		c.Assert(s.GetStoreStats(), DeepEquals, storeStats)
 	}
