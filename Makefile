@@ -104,6 +104,7 @@ tidy:
 	git diff --quiet go.mod go.sum
 
 travis_coverage: export GO111MODULE=on
+travis_coverage: export CODECOV_TOKEN="60b4ec5a-ae12-4ec2-8dc7-ecf8266c4a03"
 travis_coverage:
 ifeq ("$(TRAVIS_COVERAGE)", "1")
 	@$(FAILPOINT_ENABLE)
