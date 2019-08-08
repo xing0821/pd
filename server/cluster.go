@@ -28,6 +28,7 @@ import (
 	"github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/pkg/typeutil"
+	"github.com/pingcap/pd/server/config"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/id"
 	"github.com/pingcap/pd/server/namespace"
@@ -62,7 +63,7 @@ type RaftCluster struct {
 	// cached cluster info
 	core    *core.BasicCluster
 	meta    *metapb.Cluster
-	opt     *scheduleOption
+	opt     *config.ScheduleOption
 	storage *core.Storage
 	id      id.Allocator
 
@@ -137,7 +138,7 @@ func (c *RaftCluster) loadBootstrapTime() (time.Time, error) {
 	return typeutil.ParseTimestamp([]byte(data))
 }
 
-func (c *RaftCluster) initCluster(id id.Allocator, opt *scheduleOption, storage *core.Storage) {
+func (c *RaftCluster) initCluster(id id.Allocator, opt *config.ScheduleOption, storage *core.Storage) {
 	c.core = core.NewBasicCluster()
 	c.opt = opt
 	c.storage = storage
@@ -313,8 +314,8 @@ func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
 			}
 		}
 	}
-	isWriteUpdate, writeItem := c.CheckWriteStatus(region)
-	isReadUpdate, readItem := c.CheckReadStatus(region)
+	writeItems := c.CheckWriteStatus(region)
+	readItems := c.CheckReadStatus(region)
 	c.RUnlock()
 
 	// Save to storage if meta is updated.
@@ -395,7 +396,7 @@ func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
 		default:
 		}
 	}
-	if !isWriteUpdate && !isReadUpdate && !saveCache && !isNew {
+	if len(writeItems) == 0 && len(readItems) == 0 && !saveCache && !isNew {
 		return nil
 	}
 
@@ -439,12 +440,11 @@ func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
 		c.regionStats.Observe(region, c.takeRegionStoresLocked(region))
 	}
 
-	key := region.GetID()
-	if isWriteUpdate {
-		c.hotSpotCache.Update(key, writeItem, statistics.WriteFlow)
+	for _, writeItem := range writeItems {
+		c.hotSpotCache.Update(writeItem)
 	}
-	if isReadUpdate {
-		c.hotSpotCache.Update(key, readItem, statistics.ReadFlow)
+	for _, readItem := range readItems {
+		c.hotSpotCache.Update(readItem)
 	}
 	return nil
 }
@@ -750,10 +750,10 @@ func (c *RaftCluster) GetStore(storeID uint64) *core.StoreInfo {
 }
 
 // IsRegionHot checks if a region is in hot state.
-func (c *RaftCluster) IsRegionHot(id uint64) bool {
+func (c *RaftCluster) IsRegionHot(region *core.RegionInfo) bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.hotSpotCache.IsRegionHot(id, c.GetHotRegionCacheHitsThreshold())
+	return c.hotSpotCache.IsRegionHot(region, c.GetHotRegionCacheHitsThreshold())
 }
 
 // GetAdjacentRegions returns regions' information that are adjacent with the specific region ID.
@@ -1176,7 +1176,7 @@ func (c *RaftCluster) OnStoreVersionChange() {
 		clusterVersion semver.Version
 	)
 
-	clusterVersion = c.opt.loadClusterVersion()
+	clusterVersion = c.opt.LoadClusterVersion()
 	stores := c.core.GetStores()
 	for _, s := range stores {
 		if s.IsTombstone() {
@@ -1192,7 +1192,7 @@ func (c *RaftCluster) OnStoreVersionChange() {
 	// it will update the cluster version.
 	if clusterVersion.LessThan(*minVersion) {
 		c.opt.SetClusterVersion(*minVersion)
-		err := c.opt.persist(c.storage)
+		err := c.opt.Persist(c.storage)
 		if err != nil {
 			log.Error("persist cluster version meet error", zap.Error(err))
 		}
@@ -1209,7 +1209,7 @@ func (c *RaftCluster) changedRegionNotifier() <-chan *core.RegionInfo {
 
 // IsFeatureSupported checks if the feature is supported by current cluster.
 func (c *RaftCluster) IsFeatureSupported(f Feature) bool {
-	clusterVersion := c.opt.loadClusterVersion()
+	clusterVersion := c.opt.LoadClusterVersion()
 	minSupportVersion := MinSupportedVersion(f)
 	return !clusterVersion.LessThan(minSupportVersion)
 }
@@ -1342,7 +1342,7 @@ func (c *RaftCluster) GetLocationLabels() []string {
 
 // GetStrictlyMatchLabel returns if the strictly label check is enabled.
 func (c *RaftCluster) GetStrictlyMatchLabel() bool {
-	return c.opt.rep.GetStrictlyMatchLabel()
+	return c.opt.GetReplication().GetStrictlyMatchLabel()
 }
 
 // GetHotRegionCacheHitsThreshold gets the threshold of hitting hot region cache.
@@ -1425,24 +1425,24 @@ func (c *RaftCluster) getStoresKeysReadStat() map[uint64]uint64 {
 }
 
 // RegionReadStats returns hot region's read stats.
-func (c *RaftCluster) RegionReadStats() []*statistics.RegionStat {
+func (c *RaftCluster) RegionReadStats() map[uint64][]*statistics.HotSpotPeerStat {
 	// RegionStats is a thread-safe method
 	return c.hotSpotCache.RegionStats(statistics.ReadFlow)
 }
 
 // RegionWriteStats returns hot region's write stats.
-func (c *RaftCluster) RegionWriteStats() []*statistics.RegionStat {
+func (c *RaftCluster) RegionWriteStats() map[uint64][]*statistics.HotSpotPeerStat {
 	// RegionStats is a thread-safe method
 	return c.hotSpotCache.RegionStats(statistics.WriteFlow)
 }
 
 // CheckWriteStatus checks the write status, returns whether need update statistics and item.
-func (c *RaftCluster) CheckWriteStatus(region *core.RegionInfo) (bool, *statistics.RegionStat) {
+func (c *RaftCluster) CheckWriteStatus(region *core.RegionInfo) []*statistics.HotSpotPeerStat {
 	return c.hotSpotCache.CheckWrite(region, c.storesStats)
 }
 
 // CheckReadStatus checks the read status, returns whether need update statistics and item.
-func (c *RaftCluster) CheckReadStatus(region *core.RegionInfo) (bool, *statistics.RegionStat) {
+func (c *RaftCluster) CheckReadStatus(region *core.RegionInfo) []*statistics.HotSpotPeerStat {
 	return c.hotSpotCache.CheckRead(region, c.storesStats)
 }
 

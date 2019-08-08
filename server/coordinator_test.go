@@ -57,7 +57,7 @@ type testCluster struct {
 	*RaftCluster
 }
 
-func newTestCluster(opt *scheduleOption) *testCluster {
+func newTestCluster(opt *config.ScheduleOption) *testCluster {
 	cluster := createTestRaftCluster(mockid.NewIDAllocator(), opt, core.NewStorage(kv.NewMemoryKV()))
 	return &testCluster{RaftCluster: cluster}
 }
@@ -657,7 +657,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	// suppose restart PD again
 	_, newOpt, err = newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	c.Assert(newOpt.reload(tc.storage), IsNil)
+	c.Assert(newOpt.Reload(tc.storage), IsNil)
 	tc.RaftCluster.opt = newOpt
 	co = newCoordinator(tc.RaftCluster, hbStreams, namespace.DefaultClassifier)
 	co.run()
@@ -682,7 +682,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 
 	_, newOpt, err = newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	c.Assert(newOpt.reload(co.cluster.storage), IsNil)
+	c.Assert(newOpt.Reload(co.cluster.storage), IsNil)
 	tc.RaftCluster.opt = newOpt
 	co = newCoordinator(tc.RaftCluster, hbStreams, namespace.DefaultClassifier)
 
@@ -1038,7 +1038,7 @@ func getHeartBeatStreams(c *C, tc *testCluster) *heartbeatStreams {
 	return hbStreams
 }
 
-func createTestRaftCluster(id id.Allocator, opt *scheduleOption, storage *core.Storage) *RaftCluster {
+func createTestRaftCluster(id id.Allocator, opt *config.ScheduleOption, storage *core.Storage) *RaftCluster {
 	cluster := &RaftCluster{}
 	cluster.initCluster(id, opt, storage)
 	return cluster
