@@ -1169,8 +1169,8 @@ func (c *RaftCluster) AllocPeer(storeID uint64) (*metapb.Peer, error) {
 
 // OnStoreVersionChange changes the version of the cluster when needed.
 func (c *RaftCluster) OnStoreVersionChange() {
-	c.Lock()
-	defer c.Unlock()
+	c.RLock()
+	defer c.RUnlock()
 	var (
 		minVersion     *semver.Version
 		clusterVersion semver.Version
@@ -1209,6 +1209,8 @@ func (c *RaftCluster) changedRegionNotifier() <-chan *core.RegionInfo {
 
 // IsFeatureSupported checks if the feature is supported by current cluster.
 func (c *RaftCluster) IsFeatureSupported(f Feature) bool {
+	c.RLock()
+	defer c.RUnlock()
 	clusterVersion := c.opt.LoadClusterVersion()
 	minSupportVersion := MinSupportedVersion(f)
 	return !clusterVersion.LessThan(minSupportVersion)
