@@ -213,7 +213,7 @@ func (m *Member) isSameLeader(leader *pdpb.Member) bool {
 	return leader.GetMemberId() == m.ID()
 }
 
-// MemberInfo retruns the member info.
+// MemberInfo initializes the member info.
 func (m *Member) MemberInfo(cfg *config.Config, name string, rootPath string) {
 	leader := &pdpb.Member{
 		Name:       name,
@@ -402,4 +402,9 @@ func (m *Member) WatchLeader(serverCtx context.Context, leader *pdpb.Member, rev
 		default:
 		}
 	}
+}
+
+// Close gracefully shuts down all servers/listeners.
+func (m *Member) Close() {
+	m.Etcd().Close()
 }

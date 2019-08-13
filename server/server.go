@@ -265,7 +265,7 @@ func (s *Server) Close() {
 	}
 
 	if s.member.Etcd() != nil {
-		s.member.Etcd().Close()
+		s.member.Close()
 	}
 
 	if s.hbStreams != nil {
