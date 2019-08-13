@@ -123,7 +123,7 @@ var _ = Suite(&testBalanceLeaderSchedulerSuite{})
 
 type testBalanceLeaderSchedulerSuite struct {
 	tc *mockcluster.Cluster
-	lb schedule.Scheduler
+	lb Scheduler
 	oc *schedule.OperatorController
 }
 
@@ -131,9 +131,10 @@ func (s *testBalanceLeaderSchedulerSuite) SetUpTest(c *C) {
 	opt := mockoption.NewScheduleOptions()
 	s.tc = mockcluster.NewCluster(opt)
 	s.oc = schedule.NewOperatorController(nil, nil)
-	lb, err := schedule.CreateScheduler("balance-leader", s.oc)
+	lb, err := CreateScheduler("balance-leader", s.oc)
 	c.Assert(err, IsNil)
 	s.lb = lb
+
 }
 
 func (s *testBalanceLeaderSchedulerSuite) schedule() []*operator.Operator {
@@ -328,7 +329,7 @@ func (s *testBalanceRegionSchedulerSuite) TestBalance(c *C) {
 	tc := mockcluster.NewCluster(opt)
 	oc := schedule.NewOperatorController(nil, nil)
 
-	sb, err := schedule.CreateScheduler("balance-region", oc)
+	sb, err := CreateScheduler("balance-region", oc)
 	c.Assert(err, IsNil)
 
 	opt.SetMaxReplicas(1)
@@ -363,7 +364,7 @@ func (s *testBalanceRegionSchedulerSuite) TestReplicas3(c *C) {
 
 	newTestReplication(opt, 3, "zone", "rack", "host")
 
-	sb, err := schedule.CreateScheduler("balance-region", oc)
+	sb, err := CreateScheduler("balance-region", oc)
 	c.Assert(err, IsNil)
 
 	// Store 1 has the largest region score, so the balancer try to replace peer in store 1.
@@ -432,7 +433,7 @@ func (s *testBalanceRegionSchedulerSuite) TestReplicas5(c *C) {
 
 	newTestReplication(opt, 5, "zone", "rack", "host")
 
-	sb, err := schedule.CreateScheduler("balance-region", oc)
+	sb, err := CreateScheduler("balance-region", oc)
 	c.Assert(err, IsNil)
 
 	tc.AddLabelsStore(1, 4, map[string]string{"zone": "z1", "rack": "r1", "host": "h1"})
@@ -487,7 +488,7 @@ func (s *testBalanceRegionSchedulerSuite) TestBalance1(c *C) {
 
 	opt.TolerantSizeRatio = 1
 
-	sb, err := schedule.CreateScheduler("balance-region", oc)
+	sb, err := CreateScheduler("balance-region", oc)
 	c.Assert(err, IsNil)
 
 	tc.AddRegionStore(1, 11)
@@ -527,7 +528,7 @@ func (s *testBalanceRegionSchedulerSuite) TestStoreWeight(c *C) {
 	tc := mockcluster.NewCluster(opt)
 	oc := schedule.NewOperatorController(nil, nil)
 
-	sb, err := schedule.CreateScheduler("balance-region", oc)
+	sb, err := CreateScheduler("balance-region", oc)
 	c.Assert(err, IsNil)
 	opt.SetMaxReplicas(1)
 
@@ -554,7 +555,7 @@ func (s *testBalanceRegionSchedulerSuite) TestReplacePendingRegion(c *C) {
 
 	newTestReplication(opt, 3, "zone", "rack", "host")
 
-	sb, err := schedule.CreateScheduler("balance-region", oc)
+	sb, err := CreateScheduler("balance-region", oc)
 	c.Assert(err, IsNil)
 
 	// Store 1 has the largest region score, so the balancer try to replace peer in store 1.
@@ -911,7 +912,7 @@ func (s *testRandomMergeSchedulerSuite) TestMerge(c *C) {
 	hb := mockhbstream.NewHeartbeatStreams(tc.ID)
 	oc := schedule.NewOperatorController(tc, hb)
 
-	mb, err := schedule.CreateScheduler("random-merge", oc)
+	mb, err := CreateScheduler("random-merge", oc)
 	c.Assert(err, IsNil)
 
 	tc.AddRegionStore(1, 4)
@@ -939,7 +940,7 @@ func (s *testBalanceHotWriteRegionSchedulerSuite) TestBalance(c *C) {
 	opt := mockoption.NewScheduleOptions()
 	newTestReplication(opt, 3, "zone", "host")
 	tc := mockcluster.NewCluster(opt)
-	hb, err := schedule.CreateScheduler("hot-write-region", schedule.NewOperatorController(nil, nil))
+	hb, err := CreateScheduler("hot-write-region", schedule.NewOperatorController(nil, nil))
 	c.Assert(err, IsNil)
 
 	// Add stores 1, 2, 3, 4, 5, 6  with region counts 3, 2, 2, 2, 0, 0.
@@ -1046,7 +1047,7 @@ type testBalanceHotReadRegionSchedulerSuite struct{}
 func (s *testBalanceHotReadRegionSchedulerSuite) TestBalance(c *C) {
 	opt := mockoption.NewScheduleOptions()
 	tc := mockcluster.NewCluster(opt)
-	hb, err := schedule.CreateScheduler("hot-read-region", schedule.NewOperatorController(nil, nil))
+	hb, err := CreateScheduler("hot-read-region", schedule.NewOperatorController(nil, nil))
 	c.Assert(err, IsNil)
 
 	// Add stores 1, 2, 3, 4, 5 with region counts 3, 2, 2, 2, 0.
@@ -1234,7 +1235,7 @@ func (s *testScatterRangeLeaderSuite) TestBalance(c *C) {
 		tc.UpdateStoreStatus(uint64(i))
 	}
 	oc := schedule.NewOperatorController(nil, nil)
-	hb, err := schedule.CreateScheduler("scatter-range", oc, "s_00", "s_50", "t")
+	hb, err := CreateScheduler("scatter-range", oc, "s_00", "s_50", "t")
 	c.Assert(err, IsNil)
 	limit := 0
 	for {

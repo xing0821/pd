@@ -11,34 +11,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package namespace_test
 
 import (
+	"testing"
+
 	. "github.com/pingcap/check"
+	"github.com/pingcap/pd/pkg/mock/mockcluster"
+	"github.com/pingcap/pd/pkg/mock/mockoption"
 	"github.com/pingcap/pd/pkg/testutil"
 	"github.com/pingcap/pd/server/checker"
-	"github.com/pingcap/pd/server/config"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pingcap/pd/server/schedule/operator"
+	"github.com/pingcap/pd/server/schedulers"
 )
+
+func TestNamespace(t *testing.T) {
+	TestingT(t)
+}
 
 var _ = Suite(&testNamespaceSuite{})
 
 type testNamespaceSuite struct {
-	classifier     *mapClassifer
-	tc             *testCluster
-	opt            *config.ScheduleOption
-	scheduleConfig *config.ScheduleConfig
+	classifier *mapClassifer
+	cluster    *mockcluster.Cluster
+	opt        *mockoption.ScheduleOptions
 }
 
 func (s *testNamespaceSuite) SetUpTest(c *C) {
-	var err error
 	s.classifier = newMapClassifer()
-	s.scheduleConfig, s.opt, err = newTestScheduleConfig()
-	c.Assert(err, IsNil)
-	s.tc = newTestCluster(s.opt)
+	s.opt = mockoption.NewScheduleOptions()
+	s.cluster = mockcluster.NewCluster(s.opt)
 }
 
 func (s *testNamespaceSuite) TestReplica(c *C) {
@@ -46,27 +51,27 @@ func (s *testNamespaceSuite) TestReplica(c *C) {
 	//     1           0       ns1
 	//     2          10       ns1
 	//     3           0       ns2
-	c.Assert(s.tc.addRegionStore(1, 0), IsNil)
-	c.Assert(s.tc.addRegionStore(2, 10), IsNil)
-	c.Assert(s.tc.addRegionStore(3, 0), IsNil)
+	s.cluster.AddRegionStore(1, 0)
+	s.cluster.AddRegionStore(2, 10)
+	s.cluster.AddRegionStore(3, 0)
 	s.classifier.setStore(1, "ns1")
 	s.classifier.setStore(2, "ns1")
 	s.classifier.setStore(3, "ns2")
 
-	rc := checker.NewReplicaChecker(s.tc, s.classifier)
+	rc := checker.NewReplicaChecker(s.cluster, s.classifier)
 
 	// Replica should be added to the store with the same namespace.
 	s.classifier.setRegion(1, "ns1")
-	c.Assert(s.tc.addLeaderRegion(1, 1), IsNil)
-	op := rc.Check(s.tc.GetRegion(1))
+	s.cluster.AddLeaderRegion(1, 1)
+	op := rc.Check(s.cluster.GetRegion(1))
 	testutil.CheckAddPeer(c, op, operator.OpReplica, 2)
-	c.Assert(s.tc.addLeaderRegion(1, 3), IsNil)
-	op = rc.Check(s.tc.GetRegion(1))
+	s.cluster.AddLeaderRegion(1, 3)
+	op = rc.Check(s.cluster.GetRegion(1))
 	testutil.CheckAddPeer(c, op, operator.OpReplica, 1)
 
 	// Stop adding replica if no store in the same namespace.
-	c.Assert(s.tc.addLeaderRegion(1, 1, 2), IsNil)
-	op = rc.Check(s.tc.GetRegion(1))
+	s.cluster.AddLeaderRegion(1, 1, 2)
+	op = rc.Check(s.cluster.GetRegion(1))
 	c.Assert(op, IsNil)
 }
 
@@ -75,46 +80,46 @@ func (s *testNamespaceSuite) TestNamespaceChecker(c *C) {
 	//     1           0       ns1
 	//     2          10       ns1
 	//     3           0       ns2
-	c.Assert(s.tc.addRegionStore(1, 0), IsNil)
-	c.Assert(s.tc.addRegionStore(2, 10), IsNil)
-	c.Assert(s.tc.addRegionStore(3, 0), IsNil)
+	s.cluster.AddRegionStore(1, 0)
+	s.cluster.AddRegionStore(2, 10)
+	s.cluster.AddRegionStore(3, 0)
 	s.classifier.setStore(1, "ns1")
 	s.classifier.setStore(2, "ns1")
 	s.classifier.setStore(3, "ns2")
 
-	nc := checker.NewNamespaceChecker(s.tc, s.classifier)
+	nc := checker.NewNamespaceChecker(s.cluster, s.classifier)
 
 	// Move the region if it was not in the right store.
 	s.classifier.setRegion(1, "ns2")
-	c.Assert(s.tc.addLeaderRegion(1, 1), IsNil)
-	op := nc.Check(s.tc.GetRegion(1))
+	s.cluster.AddLeaderRegion(1, 1)
+	op := nc.Check(s.cluster.GetRegion(1))
 	testutil.CheckTransferPeer(c, op, operator.OpReplica, 1, 3)
 
 	// Only move one region if the one was in the right store while the other was not.
 	s.classifier.setRegion(2, "ns1")
-	c.Assert(s.tc.addLeaderRegion(2, 1), IsNil)
+	s.cluster.AddLeaderRegion(2, 1)
 	s.classifier.setRegion(3, "ns2")
-	c.Assert(s.tc.addLeaderRegion(3, 2), IsNil)
-	op = nc.Check(s.tc.GetRegion(2))
+	s.cluster.AddLeaderRegion(3, 2)
+	op = nc.Check(s.cluster.GetRegion(2))
 	c.Assert(op, IsNil)
-	op = nc.Check(s.tc.GetRegion(3))
+	op = nc.Check(s.cluster.GetRegion(3))
 	testutil.CheckTransferPeer(c, op, operator.OpReplica, 2, 3)
 
 	// Do NOT move the region if it was in the right store.
 	s.classifier.setRegion(4, "ns2")
-	c.Assert(s.tc.addLeaderRegion(4, 3), IsNil)
-	op = nc.Check(s.tc.GetRegion(4))
+	s.cluster.AddLeaderRegion(4, 3)
+	op = nc.Check(s.cluster.GetRegion(4))
 	c.Assert(op, IsNil)
 
 	// Move the peer with questions to the right store if the region has multiple peers.
 	s.classifier.setRegion(5, "ns1")
-	c.Assert(s.tc.addLeaderRegion(5, 1, 1, 3), IsNil)
+	s.cluster.AddLeaderRegion(5, 1, 1, 3)
 
-	s.scheduleConfig.DisableNamespaceRelocation = true
-	c.Assert(nc.Check(s.tc.GetRegion(5)), IsNil)
-	s.scheduleConfig.DisableNamespaceRelocation = false
+	s.opt.DisableNamespaceRelocation = true
+	c.Assert(nc.Check(s.cluster.GetRegion(5)), IsNil)
+	s.opt.DisableNamespaceRelocation = false
 
-	op = nc.Check(s.tc.GetRegion(5))
+	op = nc.Check(s.cluster.GetRegion(5))
 	testutil.CheckTransferPeer(c, op, operator.OpReplica, 3, 2)
 }
 
@@ -123,37 +128,37 @@ func (s *testNamespaceSuite) TestSchedulerBalanceRegion(c *C) {
 	//     1           0       ns1
 	//     2         100       ns1
 	//     3         200       ns2
-	c.Assert(s.tc.addRegionStore(1, 0), IsNil)
-	c.Assert(s.tc.addRegionStore(2, 100), IsNil)
-	c.Assert(s.tc.addRegionStore(3, 200), IsNil)
+	s.cluster.AddRegionStore(1, 0)
+	s.cluster.AddRegionStore(2, 100)
+	s.cluster.AddRegionStore(3, 200)
 	s.classifier.setStore(1, "ns1")
 	s.classifier.setStore(2, "ns1")
 	s.classifier.setStore(3, "ns2")
 	s.opt.SetMaxReplicas(1)
 
 	oc := schedule.NewOperatorController(nil, nil)
-	sched, _ := schedule.CreateScheduler("balance-region", oc)
+	sched, _ := schedulers.CreateScheduler("balance-region", oc)
 
 	// Balance is limited within a namespace.
-	c.Assert(s.tc.addLeaderRegion(1, 2), IsNil)
+	s.cluster.AddLeaderRegion(1, 2)
 	s.classifier.setRegion(1, "ns1")
-	op := scheduleByNamespace(s.tc, s.classifier, sched)
+	op := schedulers.ScheduleByNamespace(s.cluster, s.classifier, sched)
 	testutil.CheckTransferPeer(c, op[0], operator.OpBalance, 2, 1)
 
 	// If no more store in the namespace, balance stops.
-	c.Assert(s.tc.addLeaderRegion(1, 3), IsNil)
+	s.cluster.AddLeaderRegion(1, 3)
 	s.classifier.setRegion(1, "ns2")
-	op = scheduleByNamespace(s.tc, s.classifier, sched)
+	op = schedulers.ScheduleByNamespace(s.cluster, s.classifier, sched)
 	c.Assert(op, IsNil)
 
 	// If region is not in the correct namespace, it will not be balanced. The
 	// region should be in 'ns1', but its replica is located in 'ns2', neither
 	// namespace will select it for balance.
-	c.Assert(s.tc.addRegionStore(4, 0), IsNil)
+	s.cluster.AddRegionStore(4, 0)
 	s.classifier.setStore(4, "ns2")
-	c.Assert(s.tc.addLeaderRegion(1, 3), IsNil)
+	s.cluster.AddLeaderRegion(1, 3)
 	s.classifier.setRegion(1, "ns1")
-	op = scheduleByNamespace(s.tc, s.classifier, sched)
+	op = schedulers.ScheduleByNamespace(s.cluster, s.classifier, sched)
 	c.Assert(op, IsNil)
 }
 
@@ -163,28 +168,28 @@ func (s *testNamespaceSuite) TestSchedulerBalanceLeader(c *C) {
 	//     2         200       ns1
 	//     3           0       ns2
 	//     4         300       ns2
-	c.Assert(s.tc.addLeaderStore(1, 100), IsNil)
-	c.Assert(s.tc.addLeaderStore(2, 200), IsNil)
-	c.Assert(s.tc.addLeaderStore(3, 0), IsNil)
-	c.Assert(s.tc.addLeaderStore(4, 300), IsNil)
+	s.cluster.AddLeaderStore(1, 100)
+	s.cluster.AddLeaderStore(2, 200)
+	s.cluster.AddLeaderStore(3, 0)
+	s.cluster.AddLeaderStore(4, 300)
 	s.classifier.setStore(1, "ns1")
 	s.classifier.setStore(2, "ns1")
 	s.classifier.setStore(3, "ns2")
 	s.classifier.setStore(4, "ns2")
 
 	oc := schedule.NewOperatorController(nil, nil)
-	sched, _ := schedule.CreateScheduler("balance-leader", oc)
+	sched, _ := schedulers.CreateScheduler("balance-leader", oc)
 
 	// Balance is limited within a namespace.
-	c.Assert(s.tc.addLeaderRegion(1, 2, 1), IsNil)
+	s.cluster.AddLeaderRegion(1, 2, 1)
 	s.classifier.setRegion(1, "ns1")
-	op := scheduleByNamespace(s.tc, s.classifier, sched)
+	op := schedulers.ScheduleByNamespace(s.cluster, s.classifier, sched)
 	testutil.CheckTransferLeader(c, op[0], operator.OpBalance, 2, 1)
 
 	// If region is not in the correct namespace, it will not be balanced.
-	c.Assert(s.tc.addLeaderRegion(1, 4, 1), IsNil)
+	s.cluster.AddLeaderRegion(1, 4, 1)
 	s.classifier.setRegion(1, "ns1")
-	op = scheduleByNamespace(s.tc, s.classifier, sched)
+	op = schedulers.ScheduleByNamespace(s.cluster, s.classifier, sched)
 	c.Assert(op, IsNil)
 }
 

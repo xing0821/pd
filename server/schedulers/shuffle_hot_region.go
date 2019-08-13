@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("shuffle-hot-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("shuffle-hot-region", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		limit := uint64(1)
 		if len(args) == 1 {
 			l, err := strconv.ParseUint(args[0], 10, 64)
@@ -55,7 +55,7 @@ type shuffleHotRegionScheduler struct {
 }
 
 // newShuffleHotRegionScheduler creates an admin scheduler that random balance hot regions
-func newShuffleHotRegionScheduler(opController *schedule.OperatorController, limit uint64) schedule.Scheduler {
+func newShuffleHotRegionScheduler(opController *schedule.OperatorController, limit uint64) Scheduler {
 	base := newBaseScheduler(opController)
 	return &shuffleHotRegionScheduler{
 		baseScheduler: base,

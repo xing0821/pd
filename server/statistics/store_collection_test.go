@@ -16,11 +16,12 @@ package statistics
 import (
 	"time"
 
+	"github.com/pingcap/pd/pkg/mock/mockclassifier"
+
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/pkg/mock/mockoption"
 	"github.com/pingcap/pd/server/core"
-	"github.com/pingcap/pd/server/namespace"
 )
 
 var _ = Suite(&testStoreStatisticsSuite{})
@@ -53,7 +54,7 @@ func (t *testStoreStatisticsSuite) TestStoreStatistics(c *C) {
 	stores[3] = store3
 	store4 := stores[4].Clone(core.SetLastHeartbeatTS(stores[4].GetLastHeartbeatTS().Add(-time.Hour)))
 	stores[4] = store4
-	storeStats := NewStoreStatisticsMap(opt, namespace.DefaultClassifier)
+	storeStats := NewStoreStatisticsMap(opt, mockclassifier.NewClassifier([]string{"global"}))
 	for _, store := range stores {
 		storeStats.Observe(store, storesStats)
 	}

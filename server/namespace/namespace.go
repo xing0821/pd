@@ -25,34 +25,9 @@ import (
 // default.
 const DefaultNamespace = "global"
 
-// ScheduleOptions for namespace cluster.
-type ScheduleOptions interface {
-	GetLeaderScheduleLimit(name string) uint64
-	GetRegionScheduleLimit(name string) uint64
-	GetReplicaScheduleLimit(name string) uint64
-	GetMergeScheduleLimit(name string) uint64
-	GetMaxReplicas(name string) int
-}
-
 // DefaultClassifier is a classifier that classifies all regions and stores to
 // DefaultNamespace.
 var DefaultClassifier = defaultClassifier{}
-
-// Classifier is used to determine the namespace which the store or region
-// belongs.
-type Classifier interface {
-	GetAllNamespaces() []string
-	GetStoreNamespace(*core.StoreInfo) string
-	GetRegionNamespace(*core.RegionInfo) string
-	IsNamespaceExist(name string) bool
-	AllowMerge(*core.RegionInfo, *core.RegionInfo) bool
-	// Reload underlying namespaces
-	ReloadNamespaces() error
-	// These function below are only for tests
-	IsMetaExist() bool
-	IsTableIDExist(int64) bool
-	IsStoreIDExist(uint64) bool
-}
 
 type defaultClassifier struct{}
 

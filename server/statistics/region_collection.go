@@ -17,7 +17,6 @@ import (
 	"fmt"
 
 	"github.com/pingcap/pd/server/core"
-	"github.com/pingcap/pd/server/namespace"
 )
 
 // RegionStatisticType represents the type of the region's status.
@@ -37,13 +36,13 @@ const (
 // RegionStatistics is used to record the status of regions.
 type RegionStatistics struct {
 	opt        ScheduleOptions
-	classifier namespace.Classifier
+	classifier Classifier
 	stats      map[RegionStatisticType]map[uint64]*core.RegionInfo
 	index      map[uint64]RegionStatisticType
 }
 
 // NewRegionStatistics creates a new RegionStatistics.
-func NewRegionStatistics(opt ScheduleOptions, classifier namespace.Classifier) *RegionStatistics {
+func NewRegionStatistics(opt ScheduleOptions, classifier Classifier) *RegionStatistics {
 	r := &RegionStatistics{
 		opt:        opt,
 		classifier: classifier,

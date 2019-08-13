@@ -23,6 +23,7 @@ import (
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
+	"github.com/pingcap/pd/server/schedulers"
 )
 
 // ScheduleOption is a wrapper to access the configuration safely.
@@ -303,7 +304,7 @@ func (o *ScheduleOption) RemoveSchedulerCfg(name string) error {
 	v := c.Clone()
 	for i, schedulerCfg := range v.Schedulers {
 		// To create a temporary scheduler is just used to get scheduler's name
-		tmp, err := schedule.CreateScheduler(schedulerCfg.Type, schedule.NewOperatorController(nil, nil), schedulerCfg.Args...)
+		tmp, err := schedulers.CreateScheduler(schedulerCfg.Type, schedule.NewOperatorController(nil, nil), schedulerCfg.Args...)
 		if err != nil {
 			return err
 		}

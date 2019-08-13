@@ -11,43 +11,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package namespace
 
 import (
-	"math/rand"
-
 	"github.com/pingcap/pd/server/core"
-	"github.com/pingcap/pd/server/namespace"
-	"github.com/pingcap/pd/server/schedule"
-	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/statistics"
 )
 
-// namespaceCluster is part of a global cluster that contains stores and regions
+// Cluster is part of a global cluster that contains stores and regions
 // within a specific namespace.
-type namespaceCluster struct {
-	schedule.Cluster
-	classifier namespace.Classifier
+type Cluster struct {
+	namespaceCluster
+	classifier Classifier
 	namespace  string
 	stores     map[uint64]*core.StoreInfo
 }
 
-func newNamespaceCluster(c schedule.Cluster, classifier namespace.Classifier, namespace string) *namespaceCluster {
+// NewCluster creates a new cluster according to the namespace.
+func NewCluster(c namespaceCluster, classifier Classifier, namespace string) *Cluster {
 	stores := make(map[uint64]*core.StoreInfo)
 	for _, s := range c.GetStores() {
 		if classifier.GetStoreNamespace(s) == namespace {
 			stores[s.GetID()] = s
 		}
 	}
-	return &namespaceCluster{
-		Cluster:    c,
-		classifier: classifier,
-		namespace:  namespace,
-		stores:     stores,
+	return &Cluster{
+		namespaceCluster: c,
+		classifier:       classifier,
+		namespace:        namespace,
+		stores:           stores,
 	}
 }
 
-func (c *namespaceCluster) checkRegion(region *core.RegionInfo) bool {
+func (c *Cluster) checkRegion(region *core.RegionInfo) bool {
 	if c.classifier.GetRegionNamespace(region) != c.namespace {
 		return false
 	}
@@ -62,9 +58,9 @@ func (c *namespaceCluster) checkRegion(region *core.RegionInfo) bool {
 const randRegionMaxRetry = 10
 
 // RandFollowerRegion returns a random region that has a follower on the store.
-func (c *namespaceCluster) RandFollowerRegion(storeID uint64, opts ...core.RegionOption) *core.RegionInfo {
+func (c *Cluster) RandFollowerRegion(storeID uint64, opts ...core.RegionOption) *core.RegionInfo {
 	for i := 0; i < randRegionMaxRetry; i++ {
-		r := c.Cluster.RandFollowerRegion(storeID, opts...)
+		r := c.namespaceCluster.RandFollowerRegion(storeID, opts...)
 		if r == nil {
 			return nil
 		}
@@ -76,9 +72,9 @@ func (c *namespaceCluster) RandFollowerRegion(storeID uint64, opts ...core.Regio
 }
 
 // RandLeaderRegion returns a random region that has leader on the store.
-func (c *namespaceCluster) RandLeaderRegion(storeID uint64, opts ...core.RegionOption) *core.RegionInfo {
+func (c *Cluster) RandLeaderRegion(storeID uint64, opts ...core.RegionOption) *core.RegionInfo {
 	for i := 0; i < randRegionMaxRetry; i++ {
-		r := c.Cluster.RandLeaderRegion(storeID, opts...)
+		r := c.namespaceCluster.RandLeaderRegion(storeID, opts...)
 		if r == nil {
 			return nil
 		}
@@ -90,7 +86,7 @@ func (c *namespaceCluster) RandLeaderRegion(storeID uint64, opts ...core.RegionO
 }
 
 // GetAverageRegionSize returns the average region approximate size.
-func (c *namespaceCluster) GetAverageRegionSize() int64 {
+func (c *Cluster) GetAverageRegionSize() int64 {
 	var totalCount, totalSize int64
 	for _, s := range c.stores {
 		totalCount += int64(s.GetRegionCount())
@@ -103,7 +99,7 @@ func (c *namespaceCluster) GetAverageRegionSize() int64 {
 }
 
 // GetStores returns all stores in the namespace.
-func (c *namespaceCluster) GetStores() []*core.StoreInfo {
+func (c *Cluster) GetStores() []*core.StoreInfo {
 	stores := make([]*core.StoreInfo, 0, len(c.stores))
 	for _, s := range c.stores {
 		stores = append(stores, s)
@@ -112,13 +108,13 @@ func (c *namespaceCluster) GetStores() []*core.StoreInfo {
 }
 
 // GetStore searches for a store by ID.
-func (c *namespaceCluster) GetStore(id uint64) *core.StoreInfo {
+func (c *Cluster) GetStore(id uint64) *core.StoreInfo {
 	return c.stores[id]
 }
 
 // GetRegion searches for a region by ID.
-func (c *namespaceCluster) GetRegion(id uint64) *core.RegionInfo {
-	r := c.Cluster.GetRegion(id)
+func (c *Cluster) GetRegion(id uint64) *core.RegionInfo {
+	r := c.namespaceCluster.GetRegion(id)
 	if r == nil || !c.checkRegion(r) {
 		return nil
 	}
@@ -126,37 +122,31 @@ func (c *namespaceCluster) GetRegion(id uint64) *core.RegionInfo {
 }
 
 // RegionWriteStats returns hot region's write stats.
-func (c *namespaceCluster) RegionWriteStats() map[uint64][]*statistics.HotSpotPeerStat {
-	return c.Cluster.RegionWriteStats()
+func (c *Cluster) RegionWriteStats() map[uint64][]*statistics.HotSpotPeerStat {
+	return c.namespaceCluster.RegionWriteStats()
 }
 
-func scheduleByNamespace(cluster schedule.Cluster, classifier namespace.Classifier, scheduler schedule.Scheduler) []*operator.Operator {
-	namespaces := classifier.GetAllNamespaces()
-	for _, i := range rand.Perm(len(namespaces)) {
-		nc := newNamespaceCluster(cluster, classifier, namespaces[i])
-		if op := scheduler.Schedule(nc); op != nil {
-			return op
-		}
-	}
-	return nil
-}
-
-func (c *namespaceCluster) GetLeaderScheduleLimit() uint64 {
+// GetLeaderScheduleLimit returns the limit for leader schedule.
+func (c *Cluster) GetLeaderScheduleLimit() uint64 {
 	return c.GetOpt().GetLeaderScheduleLimit(c.namespace)
 }
 
-func (c *namespaceCluster) GetRegionScheduleLimit() uint64 {
+// GetRegionScheduleLimit returns the limit for region schedule.
+func (c *Cluster) GetRegionScheduleLimit() uint64 {
 	return c.GetOpt().GetRegionScheduleLimit(c.namespace)
 }
 
-func (c *namespaceCluster) GetReplicaScheduleLimit() uint64 {
+// GetReplicaScheduleLimit returns the limit for replica schedule.
+func (c *Cluster) GetReplicaScheduleLimit() uint64 {
 	return c.GetOpt().GetReplicaScheduleLimit(c.namespace)
 }
 
-func (c *namespaceCluster) GetMergeScheduleLimit() uint64 {
+// GetMergeScheduleLimit returns the limit for merge schedule.
+func (c *Cluster) GetMergeScheduleLimit() uint64 {
 	return c.GetOpt().GetMergeScheduleLimit(c.namespace)
 }
 
-func (c *namespaceCluster) GetMaxReplicas() int {
+// GetMaxReplicas returns the number of replicas.
+func (c *Cluster) GetMaxReplicas() int {
 	return c.GetOpt().GetMaxReplicas(c.namespace)
 }

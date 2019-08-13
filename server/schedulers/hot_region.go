@@ -30,14 +30,14 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("hot-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("hot-region", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		return newBalanceHotRegionsScheduler(opController), nil
 	})
 	// FIXME: remove this two schedule after the balance test move in schedulers package
-	schedule.RegisterScheduler("hot-write-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("hot-write-region", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		return newBalanceHotWriteRegionsScheduler(opController), nil
 	})
-	schedule.RegisterScheduler("hot-read-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("hot-read-region", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		return newBalanceHotReadRegionsScheduler(opController), nil
 	})
 }

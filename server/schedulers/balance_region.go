@@ -31,7 +31,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("balance-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("balance-region", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		return newBalanceRegionScheduler(opController), nil
 	})
 }
@@ -61,7 +61,7 @@ type balanceRegionScheduler struct {
 
 // newBalanceRegionScheduler creates a scheduler that tends to keep regions on
 // each store balanced.
-func newBalanceRegionScheduler(opController *schedule.OperatorController, opts ...BalanceRegionCreateOption) schedule.Scheduler {
+func newBalanceRegionScheduler(opController *schedule.OperatorController, opts ...BalanceRegionCreateOption) Scheduler {
 	filters := []filter.Filter{
 		filter.StoreStateFilter{MoveRegion: true},
 	}

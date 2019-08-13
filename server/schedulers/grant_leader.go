@@ -24,7 +24,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("grant-leader", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("grant-leader", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		if len(args) != 1 {
 			return nil, errors.New("grant-leader needs 1 argument")
 		}
@@ -45,7 +45,7 @@ type grantLeaderScheduler struct {
 
 // newGrantLeaderScheduler creates an admin scheduler that transfers all leaders
 // to a store.
-func newGrantLeaderScheduler(opController *schedule.OperatorController, storeID uint64) schedule.Scheduler {
+func newGrantLeaderScheduler(opController *schedule.OperatorController, storeID uint64) Scheduler {
 	base := newBaseScheduler(opController)
 	return &grantLeaderScheduler{
 		baseScheduler: base,

@@ -16,19 +16,31 @@ package mockclassifier
 import "github.com/pingcap/pd/server/core"
 
 // Classifier is used for test purpose.
-type Classifier struct{}
+type Classifier struct {
+	ns []string
+}
+
+// NewClassifier creates a new Classifier.
+func NewClassifier(ns []string) Classifier {
+	return Classifier{
+		ns: ns,
+	}
+}
 
 // GetAllNamespaces mocks method.
 func (c Classifier) GetAllNamespaces() []string {
-	return []string{"global", "unknown"}
+	return c.ns
 }
 
 // GetStoreNamespace mocks method.
 func (c Classifier) GetStoreNamespace(store *core.StoreInfo) string {
 	if store.GetID() < 5 {
-		return "global"
+		return c.ns[0]
 	}
-	return "unknown"
+	if len(c.ns) > 1 {
+		return c.ns[1]
+	}
+	return c.ns[0]
 }
 
 // GetRegionNamespace mocks method.

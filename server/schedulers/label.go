@@ -25,7 +25,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("label", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("label", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		return newLabelScheduler(opController), nil
 	})
 }
@@ -38,7 +38,7 @@ type labelScheduler struct {
 // LabelScheduler is mainly based on the store's label information for scheduling.
 // Now only used for reject leader schedule, that will move the leader out of
 // the store with the specific label.
-func newLabelScheduler(opController *schedule.OperatorController) schedule.Scheduler {
+func newLabelScheduler(opController *schedule.OperatorController) Scheduler {
 	filters := []filter.Filter{
 		filter.StoreStateFilter{TransferLeader: true},
 	}

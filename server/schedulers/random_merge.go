@@ -24,7 +24,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("random-merge", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("random-merge", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		return newRandomMergeScheduler(opController), nil
 	})
 }
@@ -36,7 +36,7 @@ type randomMergeScheduler struct {
 
 // newRandomMergeScheduler creates an admin scheduler that randomly picks two adjacent regions
 // then merges them.
-func newRandomMergeScheduler(opController *schedule.OperatorController) schedule.Scheduler {
+func newRandomMergeScheduler(opController *schedule.OperatorController) Scheduler {
 	filters := []filter.Filter{
 		filter.StoreStateFilter{MoveRegion: true},
 	}

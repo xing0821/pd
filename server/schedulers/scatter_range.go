@@ -23,7 +23,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("scatter-range", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("scatter-range", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		if len(args) != 3 {
 			return nil, errors.New("should specify the range and the name")
 		}
@@ -45,12 +45,12 @@ type scatterRangeScheduler struct {
 	rangeName     string
 	startKey      []byte
 	endKey        []byte
-	balanceLeader schedule.Scheduler
-	balanceRegion schedule.Scheduler
+	balanceLeader Scheduler
+	balanceRegion Scheduler
 }
 
 // newScatterRangeScheduler creates a scheduler that balances the distribution of leaders and regions that in the specified key range.
-func newScatterRangeScheduler(opController *schedule.OperatorController, args []string) schedule.Scheduler {
+func newScatterRangeScheduler(opController *schedule.OperatorController, args []string) Scheduler {
 	base := newBaseScheduler(opController)
 	return &scatterRangeScheduler{
 		baseScheduler: base,

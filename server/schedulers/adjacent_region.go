@@ -37,7 +37,7 @@ const (
 )
 
 func init() {
-	schedule.RegisterScheduler("adjacent-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("adjacent-region", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		l := len(args)
 		if l == 2 {
 			leaderLimit, err := strconv.ParseUint(args[0], 10, 64)
@@ -93,7 +93,7 @@ func (a *adjacentState) len() int {
 
 // newBalanceAdjacentRegionScheduler creates a scheduler that tends to disperse adjacent region
 // on each store.
-func newBalanceAdjacentRegionScheduler(opController *schedule.OperatorController, args ...uint64) schedule.Scheduler {
+func newBalanceAdjacentRegionScheduler(opController *schedule.OperatorController, args ...uint64) Scheduler {
 	filters := []filter.Filter{
 		filter.StoreStateFilter{TransferLeader: true, MoveRegion: true},
 	}

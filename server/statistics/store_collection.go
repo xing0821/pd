@@ -20,7 +20,6 @@ import (
 
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/server/core"
-	"github.com/pingcap/pd/server/namespace"
 )
 
 const (
@@ -227,12 +226,12 @@ func (s *storeStatistics) resetStoreStatistics(storeAddress string, id string) {
 
 type storeStatisticsMap struct {
 	opt        ScheduleOptions
-	classifier namespace.Classifier
+	classifier Classifier
 	stats      map[string]*storeStatistics
 }
 
 // NewStoreStatisticsMap creates a new storeStatisticsMap.
-func NewStoreStatisticsMap(opt ScheduleOptions, classifier namespace.Classifier) *storeStatisticsMap {
+func NewStoreStatisticsMap(opt ScheduleOptions, classifier Classifier) *storeStatisticsMap {
 	return &storeStatisticsMap{
 		opt:        opt,
 		classifier: classifier,

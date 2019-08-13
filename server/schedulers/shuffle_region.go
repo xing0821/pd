@@ -25,7 +25,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("shuffle-region", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("shuffle-region", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		return newShuffleRegionScheduler(opController), nil
 	})
 }
@@ -37,7 +37,7 @@ type shuffleRegionScheduler struct {
 
 // newShuffleRegionScheduler creates an admin scheduler that shuffles regions
 // between stores.
-func newShuffleRegionScheduler(opController *schedule.OperatorController) schedule.Scheduler {
+func newShuffleRegionScheduler(opController *schedule.OperatorController) Scheduler {
 	filters := []filter.Filter{
 		filter.StoreStateFilter{MoveRegion: true},
 	}

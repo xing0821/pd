@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("evict-leader", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("evict-leader", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		if len(args) != 1 {
 			return nil, errors.New("evict-leader needs 1 argument")
 		}
@@ -47,7 +47,7 @@ type evictLeaderScheduler struct {
 
 // newEvictLeaderScheduler creates an admin scheduler that transfers all leaders
 // out of a store.
-func newEvictLeaderScheduler(opController *schedule.OperatorController, storeID uint64) schedule.Scheduler {
+func newEvictLeaderScheduler(opController *schedule.OperatorController, storeID uint64) Scheduler {
 	filters := []filter.Filter{
 		filter.StoreStateFilter{TransferLeader: true},
 	}

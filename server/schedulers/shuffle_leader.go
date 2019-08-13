@@ -22,7 +22,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("shuffle-leader", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("shuffle-leader", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		return newShuffleLeaderScheduler(opController), nil
 	})
 }
@@ -34,7 +34,7 @@ type shuffleLeaderScheduler struct {
 
 // newShuffleLeaderScheduler creates an admin scheduler that shuffles leaders
 // between stores.
-func newShuffleLeaderScheduler(opController *schedule.OperatorController) schedule.Scheduler {
+func newShuffleLeaderScheduler(opController *schedule.OperatorController) Scheduler {
 	filters := []filter.Filter{
 		filter.StoreStateFilter{TransferLeader: true},
 	}

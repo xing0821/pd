@@ -26,6 +26,7 @@ import (
 	"github.com/pingcap/pd/server/namespace"
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pingcap/pd/server/schedule/operator"
+	"github.com/pingcap/pd/server/schedulers"
 	"github.com/pingcap/pd/server/statistics"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -35,7 +36,6 @@ const (
 	runSchedulerCheckInterval = 3 * time.Second
 	collectFactor             = 0.8
 	collectTimeout            = 5 * time.Minute
-	maxScheduleRetries        = 10
 
 	regionheartbeatSendChanCap = 1024
 	hotRegionScheduleName      = "balance-hot-region-scheduler"
@@ -62,7 +62,7 @@ type coordinator struct {
 	namespaceChecker *checker.NamespaceChecker
 	mergeChecker     *checker.MergeChecker
 	regionScatterer  *schedule.RegionScatterer
-	schedulers       map[string]*scheduleController
+	schedulers       map[string]*schedulers.SchedulerController
 	opController     *schedule.OperatorController
 	classifier       namespace.Classifier
 	hbStreams        *heartbeatStreams
@@ -80,7 +80,7 @@ func newCoordinator(cluster *RaftCluster, hbStreams *heartbeatStreams, classifie
 		namespaceChecker: checker.NewNamespaceChecker(cluster, classifier),
 		mergeChecker:     checker.NewMergeChecker(cluster, classifier),
 		regionScatterer:  schedule.NewRegionScatterer(cluster, classifier),
-		schedulers:       make(map[string]*scheduleController),
+		schedulers:       make(map[string]*schedulers.SchedulerController),
 		opController:     schedule.NewOperatorController(cluster, hbStreams),
 		classifier:       classifier,
 		hbStreams:        hbStreams,
@@ -221,7 +221,7 @@ func (c *coordinator) run() {
 			log.Info("skip create scheduler", zap.String("scheduler-type", schedulerCfg.Type))
 			continue
 		}
-		s, err := schedule.CreateScheduler(schedulerCfg.Type, c.opController, schedulerCfg.Args...)
+		s, err := schedulers.CreateScheduler(schedulerCfg.Type, c.opController, schedulerCfg.Args...)
 		if err != nil {
 			log.Error("can not create scheduler", zap.String("scheduler-type", schedulerCfg.Type), zap.Error(err))
 			continue
@@ -377,7 +377,7 @@ func (c *coordinator) shouldRun() bool {
 	return c.cluster.isPrepared()
 }
 
-func (c *coordinator) addScheduler(scheduler schedule.Scheduler, args ...string) error {
+func (c *coordinator) addScheduler(scheduler schedulers.Scheduler, args ...string) error {
 	c.Lock()
 	defer c.Unlock()
 
@@ -385,7 +385,7 @@ func (c *coordinator) addScheduler(scheduler schedule.Scheduler, args ...string)
 		return errSchedulerExisted
 	}
 
-	s := newScheduleController(c, scheduler)
+	s := schedulers.NewSchedulerController(c.ctx, c.cluster, c.opController, c.classifier, scheduler)
 	if err := s.Prepare(c.cluster); err != nil {
 		return err
 	}
@@ -414,7 +414,7 @@ func (c *coordinator) removeScheduler(name string) error {
 	return c.cluster.opt.RemoveSchedulerCfg(name)
 }
 
-func (c *coordinator) runScheduler(s *scheduleController) {
+func (c *coordinator) runScheduler(s *schedulers.SchedulerController) {
 	defer logutil.LogPanic()
 	defer c.wg.Done()
 	defer s.Cleanup(c.cluster)
@@ -440,59 +440,4 @@ func (c *coordinator) runScheduler(s *scheduleController) {
 			return
 		}
 	}
-}
-
-// scheduleController is used to manage a scheduler to schedule.
-type scheduleController struct {
-	schedule.Scheduler
-	cluster      *RaftCluster
-	opController *schedule.OperatorController
-	classifier   namespace.Classifier
-	nextInterval time.Duration
-	ctx          context.Context
-	cancel       context.CancelFunc
-}
-
-// newScheduleController creates a new scheduleController.
-func newScheduleController(c *coordinator, s schedule.Scheduler) *scheduleController {
-	ctx, cancel := context.WithCancel(c.ctx)
-	return &scheduleController{
-		Scheduler:    s,
-		cluster:      c.cluster,
-		opController: c.opController,
-		nextInterval: s.GetMinInterval(),
-		classifier:   c.classifier,
-		ctx:          ctx,
-		cancel:       cancel,
-	}
-}
-
-func (s *scheduleController) Ctx() context.Context {
-	return s.ctx
-}
-
-func (s *scheduleController) Stop() {
-	s.cancel()
-}
-
-func (s *scheduleController) Schedule() []*operator.Operator {
-	for i := 0; i < maxScheduleRetries; i++ {
-		// If we have schedule, reset interval to the minimal interval.
-		if op := scheduleByNamespace(s.cluster, s.classifier, s.Scheduler); op != nil {
-			s.nextInterval = s.Scheduler.GetMinInterval()
-			return op
-		}
-	}
-	s.nextInterval = s.Scheduler.GetNextInterval(s.nextInterval)
-	return nil
-}
-
-// GetInterval returns the interval of scheduling for a scheduler.
-func (s *scheduleController) GetInterval() time.Duration {
-	return s.nextInterval
-}
-
-// AllowSchedule returns if a scheduler is allowed to schedule.
-func (s *scheduleController) AllowSchedule() bool {
-	return s.Scheduler.IsScheduleAllowed(s.cluster)
 }

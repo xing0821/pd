@@ -28,7 +28,7 @@ import (
 )
 
 func init() {
-	schedule.RegisterScheduler("balance-leader", func(opController *schedule.OperatorController, args []string) (schedule.Scheduler, error) {
+	RegisterScheduler("balance-leader", func(opController *schedule.OperatorController, args []string) (Scheduler, error) {
 		return newBalanceLeaderScheduler(opController), nil
 	})
 }
@@ -47,7 +47,7 @@ type balanceLeaderScheduler struct {
 
 // newBalanceLeaderScheduler creates a scheduler that tends to keep leaders on
 // each store balanced.
-func newBalanceLeaderScheduler(opController *schedule.OperatorController, opts ...BalanceLeaderCreateOption) schedule.Scheduler {
+func newBalanceLeaderScheduler(opController *schedule.OperatorController, opts ...BalanceLeaderCreateOption) Scheduler {
 	taintStores := newTaintCache()
 	filters := []filter.Filter{
 		filter.StoreStateFilter{TransferLeader: true},
