@@ -790,7 +790,7 @@ func (c *RaftCluster) putStore(store *metapb.Store) error {
 	if err != nil {
 		return errors.Errorf("invalid put store %v, error: %s", store, err)
 	}
-	clusterVersion := c.opt.LoadClusterVersion()
+	clusterVersion := *c.opt.LoadClusterVersion()
 	if !IsCompatible(clusterVersion, *v) {
 		return errors.Errorf("version should compatible with version  %s, got %s", clusterVersion, v)
 	}
@@ -1173,10 +1173,9 @@ func (c *RaftCluster) OnStoreVersionChange() {
 	defer c.RUnlock()
 	var (
 		minVersion     *semver.Version
-		clusterVersion semver.Version
+		clusterVersion *semver.Version
 	)
 
-	clusterVersion = c.opt.LoadClusterVersion()
 	stores := c.core.GetStores()
 	for _, s := range stores {
 		if s.IsTombstone() {
@@ -1188,10 +1187,17 @@ func (c *RaftCluster) OnStoreVersionChange() {
 			minVersion = v
 		}
 	}
+	clusterVersion = c.opt.LoadClusterVersion()
 	// If the cluster version of PD is less than the minimum version of all stores,
 	// it will update the cluster version.
-	if clusterVersion.LessThan(*minVersion) {
-		c.opt.SetClusterVersion(*minVersion)
+	failpoint.Inject("versionChangeConcurrency", func() {
+		time.Sleep(500 * time.Millisecond)
+	})
+
+	if (*clusterVersion).LessThan(*minVersion) {
+		if !c.opt.CASClusterVersion(clusterVersion, minVersion) {
+			log.Error("cluster version changed by API at the same time")
+		}
 		err := c.opt.Persist(c.storage)
 		if err != nil {
 			log.Error("persist cluster version meet error", zap.Error(err))
@@ -1211,8 +1217,8 @@ func (c *RaftCluster) changedRegionNotifier() <-chan *core.RegionInfo {
 func (c *RaftCluster) IsFeatureSupported(f Feature) bool {
 	c.RLock()
 	defer c.RUnlock()
-	clusterVersion := c.opt.LoadClusterVersion()
-	minSupportVersion := MinSupportedVersion(f)
+	clusterVersion := *c.opt.LoadClusterVersion()
+	minSupportVersion := *MinSupportedVersion(f)
 	return !clusterVersion.LessThan(minSupportVersion)
 }
 
