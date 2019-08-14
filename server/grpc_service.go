@@ -624,9 +624,13 @@ func (s *Server) ScatterRegion(ctx context.Context, request *pdpb.ScatterRegionR
 		region = core.NewRegionInfo(request.GetRegion(), request.GetLeader())
 	}
 
+	if cluster.IsRegionHot(region) {
+		return nil, errors.Errorf("region %d is a hot region", region.GetID())
+	}
+
 	cluster.RLock()
+	defer cluster.RUnlock()
 	co := cluster.coordinator
-	cluster.RUnlock()
 	op, err := co.regionScatterer.Scatter(region)
 	if err != nil {
 		return nil, err
