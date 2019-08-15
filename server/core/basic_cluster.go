@@ -292,6 +292,13 @@ func (bc *BasicCluster) ScanRange(startKey []byte, limit int) []*RegionInfo {
 	return bc.Regions.ScanRange(startKey, limit)
 }
 
+// ScanRangeWithEndKey scans regions intersecting [start key, end key).
+func (bc *BasicCluster) ScanRangeWithEndKey(startKey, endKey []byte) []*RegionInfo {
+	bc.RLock()
+	defer bc.RUnlock()
+	return bc.Regions.ScanRangeWithEndKey(startKey, endKey)
+}
+
 // GetOverlaps returns the regions which are overlapped with the specified region range.
 func (bc *BasicCluster) GetOverlaps(region *RegionInfo) []*metapb.Region {
 	bc.RLock()

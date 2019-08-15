@@ -201,12 +201,9 @@ func (c *RaftCluster) loadClusterInfo() (*RaftCluster, error) {
 	}
 
 	start := time.Now()
-	c.core.Lock()
-	if err := c.storage.LoadStores(c.core.Stores); err != nil {
-		c.core.Unlock()
+	if err := c.storage.LoadStores(c.core.PutStore); err != nil {
 		return nil, err
 	}
-	c.core.Unlock()
 	log.Info("load stores",
 		zap.Int("count", c.getStoreCount()),
 		zap.Duration("cost", time.Since(start)),
@@ -214,12 +211,9 @@ func (c *RaftCluster) loadClusterInfo() (*RaftCluster, error) {
 
 	start = time.Now()
 
-	c.core.Lock()
-	if err := c.storage.LoadRegions(c.core.Regions); err != nil {
-		c.core.Unlock()
+	if err := c.storage.LoadRegions(c.core.PutRegion); err != nil {
 		return nil, err
 	}
-	c.core.Unlock()
 	log.Info("load regions",
 		zap.Int("count", c.core.GetRegionCount()),
 		zap.Duration("cost", time.Since(start)),
@@ -305,9 +299,7 @@ func (c *RaftCluster) handleStoreHeartbeat(stats *pdpb.StoreStats) error {
 	newStore := store.Clone(core.SetStoreStats(stats), core.SetLastHeartbeatTS(time.Now()))
 	c.core.PutStore(newStore)
 	c.storesStats.Observe(newStore.GetID(), newStore.GetStoreStats())
-	c.core.RLock()
-	c.storesStats.UpdateTotalBytesRate(c.core.Stores)
-	c.core.RUnlock()
+	c.storesStats.UpdateTotalBytesRate(c.core.GetStores)
 	return nil
 }
 
@@ -568,6 +560,11 @@ func (c *RaftCluster) ScanRegions(startKey []byte, limit int) []*core.RegionInfo
 	return c.core.ScanRange(startKey, limit)
 }
 
+// ScanRangeWithEndKey scans regions intersecting [start key, end key).
+func (c *RaftCluster) ScanRangeWithEndKey(startKey, endKey []byte) []*core.RegionInfo {
+	return c.core.ScanRangeWithEndKey(startKey, endKey)
+}
+
 // GetRegionByID gets region and leader peer by regionID from cluster.
 func (c *RaftCluster) GetRegionByID(regionID uint64) (*metapb.Region, *metapb.Peer) {
 	region := c.GetRegion(regionID)
@@ -656,9 +653,7 @@ func (c *RaftCluster) GetAverageRegionSize() int64 {
 func (c *RaftCluster) GetRegionStats(startKey, endKey []byte) *statistics.RegionStats {
 	c.RLock()
 	defer c.RUnlock()
-	c.core.RLock()
-	defer c.core.RUnlock()
-	return statistics.GetRegionStats(c.core.Regions, startKey, endKey)
+	return statistics.GetRegionStats(c.core.ScanRangeWithEndKey, startKey, endKey)
 }
 
 // GetStoresStats returns stores' statistics from cluster.
