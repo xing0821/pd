@@ -740,11 +740,9 @@ func removePeerSteps(cluster Cluster, region *core.RegionInfo, storeID uint64, f
 	if region.GetLeader() != nil && region.GetLeader().GetStoreId() == storeID {
 		var follower *core.StoreInfo
 		for _, id := range followerIDs {
-			follower, err = cluster.GetStore(id)
-			if err != nil {
-				log.Error("failed to get the store",
-					zap.Uint64("store-id", id),
-					zap.Error(err))
+			follower = cluster.GetStore(id)
+			if follower == nil {
+				log.Error("failed to get the store", zap.Uint64("store-id", id))
 				continue
 			}
 			if !cluster.CheckLabelProperty(opt.RejectLeader, follower.GetLabels()) {

@@ -26,7 +26,6 @@ import (
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
 	"github.com/pingcap/pd/server/statistics"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -73,12 +72,8 @@ func (mc *Cluster) GetStoreRegionCount(storeID uint64) int {
 }
 
 // GetStore gets a store with a given store ID.
-func (mc *Cluster) GetStore(storeID uint64) (*core.StoreInfo, error) {
-	store := mc.Stores.GetStore(storeID)
-	if store == nil {
-		return nil, errors.Errorf("failed to get the store %d", storeID)
-	}
-	return store, nil
+func (mc *Cluster) GetStore(storeID uint64) *core.StoreInfo {
+	return mc.Stores.GetStore(storeID)
 }
 
 // IsRegionHot checks if the region is hot.
@@ -121,7 +116,7 @@ func (mc *Cluster) AllocPeer(storeID uint64) (*metapb.Peer, error) {
 
 // SetStoreUp sets store state to be up.
 func (mc *Cluster) SetStoreUp(storeID uint64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStore := store.Clone(
 		core.SetStoreState(metapb.StoreState_Up),
 		core.SetLastHeartbeatTS(time.Now()),
@@ -131,7 +126,7 @@ func (mc *Cluster) SetStoreUp(storeID uint64) {
 
 // SetStoreDisconnect changes a store's state to disconnected.
 func (mc *Cluster) SetStoreDisconnect(storeID uint64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStore := store.Clone(
 		core.SetStoreState(metapb.StoreState_Up),
 		core.SetLastHeartbeatTS(time.Now().Add(-time.Second*30)),
@@ -141,7 +136,7 @@ func (mc *Cluster) SetStoreDisconnect(storeID uint64) {
 
 // SetStoreDown sets store down.
 func (mc *Cluster) SetStoreDown(storeID uint64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStore := store.Clone(
 		core.SetStoreState(metapb.StoreState_Up),
 		core.SetLastHeartbeatTS(time.Time{}),
@@ -151,14 +146,14 @@ func (mc *Cluster) SetStoreDown(storeID uint64) {
 
 // SetStoreOffline sets store state to be offline.
 func (mc *Cluster) SetStoreOffline(storeID uint64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStore := store.Clone(core.SetStoreState(metapb.StoreState_Offline))
 	mc.PutStore(newStore)
 }
 
 // SetStoreBusy sets store busy.
 func (mc *Cluster) SetStoreBusy(storeID uint64, busy bool) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStats := proto.Clone(store.GetStoreStats()).(*pdpb.StoreStats)
 	newStats.IsBusy = busy
 	newStore := store.Clone(
@@ -261,21 +256,21 @@ func (mc *Cluster) AddLeaderRegionWithWriteInfo(regionID uint64, leaderID uint64
 
 // UpdateStoreLeaderWeight updates store leader weight.
 func (mc *Cluster) UpdateStoreLeaderWeight(storeID uint64, weight float64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStore := store.Clone(core.SetLeaderWeight(weight))
 	mc.PutStore(newStore)
 }
 
 // UpdateStoreRegionWeight updates store region weight.
 func (mc *Cluster) UpdateStoreRegionWeight(storeID uint64, weight float64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStore := store.Clone(core.SetRegionWeight(weight))
 	mc.PutStore(newStore)
 }
 
 // UpdateStoreLeaderSize updates store leader size.
 func (mc *Cluster) UpdateStoreLeaderSize(storeID uint64, size int64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStats := proto.Clone(store.GetStoreStats()).(*pdpb.StoreStats)
 	newStats.Available = newStats.Capacity - uint64(store.GetLeaderSize())
 	newStore := store.Clone(
@@ -287,7 +282,7 @@ func (mc *Cluster) UpdateStoreLeaderSize(storeID uint64, size int64) {
 
 // UpdateStoreRegionSize updates store region size.
 func (mc *Cluster) UpdateStoreRegionSize(storeID uint64, size int64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStats := proto.Clone(store.GetStoreStats()).(*pdpb.StoreStats)
 	newStats.Available = newStats.Capacity - uint64(store.GetRegionSize())
 	newStore := store.Clone(
@@ -299,7 +294,7 @@ func (mc *Cluster) UpdateStoreRegionSize(storeID uint64, size int64) {
 
 // UpdateLeaderCount updates store leader count.
 func (mc *Cluster) UpdateLeaderCount(storeID uint64, leaderCount int) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStore := store.Clone(
 		core.SetLeaderCount(leaderCount),
 		core.SetLeaderSize(int64(leaderCount)*10),
@@ -309,7 +304,7 @@ func (mc *Cluster) UpdateLeaderCount(storeID uint64, leaderCount int) {
 
 // UpdateRegionCount updates store region count.
 func (mc *Cluster) UpdateRegionCount(storeID uint64, regionCount int) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStore := store.Clone(
 		core.SetRegionCount(regionCount),
 		core.SetRegionSize(int64(regionCount)*10),
@@ -319,7 +314,7 @@ func (mc *Cluster) UpdateRegionCount(storeID uint64, regionCount int) {
 
 // UpdateSnapshotCount updates store snapshot count.
 func (mc *Cluster) UpdateSnapshotCount(storeID uint64, snapshotCount int) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStats := proto.Clone(store.GetStoreStats()).(*pdpb.StoreStats)
 	newStats.ApplyingSnapCount = uint32(snapshotCount)
 	newStore := store.Clone(core.SetStoreStats(newStats))
@@ -328,14 +323,14 @@ func (mc *Cluster) UpdateSnapshotCount(storeID uint64, snapshotCount int) {
 
 // UpdatePendingPeerCount updates store pending peer count.
 func (mc *Cluster) UpdatePendingPeerCount(storeID uint64, pendingPeerCount int) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStore := store.Clone(core.SetPendingPeerCount(pendingPeerCount))
 	mc.PutStore(newStore)
 }
 
 // UpdateStorageRatio updates store storage ratio count.
 func (mc *Cluster) UpdateStorageRatio(storeID uint64, usedRatio, availableRatio float64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStats := proto.Clone(store.GetStoreStats()).(*pdpb.StoreStats)
 	newStats.Capacity = 1000 * (1 << 20)
 	newStats.UsedSize = uint64(float64(newStats.Capacity) * usedRatio)
@@ -346,7 +341,7 @@ func (mc *Cluster) UpdateStorageRatio(storeID uint64, usedRatio, availableRatio 
 
 // UpdateStorageWrittenBytes updates store written bytes.
 func (mc *Cluster) UpdateStorageWrittenBytes(storeID uint64, bytesWritten uint64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStats := proto.Clone(store.GetStoreStats()).(*pdpb.StoreStats)
 	newStats.BytesWritten = bytesWritten
 	now := time.Now().Second()
@@ -358,7 +353,7 @@ func (mc *Cluster) UpdateStorageWrittenBytes(storeID uint64, bytesWritten uint64
 
 // UpdateStorageReadBytes updates store read bytes.
 func (mc *Cluster) UpdateStorageReadBytes(storeID uint64, bytesRead uint64) {
-	store, _ := mc.GetStore(storeID)
+	store := mc.GetStore(storeID)
 	newStats := proto.Clone(store.GetStoreStats()).(*pdpb.StoreStats)
 	newStats.BytesRead = bytesRead
 	now := time.Now().Second()

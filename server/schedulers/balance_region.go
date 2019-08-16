@@ -182,11 +182,9 @@ func (s *balanceRegionScheduler) transferPeer(cluster schedule.Cluster, region *
 	// scoreGuard guarantees that the distinct score will not decrease.
 	stores := cluster.GetRegionStores(region)
 	sourceStoreID := oldPeer.GetStoreId()
-	source, err := cluster.GetStore(sourceStoreID)
-	if err != nil {
-		log.Error("failed to get the source store",
-			zap.Uint64("store-id", sourceStoreID),
-			zap.Error(err))
+	source := cluster.GetStore(sourceStoreID)
+	if source == nil {
+		log.Error("failed to get the source store", zap.Uint64("store-id", sourceStoreID))
 	}
 	scoreGuard := filter.NewDistinctScoreFilter(cluster.GetLocationLabels(), stores, source)
 	hitsFilter := s.hitsCounter.buildTargetFilter(cluster, source)
@@ -198,11 +196,9 @@ func (s *balanceRegionScheduler) transferPeer(cluster schedule.Cluster, region *
 		return nil
 	}
 
-	target, err := cluster.GetStore(storeID)
-	if err != nil {
-		log.Error("failed to get the target store",
-			zap.Uint64("store-id", storeID),
-			zap.Error(err))
+	target := cluster.GetStore(storeID)
+	if target == nil {
+		log.Error("failed to get the target store", zap.Uint64("store-id", storeID))
 	}
 	regionID := region.GetID()
 	sourceID := source.GetID()

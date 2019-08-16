@@ -722,7 +722,7 @@ func (oc *OperatorController) GetAllStoresLimit() map[uint64]float64 {
 	defer oc.RUnlock()
 	ret := make(map[uint64]float64)
 	for storeID, limit := range oc.storesLimit {
-		store, _ := oc.cluster.GetStore(storeID)
+		store := oc.cluster.GetStore(storeID)
 		if !store.IsTombstone() {
 			ret[storeID] = limit.Rate() / float64(operator.RegionInfluence)
 		}

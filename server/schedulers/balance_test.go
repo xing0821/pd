@@ -86,8 +86,8 @@ func (s *testBalanceSpeedSuite) TestShouldBalance(c *C) {
 	for _, t := range tests {
 		tc.AddLeaderStore(1, int(t.sourceCount))
 		tc.AddLeaderStore(2, int(t.targetCount))
-		source, _ := tc.GetStore(1)
-		target, _ := tc.GetStore(2)
+		source := tc.GetStore(1)
+		target := tc.GetStore(2)
 		region := tc.GetRegion(1).Clone(core.SetApproximateSize(t.regionSize))
 		tc.PutRegion(region)
 		c.Assert(shouldBalance(tc, source, target, region, core.LeaderKind, schedule.NewUnfinishedOpInfluence(nil, tc)), Equals, t.expectedResult)
@@ -96,8 +96,8 @@ func (s *testBalanceSpeedSuite) TestShouldBalance(c *C) {
 	for _, t := range tests {
 		tc.AddRegionStore(1, int(t.sourceCount))
 		tc.AddRegionStore(2, int(t.targetCount))
-		source, _ := tc.GetStore(1)
-		target, _ := tc.GetStore(2)
+		source := tc.GetStore(1)
+		target := tc.GetStore(2)
 		region := tc.GetRegion(1).Clone(core.SetApproximateSize(t.regionSize))
 		tc.PutRegion(region)
 		c.Assert(shouldBalance(tc, source, target, region, core.RegionKind, schedule.NewUnfinishedOpInfluence(nil, tc)), Equals, t.expectedResult)
@@ -379,13 +379,9 @@ func (s *testBalanceRegionSchedulerSuite) TestReplicas3(c *C) {
 		sb.Schedule(tc)
 	}
 	hit := sb.(*balanceRegionScheduler).hitsCounter
-
-	store, _ := tc.GetStore(1)
-	c.Assert(hit.buildSourceFilter(tc).Source(tc, store), IsTrue)
-	store, _ = tc.GetStore(2)
-	c.Assert(hit.buildSourceFilter(tc).Source(tc, store), IsFalse)
-	store, _ = tc.GetStore(3)
-	c.Assert(hit.buildSourceFilter(tc).Source(tc, store), IsFalse)
+	c.Assert(hit.buildSourceFilter(tc).Source(tc, tc.GetStore(1)), IsTrue)
+	c.Assert(hit.buildSourceFilter(tc).Source(tc, tc.GetStore(2)), IsFalse)
+	c.Assert(hit.buildSourceFilter(tc).Source(tc, tc.GetStore(3)), IsFalse)
 
 	// Store 4 has smaller region score than store 2.
 	tc.AddLabelsStore(4, 2, map[string]string{"zone": "z1", "rack": "r2", "host": "h1"})
@@ -393,8 +389,7 @@ func (s *testBalanceRegionSchedulerSuite) TestReplicas3(c *C) {
 
 	// Store 5 has smaller region score than store 1.
 	tc.AddLabelsStore(5, 2, map[string]string{"zone": "z1", "rack": "r1", "host": "h1"})
-	store, _ = tc.GetStore(1)
-	hit.remove(store, nil)
+	hit.remove(tc.GetStore(1), nil)
 	testutil.CheckTransferPeer(c, sb.Schedule(tc)[0], operator.OpBalance, 1, 5)
 
 	// Store 6 has smaller region score than store 5.
@@ -422,9 +417,8 @@ func (s *testBalanceRegionSchedulerSuite) TestReplicas3(c *C) {
 	for i := 0; i <= hitsStoreCountThreshold/balanceRegionRetryLimit; i++ {
 		c.Assert(sb.Schedule(tc), IsNil)
 	}
-	store, _ = tc.GetStore(1)
-	c.Assert(hit.buildSourceFilter(tc).Source(tc, store), IsTrue)
-	hit.remove(store, nil)
+	c.Assert(hit.buildSourceFilter(tc).Source(tc, tc.GetStore(1)), IsTrue)
+	hit.remove(tc.GetStore(1), nil)
 
 	// Store 9 has different zone with other stores but larger region score than store 1.
 	tc.AddLabelsStore(9, 20, map[string]string{"zone": "z2", "rack": "r1", "host": "h1"})
@@ -509,7 +503,7 @@ func (s *testBalanceRegionSchedulerSuite) TestBalance1(c *C) {
 	testutil.CheckTransferPeer(c, sb.Schedule(tc)[0], operator.OpBalance, 1, 5)
 
 	// the used size of  store 5 reach (highSpace, lowSpace)
-	origin, _ := tc.GetStore(5)
+	origin := tc.GetStore(5)
 	stats := origin.GetStoreStats()
 	stats.Capacity = 50
 	stats.Available = 28

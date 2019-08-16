@@ -63,8 +63,8 @@ func (c Constraint) evalLabelValues(region *core.RegionInfo, cluster Cluster) in
 }
 
 func (c Constraint) evalCountLeader(region *core.RegionInfo, cluster Cluster) int {
-	leaderStore, err := cluster.GetStore(region.GetLeader().GetStoreId())
-	if err == nil && c.matchStore(leaderStore) {
+	leaderStore := cluster.GetStore(region.GetLeader().GetStoreId())
+	if leaderStore != nil && c.matchStore(leaderStore) {
 		return 1
 	}
 	return 0

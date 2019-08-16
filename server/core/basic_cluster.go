@@ -328,7 +328,7 @@ type RegionSetInformer interface {
 // StoreSetInformer provides access to a shared informer of stores.
 type StoreSetInformer interface {
 	GetStores() []*StoreInfo
-	GetStore(id uint64) (*StoreInfo, error)
+	GetStore(id uint64) *StoreInfo
 
 	GetRegionStores(region *RegionInfo) []*StoreInfo
 	GetFollowerStores(region *RegionInfo) []*StoreInfo

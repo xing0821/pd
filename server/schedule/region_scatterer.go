@@ -17,8 +17,6 @@ import (
 	"math/rand"
 	"sync"
 
-	"go.uber.org/zap"
-
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/log"
 	"github.com/pingcap/pd/server/core"
@@ -26,6 +24,7 @@ import (
 	"github.com/pingcap/pd/server/schedule/filter"
 	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type selectedStores struct {
@@ -141,11 +140,9 @@ func (r *RegionScatterer) selectPeerToReplace(stores map[uint64]*core.StoreInfo,
 	// scoreGuard guarantees that the distinct score will not decrease.
 	regionStores := r.cluster.GetRegionStores(region)
 	storeID := oldPeer.GetStoreId()
-	sourceStore, err := r.cluster.GetStore(storeID)
-	if err != nil {
-		log.Error("failed to get the store",
-			zap.Uint64("store-id", storeID),
-			zap.Error(err))
+	sourceStore := r.cluster.GetStore(storeID)
+	if sourceStore == nil {
+		log.Error("failed to get the store", zap.Uint64("store-id", storeID))
 	}
 	scoreGuard := filter.NewDistinctScoreFilter(r.cluster.GetLocationLabels(), regionStores, sourceStore)
 

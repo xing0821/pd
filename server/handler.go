@@ -31,25 +31,29 @@ import (
 )
 
 var (
-	// ErrNotBootstrapped is error info for cluster not bootstrapped
+	// ErrNotBootstrapped is error info for cluster not bootstrapped.
 	ErrNotBootstrapped = errors.New("TiKV cluster not bootstrapped, please start TiKV first")
-	// ErrOperatorNotFound is error info for operator not found
+	// ErrOperatorNotFound is error info for operator not found.
 	ErrOperatorNotFound = errors.New("operator not found")
-	// ErrAddOperator is error info for already have an operator when adding operator
+	// ErrAddOperator is error info for already have an operator when adding operator.
 	ErrAddOperator = errors.New("failed to add operator, maybe already have one")
-	// ErrRegionNotAdjacent is error info for region not adjacent
+	// ErrRegionNotAdjacent is error info for region not adjacent.
 	ErrRegionNotAdjacent = errors.New("two regions are not adjacent")
-	// ErrRegionNotFound is error info for region not found
+	// ErrRegionNotFound is error info for region not found.
 	ErrRegionNotFound = func(regionID uint64) error {
 		return errors.Errorf("region %v not found", regionID)
 	}
-	// ErrRegionAbnormalPeer is error info for region has abonormal peer
+	// ErrRegionAbnormalPeer is error info for region has abonormal peer.
 	ErrRegionAbnormalPeer = func(regionID uint64) error {
 		return errors.Errorf("region %v has abnormal peer", regionID)
 	}
-	// ErrRegionIsStale is error info for region is stale
+	// ErrRegionIsStale is error info for region is stale.
 	ErrRegionIsStale = func(region *metapb.Region, origin *metapb.Region) error {
 		return errors.Errorf("region is stale: region %v origin %v", region, origin)
+	}
+	// ErrStoreNotFound is error info for store not found.
+	ErrStoreNotFound = func(storeID uint64) error {
+		return errors.Errorf("store %v not found", storeID)
 	}
 )
 
@@ -101,9 +105,10 @@ func (h *Handler) GetStores() ([]*core.StoreInfo, error) {
 	storeMetas := cluster.GetMetaStores()
 	stores := make([]*core.StoreInfo, 0, len(storeMetas))
 	for _, s := range storeMetas {
-		store, err := cluster.GetStore(s.GetId())
-		if err != nil {
-			return nil, err
+		storeID := s.GetId()
+		store := cluster.GetStore(storeID)
+		if store == nil {
+			return nil, ErrStoreNotFound(storeID)
 		}
 		stores = append(stores, store)
 	}
@@ -431,8 +436,8 @@ func (h *Handler) AddTransferRegionOperator(regionID uint64, storeIDs map[uint64
 
 	var store *core.StoreInfo
 	for id := range storeIDs {
-		store, err = c.cluster.GetStore(id)
-		if err != nil {
+		store = c.cluster.GetStore(id)
+		if store == nil {
 			return core.NewStoreNotFoundErr(id)
 		}
 		if store.IsTombstone() {
@@ -467,8 +472,8 @@ func (h *Handler) AddTransferPeerOperator(regionID uint64, fromStoreID, toStoreI
 		return errors.Errorf("region has no peer in store %v", fromStoreID)
 	}
 
-	toStore, err := c.cluster.GetStore(toStoreID)
-	if err != nil {
+	toStore := c.cluster.GetStore(toStoreID)
+	if toStore == nil {
 		return core.NewStoreNotFoundErr(toStoreID)
 	}
 	if toStore.IsTombstone() {
@@ -506,8 +511,8 @@ func (h *Handler) checkAdminAddPeerOperator(regionID uint64, toStoreID uint64) (
 		return nil, nil, errors.Errorf("region already has peer in store %v", toStoreID)
 	}
 
-	toStore, err := c.cluster.GetStore(toStoreID)
-	if err != nil {
+	toStore := c.cluster.GetStore(toStoreID)
+	if toStore == nil {
 		return nil, nil, core.NewStoreNotFoundErr(toStoreID)
 	}
 	if toStore.IsTombstone() {
