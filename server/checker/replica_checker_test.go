@@ -24,7 +24,7 @@ import (
 	"github.com/pingcap/pd/pkg/mock/mockoption"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
-	"github.com/pingcap/pd/server/schedule"
+	"github.com/pingcap/pd/server/schedule/operator"
 )
 
 func TestReplicaChecker(t *testing.T) {
@@ -103,7 +103,7 @@ func (s *testReplicaCheckerSuite) TestReplacePendingPeer(c *C) {
 	s.cluster.PutRegion(r)
 	op := s.rc.Check(r)
 	c.Assert(op, NotNil)
-	c.Assert(op.Step(0).(schedule.AddLearner).ToStore, Equals, uint64(4))
-	c.Assert(op.Step(1).(schedule.PromoteLearner).ToStore, Equals, uint64(4))
-	c.Assert(op.Step(2).(schedule.RemovePeer).FromStore, Equals, uint64(1))
+	c.Assert(op.Step(0).(operator.AddLearner).ToStore, Equals, uint64(4))
+	c.Assert(op.Step(1).(operator.PromoteLearner).ToStore, Equals, uint64(4))
+	c.Assert(op.Step(2).(operator.RemovePeer).FromStore, Equals, uint64(1))
 }
