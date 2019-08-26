@@ -200,7 +200,7 @@ func (c *clusterInfo) deleteStore(store *core.StoreInfo) error {
 
 func (c *clusterInfo) deleteStoreLocked(store *core.StoreInfo) error {
 	if c.kv != nil {
-		if err := c.kv.DeleteStore(store.GetMeta()); err != nil {
+		if err := c.kv.DeleteStore(store.Store); err != nil {
 			return err
 		}
 	}

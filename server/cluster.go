@@ -518,12 +518,12 @@ func (c *RaftCluster) RemoveTombStoneRecords() error {
 			err := cluster.deleteStore(store)
 			if err != nil {
 				log.Error("delete store failed",
-					zap.Stringer("store", store.GetMeta()),
+					zap.Stringer("store", store.Store),
 					zap.Error(err))
 				return err
 			}
 			log.Info("delete store successed",
-				zap.Stringer("store", store.GetMeta()))
+				zap.Stringer("store", store.Store))
 		}
 	}
 	return nil
