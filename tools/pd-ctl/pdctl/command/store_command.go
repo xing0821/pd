@@ -164,7 +164,7 @@ func setStoreWeightCommandFunc(cmd *cobra.Command, args []string) {
 }
 
 func removeTombStoneCommandFunc(cmd *cobra.Command, args []string) {
-	prefix := fmt.Sprintf(path.Join(storePrefix, "remove-tombstone"), "")
+	prefix := path.Join(storesPrefix, "remove-tombstone")
 	_, err := doRequest(cmd, prefix, http.MethodDelete)
 	if err != nil {
 		cmd.Printf("Failed to remove tombstone store %s \n", err)
