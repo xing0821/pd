@@ -55,10 +55,12 @@ pd-recover:
 	CGO_ENABLED=0 go build -o bin/pd-recover tools/pd-recover/main.go
 
 test: retool-setup
-	# testing..
+	# testing...
+	make deadlock-enable
 	@$(FAILPOINT_ENABLE)
-	CGO_ENABLED=1 GO111MODULE=on go test -race -cover $(TEST_PKGS) || { $(FAILPOINT_DISABLE); exit 1; }
+	CGO_ENABLED=1 GO111MODULE=on go test -race -cover $(TEST_PKGS) || { $(FAILPOINT_DISABLE); make deadlock-disable; exit 1; }
 	@$(FAILPOINT_DISABLE)
+	make deadlock-disable
 
 basic-test:
 	@$(FAILPOINT_ENABLE)
@@ -125,6 +127,21 @@ clean-test:
 	rm -rf /tmp/test_pd*
 	rm -rf /tmp/pd-tests*
 	rm -rf /tmp/test_etcd*
+
+deadlock-setup: export GO111MODULE=off
+deadlock-setup:
+	go get github.com/sasha-s/go-deadlock
+
+deadlock-enable: deadlock-setup
+	find . -name "*.go" | grep -vE "(vendor|\.retools)" | xargs -n 1 sed -i.bak 's/sync.RWMutex/deadlock.RWMutex/'
+	find . -name "*.go" | grep -vE "(vendor|\.retools)" | xargs -n 1 sed -i.bak 's/sync.Mutex/deadlock.Mutex/'
+	find . -name "*.go" | grep -vE "(vendor|\.retools)" | xargs -n 1 ./scripts/retool do goimports -w
+
+deadlock-disable:
+	find . -name "*.go" | grep -vE "(vendor|\.retools)" | xargs -n 1 sed -i.bak 's/deadlock.RWMutex/sync.RWMutex/'
+	find . -name "*.go" | grep -vE "(vendor|\.retools)" | xargs -n 1 sed -i.bak 's/deadlock.Mutex/sync.Mutex/'
+	find . -name "*.go" | grep -vE "(vendor|\.retools)" | xargs -n 1 ./scripts/retool do goimports -w
+	find . -name "*.bak" | grep -vE "(vendor|\.retools)" | xargs rm
 
 failpoint-enable:
 	# Converting failpoints...
