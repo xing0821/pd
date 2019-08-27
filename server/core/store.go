@@ -320,7 +320,7 @@ func (s *StoreInfo) IsLowSpace(lowSpaceRatio float64) bool {
 	return s.GetStoreStats() != nil && s.AvailableRatio() < 1-lowSpaceRatio
 }
 
-// ResourceCount reutrns count of leader/region in the store.
+// ResourceCount returns count of leader/region in the store.
 func (s *StoreInfo) ResourceCount(kind ResourceKind) uint64 {
 	switch kind {
 	case LeaderKind:
@@ -344,7 +344,7 @@ func (s *StoreInfo) ResourceSize(kind ResourceKind) int64 {
 	}
 }
 
-// ResourceScore reutrns score of leader/region in the store.
+// ResourceScore returns score of leader/region in the store.
 func (s *StoreInfo) ResourceScore(kind ResourceKind, highSpaceRatio, lowSpaceRatio float64, delta int64) float64 {
 	switch kind {
 	case LeaderKind:
@@ -610,8 +610,8 @@ func (s *StoresInfo) SetRegionSize(storeID uint64, regionSize int64) {
 	}
 }
 
-// UpdateStoreStatusLocked updates the information of the store.
-func (s *StoresInfo) UpdateStoreStatusLocked(storeID uint64, leaderCount int, regionCount int, pendingPeerCount int, leaderSize int64, regionSize int64) {
+// UpdateStoreStatus updates the information of the store.
+func (s *StoresInfo) UpdateStoreStatus(storeID uint64, leaderCount int, regionCount int, pendingPeerCount int, leaderSize int64, regionSize int64) {
 	if store, ok := s.stores[storeID]; ok {
 		newStore := store.Clone(SetLeaderCount(leaderCount),
 			SetRegionCount(regionCount),
