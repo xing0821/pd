@@ -534,7 +534,7 @@ func (h *Handler) AddAddPeerOperator(regionID uint64, toStoreID uint64) error {
 		return err
 	}
 
-	op := operator.CreateAddPeerOperator("admin-add-peer", c.cluster, region, newPeer.GetId(), toStoreID, operator.OpAdmin)
+	op := operator.CreateAddPeerOperator("admin-add-peer", region, newPeer.GetId(), toStoreID, operator.OpAdmin)
 	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(ErrAddOperator)
 	}
@@ -553,7 +553,7 @@ func (h *Handler) AddAddLearnerOperator(regionID uint64, toStoreID uint64) error
 		return err
 	}
 
-	op := operator.CreateAddLearnerOperator("admin-add-learner", c.cluster, region, newPeer.GetId(), toStoreID, operator.OpAdmin)
+	op := operator.CreateAddLearnerOperator("admin-add-learner", region, newPeer.GetId(), toStoreID, operator.OpAdmin)
 	if ok := c.opController.AddOperator(op); !ok {
 		return errors.WithStack(ErrAddOperator)
 	}

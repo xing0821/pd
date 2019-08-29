@@ -104,6 +104,7 @@ Usage:
     "disable-location-replacement": "false",
     "disable-make-up-replica": "false",
     "disable-namespace-relocation": "false",
+    "disable-raft-learner": "false",
     "disable-remove-down-replica": "false",
     "disable-remove-extra-replica": "false",
     "disable-replace-offline-replica": "false",
