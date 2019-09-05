@@ -15,20 +15,15 @@ package syncer
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"io/ioutil"
-	"net/url"
 	"time"
 
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pingcap/log"
+	"github.com/pingcap/pd/pkg/grpcutil"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 )
 
@@ -56,46 +51,9 @@ func (s *RegionSyncer) reset() {
 func (s *RegionSyncer) establish(addr string) (ClientStream, error) {
 	s.reset()
 
-	u, err := url.Parse(addr)
+	cc, err := grpcutil.GetClientConn(addr, s.securityConfig.CAPath, s.securityConfig.CertPath, s.securityConfig.KeyPath)
 	if err != nil {
-		return nil, err
-	}
-
-	opt := grpc.WithInsecure()
-	if len(s.securityConfig.CAPath) != 0 {
-		certificates := []tls.Certificate{}
-		if len(s.securityConfig.CertPath) != 0 && len(s.securityConfig.KeyPath) != 0 {
-			// Load the client certificates from disk
-			certificate, e := tls.LoadX509KeyPair(s.securityConfig.CertPath, s.securityConfig.KeyPath)
-			if e != nil {
-				return nil, errors.Errorf("could not load client key pair: %s", e)
-			}
-			certificates = append(certificates, certificate)
-		}
-
-		// Create a certificate pool from the certificate authority
-		certPool := x509.NewCertPool()
-		ca, e := ioutil.ReadFile(s.securityConfig.CAPath)
-		if e != nil {
-			return nil, errors.Errorf("could not read ca certificate: %s", e)
-		}
-
-		// Append the certificates from the CA
-		if !certPool.AppendCertsFromPEM(ca) {
-			return nil, errors.New("failed to append ca certs")
-		}
-
-		creds := credentials.NewTLS(&tls.Config{
-			Certificates: certificates,
-			RootCAs:      certPool,
-		})
-
-		opt = grpc.WithTransportCredentials(creds)
-	}
-
-	cc, err := grpc.Dial(u.Host, opt, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(msgSize)))
-	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	ctx, cancel := context.WithCancel(s.server.Context())
