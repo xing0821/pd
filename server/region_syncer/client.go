@@ -51,7 +51,7 @@ func (s *RegionSyncer) reset() {
 func (s *RegionSyncer) establish(addr string) (ClientStream, error) {
 	s.reset()
 
-	cc, err := grpcutil.GetClientConn(addr, s.securityConfig.CAPath, s.securityConfig.CertPath, s.securityConfig.KeyPath)
+	cc, err := grpcutil.GetClientConn(addr, s.securityConfig["caPath"], s.securityConfig["certPath"], s.securityConfig["keyPath"])
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

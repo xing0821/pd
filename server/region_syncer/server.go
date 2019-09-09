@@ -23,7 +23,6 @@ import (
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pingcap/log"
-	"github.com/pingcap/pd/server/config"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -60,7 +59,7 @@ type Server interface {
 	GetStorage() *core.KV
 	Name() string
 	GetMetaRegions() []*metapb.Region
-	GetSecurityConfig() *config.SecurityConfig
+	GetSecurityConfig() map[string]string
 }
 
 // RegionSyncer is used to sync the region information without raft.
@@ -74,7 +73,7 @@ type RegionSyncer struct {
 	wg             sync.WaitGroup
 	history        *historyBuffer
 	limit          *ratelimit.Bucket
-	securityConfig *config.SecurityConfig
+	securityConfig map[string]string
 }
 
 // NewRegionSyncer returns a region syncer.
