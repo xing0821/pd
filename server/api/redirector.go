@@ -14,6 +14,7 @@
 package api
 
 import (
+	"crypto/tls"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -68,8 +69,12 @@ func (h *redirector) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	newCustomReverseProxies(urls).ServeHTTP(w, r)
+	tlsConfig, err := h.s.GetSecurityConfig().ToTLSConfig()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	newCustomReverseProxies(urls, tlsConfig).ServeHTTP(w, r)
 }
 
 type customReverseProxies struct {
@@ -77,7 +82,15 @@ type customReverseProxies struct {
 	client *http.Client
 }
 
-func newCustomReverseProxies(urls []url.URL) *customReverseProxies {
+func newCustomReverseProxies(urls []url.URL, cfg *tls.Config) *customReverseProxies {
+	if cfg != nil {
+		dialClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig:   cfg,
+				DisableKeepAlives: true,
+			},
+		}
+	}
 	p := &customReverseProxies{
 		client: dialClient,
 	}
