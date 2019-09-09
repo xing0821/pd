@@ -83,14 +83,13 @@ type customReverseProxies struct {
 }
 
 func newCustomReverseProxies(urls []url.URL, cfg *tls.Config) *customReverseProxies {
-	if cfg != nil {
-		dialClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig:   cfg,
-				DisableKeepAlives: true,
-			},
-		}
+	dialClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig:   cfg,
+			DisableKeepAlives: true,
+		},
 	}
+
 	p := &customReverseProxies{
 		client: dialClient,
 	}
