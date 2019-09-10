@@ -27,7 +27,10 @@ func init() {
 	})
 }
 
+const shuffleLeaderSchedulerName = "shuffle-leader-scheduler"
+
 type shuffleLeaderScheduler struct {
+	name string
 	*baseScheduler
 	selector *selector.RandomSelector
 }
@@ -36,17 +39,18 @@ type shuffleLeaderScheduler struct {
 // between stores.
 func newShuffleLeaderScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	filters := []filter.Filter{
-		filter.StoreStateFilter{TransferLeader: true},
+		filter.StoreStateFilter{Act: shuffleLeaderSchedulerName, TransferLeader: true},
 	}
 	base := newBaseScheduler(opController)
 	return &shuffleLeaderScheduler{
+		name:          shuffleLeaderSchedulerName,
 		baseScheduler: base,
 		selector:      selector.NewRandomSelector(filters),
 	}
 }
 
 func (s *shuffleLeaderScheduler) GetName() string {
-	return "shuffle-leader-scheduler"
+	return s.name
 }
 
 func (s *shuffleLeaderScheduler) GetType() string {

@@ -49,15 +49,10 @@ type balanceLeaderScheduler struct {
 // each store balanced.
 func newBalanceLeaderScheduler(opController *schedule.OperatorController, opts ...BalanceLeaderCreateOption) schedule.Scheduler {
 	taintStores := newTaintCache()
-	filters := []filter.Filter{
-		filter.StoreStateFilter{TransferLeader: true},
-		filter.NewCacheFilter(taintStores),
-	}
 	base := newBaseScheduler(opController)
 
 	s := &balanceLeaderScheduler{
 		baseScheduler: base,
-		selector:      selector.NewBalanceSelector(core.LeaderKind, filters),
 		taintStores:   taintStores,
 		opController:  opController,
 		counter:       balanceLeaderCounter,
@@ -65,6 +60,11 @@ func newBalanceLeaderScheduler(opController *schedule.OperatorController, opts .
 	for _, opt := range opts {
 		opt(s)
 	}
+	filters := []filter.Filter{
+		filter.StoreStateFilter{Act: s.GetName(), TransferLeader: true},
+		filter.NewCacheFilter(s.GetName(), taintStores),
+	}
+	s.selector = selector.NewBalanceSelector(core.LeaderKind, filters)
 	return s
 }
 
