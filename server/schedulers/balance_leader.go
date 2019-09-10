@@ -228,6 +228,7 @@ func (l *balanceLeaderScheduler) createOperator(cluster schedule.Cluster, region
 	targetLabel := strconv.FormatUint(targetID, 10)
 	l.counter.WithLabelValues("move-leader", source.GetAddress()+"-out", sourceLabel).Inc()
 	l.counter.WithLabelValues("move-leader", target.GetAddress()+"-in", targetLabel).Inc()
+	balanceDirectionCounter.WithLabelValues(l.GetName(), sourceLabel, targetLabel)
 	op := operator.CreateTransferLeaderOperator("balance-leader", region, region.GetLeader().GetStoreId(), targetID, operator.OpBalance)
 	return []*operator.Operator{op}
 }
