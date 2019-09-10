@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/pingcap/log"
 	"github.com/pingcap/pd/server"
@@ -34,6 +35,8 @@ const (
 	errRedirectFailed      = "redirect failed"
 	errRedirectToNotLeader = "redirect to not leader"
 )
+
+var initHTTPClientOnce sync.Once
 
 type redirector struct {
 	s *server.Server
@@ -69,12 +72,20 @@ func (h *redirector) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	tlsConfig, err := h.s.GetSecurityConfig().ToTLSConfig()
+	initHTTPClientOnce.Do(func() {
+		var tlsConfig *tls.Config
+		tlsConfig, err = h.s.GetSecurityConfig().ToTLSConfig()
+		dialClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsConfig,
+			},
+		}
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	newCustomReverseProxies(urls, tlsConfig).ServeHTTP(w, r)
+	newCustomReverseProxies(urls).ServeHTTP(w, r)
 }
 
 type customReverseProxies struct {
@@ -82,14 +93,7 @@ type customReverseProxies struct {
 	client *http.Client
 }
 
-func newCustomReverseProxies(urls []url.URL, cfg *tls.Config) *customReverseProxies {
-	dialClient = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig:   cfg,
-			DisableKeepAlives: true,
-		},
-	}
-
+func newCustomReverseProxies(urls []url.URL) *customReverseProxies {
 	p := &customReverseProxies{
 		client: dialClient,
 	}

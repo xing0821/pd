@@ -28,11 +28,7 @@ import (
 )
 
 // dialClient used to dail http request.
-var dialClient = &http.Client{
-	Transport: &http.Transport{
-		DisableKeepAlives: true,
-	},
-}
+var dialClient = &http.Client{}
 
 // Respond to the client about the given error, integrating with errcode.ErrorCode.
 //
