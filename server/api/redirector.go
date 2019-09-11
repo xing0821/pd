@@ -77,7 +77,8 @@ func (h *redirector) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 		tlsConfig, err = h.s.GetSecurityConfig().ToTLSConfig()
 		dialClient = &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
+				DisableKeepAlives: true,
+				TLSClientConfig:   tlsConfig,
 			},
 		}
 	})
