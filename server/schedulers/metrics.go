@@ -76,6 +76,7 @@ func init() {
 	prometheus.MustRegister(schedulerStatus)
 	prometheus.MustRegister(balanceLeaderCounter)
 	prometheus.MustRegister(balanceRegionCounter)
+	prometheus.MustRegister(balanceDirectionCounter)
 	prometheus.MustRegister(scatterRangeLeaderCounter)
 	prometheus.MustRegister(scatterRangeRegionCounter)
 }
