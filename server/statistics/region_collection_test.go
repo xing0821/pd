@@ -102,6 +102,7 @@ func (t *testRegionStatisticsSuite) TestRegionStatistics(c *C) {
 }
 
 func (t *testRegionStatisticsSuite) TestRegionLabelIsolationLevel(c *C) {
+	locationLabels := []string{"zone", "rack", "host"}
 	labelLevelStats := NewLabelLevelStatistics()
 	labelsSet := [][]map[string]string{
 		{
@@ -131,7 +132,7 @@ func (t *testRegionStatisticsSuite) TestRegionLabelIsolationLevel(c *C) {
 		},
 	}
 	res := []int{2, 3, 1, 2, 0}
-	counter := []int{1, 1, 2, 1, 0}
+	counter := map[string]int{"none": 1, "host": 1, "rack": 2, "zone": 1}
 	regionID := 1
 	f := func(labels []map[string]string, res int) {
 		metaStores := []*metapb.Store{
@@ -150,8 +151,8 @@ func (t *testRegionStatisticsSuite) TestRegionLabelIsolationLevel(c *C) {
 			stores = append(stores, s)
 		}
 		region := core.NewRegionInfo(&metapb.Region{Id: uint64(regionID)}, nil)
-		level := getRegionLabelIsolationLevel(stores, []string{"zone", "rack", "host"})
-		labelLevelStats.Observe(region, stores, []string{"zone", "rack", "host"})
+		level := getRegionLabelIsolationLevel(stores, locationLabels)
+		labelLevelStats.Observe(region, stores, locationLabels)
 		c.Assert(level, Equals, res)
 		regionID++
 	}
@@ -163,7 +164,7 @@ func (t *testRegionStatisticsSuite) TestRegionLabelIsolationLevel(c *C) {
 		c.Assert(labelLevelStats.labelLevelCounter[i], Equals, res)
 	}
 
-	level := getRegionLabelIsolationLevel(nil, []string{"zone", "rack", "host"})
+	level := getRegionLabelIsolationLevel(nil, locationLabels)
 	c.Assert(level, Equals, 0)
 	level = getRegionLabelIsolationLevel(nil, nil)
 	c.Assert(level, Equals, 0)

@@ -14,8 +14,6 @@
 package statistics
 
 import (
-	"fmt"
-
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/namespace"
 )
@@ -33,6 +31,8 @@ const (
 	IncorrectNamespace
 	LearnerPeer
 )
+
+const nonIsolation = "none"
 
 // RegionStatistics is used to record the status of regions.
 type RegionStatistics struct {
@@ -154,14 +154,14 @@ func (r *RegionStatistics) Collect() {
 // LabelLevelStatistics is the statistics of the level of labels.
 type LabelLevelStatistics struct {
 	regionLabelLevelStats map[uint64]int
-	labelLevelCounter     map[int]int
+	labelLevelCounter     map[string]int
 }
 
 // NewLabelLevelStatistics creates a new LabelLevelStatistics.
 func NewLabelLevelStatistics() *LabelLevelStatistics {
 	return &LabelLevelStatistics{
 		regionLabelLevelStats: make(map[uint64]int),
-		labelLevelCounter:     make(map[int]int),
+		labelLevelCounter:     make(map[string]int),
 	}
 }
 
@@ -173,25 +173,40 @@ func (l *LabelLevelStatistics) Observe(region *core.RegionInfo, stores []*core.S
 		if level == regionLabelLevel {
 			return
 		}
-		l.labelLevelCounter[level]--
+		l.counterDec(level, labels)
 	}
 	l.regionLabelLevelStats[regionID] = regionLabelLevel
-	l.labelLevelCounter[regionLabelLevel]++
+	l.counterInc(regionLabelLevel, labels)
 }
 
 // Collect collects the metrics of the label status.
 func (l *LabelLevelStatistics) Collect() {
 	for level, count := range l.labelLevelCounter {
-		typ := fmt.Sprintf("level_%d", level)
-		regionLabelLevelGauge.WithLabelValues(typ).Set(float64(count))
+		regionLabelLevelGauge.WithLabelValues(level).Set(float64(count))
 	}
 }
 
 // ClearDefunctRegion is used to handle the overlap region.
-func (l *LabelLevelStatistics) ClearDefunctRegion(regionID uint64) {
+func (l *LabelLevelStatistics) ClearDefunctRegion(regionID uint64, labels []string) {
 	if level, ok := l.regionLabelLevelStats[regionID]; ok {
-		l.labelLevelCounter[level]--
+		l.counterDec(level, labels)
 		delete(l.regionLabelLevelStats, regionID)
+	}
+}
+
+func (l *LabelLevelStatistics) counterInc(level int, labels []string) {
+	if level == 0 {
+		l.labelLevelCounter[nonIsolation]++
+	} else {
+		l.labelLevelCounter[labels[level-1]]++
+	}
+}
+
+func (l *LabelLevelStatistics) counterDec(level int, labels []string) {
+	if level == 0 {
+		l.labelLevelCounter[nonIsolation]--
+	} else {
+		l.labelLevelCounter[labels[level-1]]--
 	}
 }
 
