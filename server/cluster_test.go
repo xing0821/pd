@@ -514,10 +514,12 @@ func (s *testClusterSuite) TestStoreVersionChange(c *C) {
 
 func (s *testClusterSuite) TestConcurrentHandleRegion(c *C) {
 	var err error
-	_, s.svr, _, err = NewTestServer(c)
+	var cleanup func()
+	_, s.svr, cleanup, err = NewTestServer(c)
 	c.Assert(err, IsNil)
 	mustWaitLeader(c, []*Server{s.svr})
 	s.grpcPDClient = testutil.MustNewGrpcClient(c, s.svr.GetAddr())
+	defer cleanup()
 	storeAddrs := []string{"127.0.1.1:0", "127.0.1.1:1", "127.0.1.1:2"}
 	_, err = s.svr.bootstrapCluster(s.newBootstrapRequest(c, s.svr.clusterID, "127.0.0.1:0"))
 	c.Assert(err, IsNil)
