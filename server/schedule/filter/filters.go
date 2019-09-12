@@ -26,7 +26,7 @@ import (
 
 // Filter is an interface to filter source and target store.
 type Filter interface {
-	// ActOn is used to indicate that the filter will act on.
+	// ActOn is used to indicate where the filter will act on.
 	ActOn() string
 	Type() string
 	// Return true if the store should not be used as a source store.

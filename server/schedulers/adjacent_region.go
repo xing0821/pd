@@ -97,7 +97,7 @@ func (a *adjacentState) len() int {
 // on each store.
 func newBalanceAdjacentRegionScheduler(opController *schedule.OperatorController, args ...uint64) schedule.Scheduler {
 	filters := []filter.Filter{
-		filter.StoreStateFilter{Act: balanceAdjacentRegionSchedulerName, MoveRegion: true},
+		filter.StoreStateFilter{Act: balanceAdjacentRegionSchedulerName, TransferLeader: true, MoveRegion: true},
 	}
 	base := newBaseScheduler(opController)
 	s := &balanceAdjacentRegionScheduler{
