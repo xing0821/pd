@@ -30,7 +30,7 @@ func TestServer(t *testing.T) {
 
 func mustRunTestServer(c *C) (*Server, CleanupFunc) {
 	var err error
-	_, server, cleanup, err := NewTestServer(c)
+	server, cleanup, err := NewTestServer(c)
 	c.Assert(err, IsNil)
 	mustWaitLeader(c, []*Server{server})
 	return server, cleanup
