@@ -151,68 +151,68 @@ func (r *RegionStatistics) Collect() {
 	regionStatusGauge.WithLabelValues("learner_peer_region_count").Set(float64(len(r.stats[LearnerPeer])))
 }
 
-// LabelLevelStatistics is the statistics of the level of labels.
-type LabelLevelStatistics struct {
-	regionLabelLevelStats map[uint64]int
-	labelLevelCounter     map[string]int
+// LabelStatistics is the statistics of the level of labels.
+type LabelStatistics struct {
+	regionLabelStats map[uint64]string
+	labelCounter     map[string]int
 }
 
-// NewLabelLevelStatistics creates a new LabelLevelStatistics.
-func NewLabelLevelStatistics() *LabelLevelStatistics {
-	return &LabelLevelStatistics{
-		regionLabelLevelStats: make(map[uint64]int),
-		labelLevelCounter:     make(map[string]int),
+// NewLabelStatistics creates a new LabelStatistics.
+func NewLabelStatistics() *LabelStatistics {
+	return &LabelStatistics{
+		regionLabelStats: make(map[uint64]string),
+		labelCounter:     make(map[string]int),
 	}
 }
 
 // Observe records the current label status.
-func (l *LabelLevelStatistics) Observe(region *core.RegionInfo, stores []*core.StoreInfo, labels []string) {
+func (l *LabelStatistics) Observe(region *core.RegionInfo, stores []*core.StoreInfo, labels []string) {
 	regionID := region.GetID()
-	regionLabelLevel := getRegionLabelIsolationLevel(stores, labels)
-	if level, ok := l.regionLabelLevelStats[regionID]; ok {
-		if level == regionLabelLevel {
+	regionIsolation := getRegionLabelIsolation(stores, labels)
+	if label, ok := l.regionLabelStats[regionID]; ok {
+		if label == regionIsolation {
 			return
 		}
-		l.counterDec(level, labels)
+		l.counterDec(label)
 	}
-	l.regionLabelLevelStats[regionID] = regionLabelLevel
-	l.counterInc(regionLabelLevel, labels)
+	l.regionLabelStats[regionID] = regionIsolation
+	l.counterInc(regionIsolation)
 }
 
 // Collect collects the metrics of the label status.
-func (l *LabelLevelStatistics) Collect() {
-	for level, count := range l.labelLevelCounter {
+func (l *LabelStatistics) Collect() {
+	for level, count := range l.labelCounter {
 		regionLabelLevelGauge.WithLabelValues(level).Set(float64(count))
 	}
 }
 
 // ClearDefunctRegion is used to handle the overlap region.
-func (l *LabelLevelStatistics) ClearDefunctRegion(regionID uint64, labels []string) {
-	if level, ok := l.regionLabelLevelStats[regionID]; ok {
-		l.counterDec(level, labels)
-		delete(l.regionLabelLevelStats, regionID)
+func (l *LabelStatistics) ClearDefunctRegion(regionID uint64, labels []string) {
+	if label, ok := l.regionLabelStats[regionID]; ok {
+		l.counterDec(label)
+		delete(l.regionLabelStats, regionID)
 	}
 }
 
-func (l *LabelLevelStatistics) counterInc(level int, labels []string) {
-	if level == 0 {
-		l.labelLevelCounter[nonIsolation]++
+func (l *LabelStatistics) counterInc(label string) {
+	if label == nonIsolation {
+		l.labelCounter[nonIsolation]++
 	} else {
-		l.labelLevelCounter[labels[level-1]]++
+		l.labelCounter[label]++
 	}
 }
 
-func (l *LabelLevelStatistics) counterDec(level int, labels []string) {
-	if level == 0 {
-		l.labelLevelCounter[nonIsolation]--
+func (l *LabelStatistics) counterDec(label string) {
+	if label == nonIsolation {
+		l.labelCounter[nonIsolation]--
 	} else {
-		l.labelLevelCounter[labels[level-1]]--
+		l.labelCounter[label]--
 	}
 }
 
-func getRegionLabelIsolationLevel(stores []*core.StoreInfo, labels []string) int {
+func getRegionLabelIsolation(stores []*core.StoreInfo, labels []string) string {
 	if len(stores) == 0 || len(labels) == 0 {
-		return 0
+		return nonIsolation
 	}
 	queueStores := [][]*core.StoreInfo{stores}
 	for level, label := range labels {
@@ -225,10 +225,10 @@ func getRegionLabelIsolationLevel(stores []*core.StoreInfo, labels []string) int
 		}
 		queueStores = newQueueStores
 		if len(queueStores) == 0 {
-			return level + 1
+			return labels[level]
 		}
 	}
-	return 0
+	return nonIsolation
 }
 
 func notIsolatedStoresWithLabel(stores []*core.StoreInfo, label string) [][]*core.StoreInfo {
@@ -247,4 +247,13 @@ func notIsolatedStoresWithLabel(stores []*core.StoreInfo, label string) [][]*cor
 		}
 	}
 	return res
+}
+
+func contains(s []int, e int) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
