@@ -23,8 +23,17 @@ var (
 			Name:      "event_count",
 			Help:      "Counter of checker events.",
 		}, []string{"type", "name"})
+
+	processStatusCounter = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "pd",
+			Subsystem: "checker",
+			Name:      "status",
+			Help:      "Status of the process of offline or down store.",
+		}, []string{"status", "event"})
 )
 
 func init() {
 	prometheus.MustRegister(checkerCounter)
+	prometheus.MustRegister(processStatusCounter)
 }
