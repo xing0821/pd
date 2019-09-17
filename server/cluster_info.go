@@ -629,7 +629,7 @@ func (c *clusterInfo) handleRegionHeartbeat(region *core.RegionInfo) error {
 			if c.regionStats != nil {
 				c.regionStats.ClearDefunctRegion(item.GetId())
 			}
-			c.labelLevelStats.ClearDefunctRegion(item.GetId())
+			c.labelLevelStats.ClearDefunctRegion(item.GetId(), c.GetLocationLabels())
 		}
 
 		// Update related stores.
