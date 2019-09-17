@@ -42,16 +42,20 @@ type ReplicaChecker struct {
 }
 
 // NewReplicaChecker creates a replica checker.
-func NewReplicaChecker(cluster schedule.Cluster, classifier namespace.Classifier) *ReplicaChecker {
+func NewReplicaChecker(cluster schedule.Cluster, classifier namespace.Classifier, n ...string) *ReplicaChecker {
+	name := replicaCheckerName
+	if len(n) != 0 {
+		name = n[0]
+	}
 	filters := []filter.Filter{
-		filter.NewOverloadFilter(replicaCheckerName),
-		filter.NewHealthFilter(replicaCheckerName),
-		filter.NewSnapshotCountFilter(replicaCheckerName),
-		filter.NewPendingPeerCountFilter(replicaCheckerName),
+		filter.NewOverloadFilter(name),
+		filter.NewHealthFilter(name),
+		filter.NewSnapshotCountFilter(name),
+		filter.NewPendingPeerCountFilter(name),
 	}
 
 	return &ReplicaChecker{
-		name:       replicaCheckerName,
+		name:       name,
 		cluster:    cluster,
 		classifier: classifier,
 		filters:    filters,
