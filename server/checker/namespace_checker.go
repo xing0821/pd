@@ -38,7 +38,7 @@ type NamespaceChecker struct {
 // NewNamespaceChecker creates a namespace checker.
 func NewNamespaceChecker(cluster schedule.Cluster, classifier namespace.Classifier) *NamespaceChecker {
 	filters := []filter.Filter{
-		filter.StoreStateFilter{Act: namespaceCheckerName, MoveRegion: true},
+		filter.StoreStateFilter{ActionScope: namespaceCheckerName, MoveRegion: true},
 	}
 
 	return &NamespaceChecker{

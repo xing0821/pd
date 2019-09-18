@@ -308,7 +308,7 @@ func (h *balanceHotRegionsScheduler) balanceByPeer(cluster schedule.Cluster, sto
 			log.Error("failed to get the source store", zap.Uint64("store-id", srcStoreID))
 		}
 		filters := []filter.Filter{
-			filter.StoreStateFilter{Act: h.GetName(), MoveRegion: true},
+			filter.StoreStateFilter{ActionScope: h.GetName(), MoveRegion: true},
 			filter.NewExcludedFilter(h.GetName(), srcRegion.GetStoreIds(), srcRegion.GetStoreIds()),
 			filter.NewDistinctScoreFilter(h.GetName(), cluster.GetLocationLabels(), cluster.GetRegionStores(srcRegion), srcStore),
 		}
@@ -369,7 +369,7 @@ func (h *balanceHotRegionsScheduler) balanceByLeader(cluster schedule.Cluster, s
 			continue
 		}
 
-		filters := []filter.Filter{filter.StoreStateFilter{Act: h.GetName(), TransferLeader: true}}
+		filters := []filter.Filter{filter.StoreStateFilter{ActionScope: h.GetName(), TransferLeader: true}}
 		candidateStoreIDs := make([]uint64, 0, len(srcRegion.GetPeers())-1)
 		for _, store := range cluster.GetFollowerStores(srcRegion) {
 			if !filter.Target(cluster, store, filters) {

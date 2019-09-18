@@ -41,7 +41,7 @@ type randomMergeScheduler struct {
 // then merges them.
 func newRandomMergeScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	filters := []filter.Filter{
-		filter.StoreStateFilter{Act: randomMergeSchedulerName, MoveRegion: true},
+		filter.StoreStateFilter{ActionScope: randomMergeSchedulerName, MoveRegion: true},
 	}
 	base := newBaseScheduler(opController)
 	return &randomMergeScheduler{

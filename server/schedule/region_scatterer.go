@@ -56,14 +56,14 @@ func (s *selectedStores) reset() {
 	s.stores = make(map[uint64]struct{})
 }
 
-func (s *selectedStores) newFilter(actOn string) filter.Filter {
+func (s *selectedStores) newFilter(scope string) filter.Filter {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	cloned := make(map[uint64]struct{})
 	for id := range s.stores {
 		cloned[id] = struct{}{}
 	}
-	return filter.NewExcludedFilter(actOn, nil, cloned)
+	return filter.NewExcludedFilter(scope, nil, cloned)
 }
 
 // RegionScatterer scatters regions.
@@ -83,7 +83,7 @@ func NewRegionScatterer(cluster Cluster, classifier namespace.Classifier) *Regio
 		cluster:    cluster,
 		classifier: classifier,
 		filters: []filter.Filter{
-			filter.StoreStateFilter{Act: regionScatterName},
+			filter.StoreStateFilter{ActionScope: regionScatterName},
 		},
 		selected: newSelectedStores(),
 	}

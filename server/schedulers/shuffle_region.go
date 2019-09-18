@@ -42,7 +42,7 @@ type shuffleRegionScheduler struct {
 // between stores.
 func newShuffleRegionScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	filters := []filter.Filter{
-		filter.StoreStateFilter{Act: shuffleRegionSchedulerName, MoveRegion: true},
+		filter.StoreStateFilter{ActionScope: shuffleRegionSchedulerName, MoveRegion: true},
 	}
 	base := newBaseScheduler(opController)
 	return &shuffleRegionScheduler{

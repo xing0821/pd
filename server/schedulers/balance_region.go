@@ -73,7 +73,7 @@ func newBalanceRegionScheduler(opController *schedule.OperatorController, opts .
 		opt(s)
 	}
 	filters := []filter.Filter{
-		filter.StoreStateFilter{Act: s.GetName(), MoveRegion: true},
+		filter.StoreStateFilter{ActionScope: s.GetName(), MoveRegion: true},
 	}
 	s.selector = selector.NewBalanceSelector(core.RegionKind, filters)
 	return s
@@ -309,8 +309,8 @@ func (h *hitsStoreBuilder) put(source, target *core.StoreInfo) {
 	}
 }
 
-func (h *hitsStoreBuilder) buildSourceFilter(actOn string, cluster schedule.Cluster) filter.Filter {
-	f := filter.NewBlacklistStoreFilter(actOn, filter.BlacklistSource)
+func (h *hitsStoreBuilder) buildSourceFilter(scope string, cluster schedule.Cluster) filter.Filter {
+	f := filter.NewBlacklistStoreFilter(scope, filter.BlacklistSource)
 	for _, source := range cluster.GetStores() {
 		if h.filter(source, nil) {
 			f.Add(source.GetID())
@@ -319,8 +319,8 @@ func (h *hitsStoreBuilder) buildSourceFilter(actOn string, cluster schedule.Clus
 	return f
 }
 
-func (h *hitsStoreBuilder) buildTargetFilter(actOn string, cluster schedule.Cluster, source *core.StoreInfo) filter.Filter {
-	f := filter.NewBlacklistStoreFilter(actOn, filter.BlacklistTarget)
+func (h *hitsStoreBuilder) buildTargetFilter(scope string, cluster schedule.Cluster, source *core.StoreInfo) filter.Filter {
+	f := filter.NewBlacklistStoreFilter(scope, filter.BlacklistTarget)
 	for _, target := range cluster.GetStores() {
 		if h.filter(source, target) {
 			f.Add(target.GetID())

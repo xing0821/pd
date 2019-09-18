@@ -50,7 +50,7 @@ type evictLeaderScheduler struct {
 func newEvictLeaderScheduler(opController *schedule.OperatorController, storeID uint64) schedule.Scheduler {
 	name := fmt.Sprintf("evict-leader-scheduler-%d", storeID)
 	filters := []filter.Filter{
-		filter.StoreStateFilter{Act: name, TransferLeader: true},
+		filter.StoreStateFilter{ActionScope: name, TransferLeader: true},
 	}
 	base := newBaseScheduler(opController)
 	return &evictLeaderScheduler{

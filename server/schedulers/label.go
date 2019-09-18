@@ -43,7 +43,7 @@ type labelScheduler struct {
 // the store with the specific label.
 func newLabelScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	filters := []filter.Filter{
-		filter.StoreStateFilter{Act: labelSchedulerName, TransferLeader: true},
+		filter.StoreStateFilter{ActionScope: labelSchedulerName, TransferLeader: true},
 	}
 	return &labelScheduler{
 		name:          labelSchedulerName,
