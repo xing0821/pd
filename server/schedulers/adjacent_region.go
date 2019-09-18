@@ -29,12 +29,12 @@ import (
 )
 
 const (
-	scanLimit                          = 1000
-	defaultAdjacentPeerLimit           = 1
-	defaultAdjacentLeaderLimit         = 64
-	minAdjacentSchedulerInterval       = time.Second
-	maxAdjacentSchedulerInterval       = 30 * time.Second
-	balanceAdjacentRegionSchedulerName = "balance-adjacent-region-scheduler"
+	scanLimit                    = 1000
+	defaultAdjacentPeerLimit     = 1
+	defaultAdjacentLeaderLimit   = 64
+	minAdjacentSchedulerInterval = time.Second
+	maxAdjacentSchedulerInterval = 30 * time.Second
+	balanceAdjacentRegionName    = "balance-adjacent-region-scheduler"
 )
 
 func init() {
@@ -97,12 +97,12 @@ func (a *adjacentState) len() int {
 // on each store.
 func newBalanceAdjacentRegionScheduler(opController *schedule.OperatorController, args ...uint64) schedule.Scheduler {
 	filters := []filter.Filter{
-		filter.StoreStateFilter{ActionScope: balanceAdjacentRegionSchedulerName, TransferLeader: true, MoveRegion: true},
+		filter.StoreStateFilter{ActionScope: balanceAdjacentRegionName, TransferLeader: true, MoveRegion: true},
 	}
 	base := newBaseScheduler(opController)
 	s := &balanceAdjacentRegionScheduler{
 		baseScheduler: base,
-		name:          balanceAdjacentRegionSchedulerName,
+		name:          balanceAdjacentRegionName,
 		selector:      selector.NewRandomSelector(filters),
 		leaderLimit:   defaultAdjacentLeaderLimit,
 		peerLimit:     defaultAdjacentPeerLimit,

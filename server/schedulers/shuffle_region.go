@@ -30,7 +30,7 @@ func init() {
 	})
 }
 
-const shuffleRegionSchedulerName = "shuffle-region-scheduler"
+const shuffleRegionName = "shuffle-region-scheduler"
 
 type shuffleRegionScheduler struct {
 	name string
@@ -42,11 +42,11 @@ type shuffleRegionScheduler struct {
 // between stores.
 func newShuffleRegionScheduler(opController *schedule.OperatorController) schedule.Scheduler {
 	filters := []filter.Filter{
-		filter.StoreStateFilter{ActionScope: shuffleRegionSchedulerName, MoveRegion: true},
+		filter.StoreStateFilter{ActionScope: shuffleRegionName, MoveRegion: true},
 	}
 	base := newBaseScheduler(opController)
 	return &shuffleRegionScheduler{
-		name:          shuffleRegionSchedulerName,
+		name:          shuffleRegionName,
 		baseScheduler: base,
 		selector:      selector.NewRandomSelector(filters),
 	}

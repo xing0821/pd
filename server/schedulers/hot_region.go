@@ -43,10 +43,10 @@ func init() {
 }
 
 const (
-	hotRegionLimitFactor          = 0.75
-	storeHotRegionsDefaultLen     = 100
-	hotRegionScheduleFactor       = 0.9
-	balanceHotRegionSchedulerName = "balance-hot-region-scheduler"
+	hotRegionLimitFactor      = 0.75
+	storeHotRegionsDefaultLen = 100
+	hotRegionScheduleFactor   = 0.9
+	balanceHotRegionName      = "balance-hot-region-scheduler"
 )
 
 // BalanceType : the perspective of balance
@@ -87,7 +87,7 @@ type balanceHotRegionsScheduler struct {
 func newBalanceHotRegionsScheduler(opController *schedule.OperatorController) *balanceHotRegionsScheduler {
 	base := newBaseScheduler(opController)
 	return &balanceHotRegionsScheduler{
-		name:          balanceHotRegionSchedulerName,
+		name:          balanceHotRegionName,
 		baseScheduler: base,
 		leaderLimit:   1,
 		peerLimit:     1,
