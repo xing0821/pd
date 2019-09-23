@@ -83,7 +83,7 @@ func (s *randomMergeScheduler) Schedule(cluster schedule.Cluster) []*operator.Op
 		target = other
 	}
 	if target == nil {
-		schedulerCounter.WithLabelValues(s.GetName(), "no-adjacent").Inc()
+		schedulerCounter.WithLabelValues(s.GetName(), "no-target-store").Inc()
 		return nil
 	}
 
