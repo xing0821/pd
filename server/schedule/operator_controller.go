@@ -91,7 +91,8 @@ func NewOperatorController(ctx context.Context, cluster opt.Cluster, hbStreams H
 	}
 }
 
-// Ctx returns a context.
+// Ctx returns a context which will be canceled once RaftCluster is stopped.
+// For now, it is only used to control the lifetime of TTL cache in schedulers.
 func (oc *OperatorController) Ctx() context.Context {
 	return oc.ctx
 }
