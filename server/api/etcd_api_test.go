@@ -15,7 +15,6 @@ package api
 
 import (
 	"encoding/json"
-	"net/http"
 	"strings"
 
 	. "github.com/pingcap/check"
@@ -23,13 +22,9 @@ import (
 
 var _ = Suite(&testEtcdAPISuite{})
 
-type testEtcdAPISuite struct {
-	hc *http.Client
-}
+type testEtcdAPISuite struct{}
 
-func (s *testEtcdAPISuite) SetUpSuite(c *C) {
-	s.hc = newHTTPClient()
-}
+func (s *testEtcdAPISuite) SetUpSuite(c *C) {}
 
 func (s *testEtcdAPISuite) TestGRPCGateway(c *C) {
 	svr, clean := mustNewServer(c)

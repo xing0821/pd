@@ -19,6 +19,7 @@ import (
 	"math/rand"
 	"path/filepath"
 	"testing"
+	"sync"
 	"time"
 
 	. "github.com/pingcap/check"
@@ -265,8 +266,12 @@ func (s *testCoordinatorSuite) TestCollectMetrics(c *C) {
 	defer cleanup()
 
 	// Make sure there are no problem when concurrent write and read
-	for i := 0; i <= 10; i++ {
+	var wg sync.WaitGroup
+	count := 10
+	wg.Add(count + 1)
+	for i := 0; i <= count; i++ {
 		go func(i int) {
+			defer wg.Done()
 			for j := 0; j < 10000; j++ {
 				c.Assert(tc.addRegionStore(uint64(i%5), rand.Intn(200)), IsNil)
 			}
@@ -280,6 +285,7 @@ func (s *testCoordinatorSuite) TestCollectMetrics(c *C) {
 	co.resetHotSpotMetrics()
 	co.resetSchedulerMetrics()
 	co.cluster.resetClusterMetrics()
+	wg.Wait()
 }
 
 func MaxUint64(nums ...uint64) uint64 {

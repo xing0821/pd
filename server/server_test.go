@@ -19,13 +19,21 @@ import (
 	"testing"
 
 	. "github.com/pingcap/check"
+	"github.com/pingcap/pd/pkg/etcdutil"
 	"github.com/pingcap/pd/pkg/testutil"
 	"github.com/pingcap/pd/server/config"
+	"go.etcd.io/etcd/embed"
+	"go.etcd.io/etcd/pkg/types"
+	"go.uber.org/goleak"
 )
 
 func TestServer(t *testing.T) {
 	EnableZap = true
 	TestingT(t)
+}
+
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m, testutil.LeakOptions...)
 }
 
 func mustRunTestServer(c *C) (*Server, CleanupFunc) {
@@ -143,9 +151,7 @@ func (s *testServerSuite) TestCheckClusterID(c *C) {
 	}
 
 	cfgA, cfgB := cfgs[0], cfgs[1]
-	// Start a standalone cluster
-	// TODO: clean up. For now tests failed because:
-	//    etcdserver: failed to purge snap file ...
+	// Start a standalone cluster.
 	svrsA, cleanA := newTestServersWithCfgs(ctx, c, []*config.Config{cfgA})
 	defer cleanA()
 	// Close it.
@@ -161,6 +167,15 @@ func (s *testServerSuite) TestCheckClusterID(c *C) {
 	cfgA.InitialCluster = originInitial
 	svr, err := CreateServer(cfgA, nil)
 	c.Assert(err, IsNil)
-	err = svr.Run(ctx)
+
+	etcd, err := embed.StartEtcd(svr.etcdCfg)
+	c.Assert(err, IsNil)
+	urlmap, err := types.NewURLsMap(svr.cfg.InitialCluster)
+	c.Assert(err, IsNil)
+	tlsConfig, err := svr.cfg.Security.ToTLSConfig()
+	c.Assert(err, IsNil)
+	err = etcdutil.CheckClusterID(etcd.Server.Cluster().ID(), urlmap, tlsConfig)
 	c.Assert(err, NotNil)
+	etcd.Close()
+	testutil.CleanServer(cfgA)
 }
