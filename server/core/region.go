@@ -492,7 +492,7 @@ func (r *RegionsInfo) GetRegion(regionID uint64) *RegionInfo {
 }
 
 // SetRegion sets the RegionInfo with regionID
-func (r *RegionsInfo) SetRegion(region *RegionInfo) []*metapb.Region {
+func (r *RegionsInfo) SetRegion(region *RegionInfo) []*RegionInfo {
 	if origin := r.regions.Get(region.GetID()); origin != nil {
 		r.RemoveRegion(origin)
 	}
@@ -510,16 +510,16 @@ func (r *RegionsInfo) TreeLength() int {
 }
 
 // GetOverlaps returns the regions which are overlapped with the specified region range.
-func (r *RegionsInfo) GetOverlaps(region *RegionInfo) []*metapb.Region {
-	return r.tree.getOverlaps(region.meta)
+func (r *RegionsInfo) GetOverlaps(region *RegionInfo) []*RegionInfo {
+	return r.tree.getOverlaps(region)
 }
 
 // AddRegion adds RegionInfo to regionTree and regionMap, also update leaders and followers by region peers
-func (r *RegionsInfo) AddRegion(region *RegionInfo) []*metapb.Region {
+func (r *RegionsInfo) AddRegion(region *RegionInfo) []*RegionInfo {
 	// Add to tree and regions.
-	overlaps := r.tree.update(region.meta)
+	overlaps := r.tree.update(region)
 	for _, item := range overlaps {
-		r.RemoveRegion(r.GetRegion(item.Id))
+		r.RemoveRegion(r.GetRegion(item.GetID()))
 	}
 
 	r.regions.Put(region)
@@ -573,7 +573,7 @@ func (r *RegionsInfo) AddRegion(region *RegionInfo) []*metapb.Region {
 // RemoveRegion removes RegionInfo from regionTree and regionMap
 func (r *RegionsInfo) RemoveRegion(region *RegionInfo) {
 	// Remove from tree and regions.
-	r.tree.remove(region.meta)
+	r.tree.remove(region)
 	r.regions.Delete(region.GetID())
 	// Remove from leaders and followers.
 	for _, peer := range region.meta.GetPeers() {
@@ -587,20 +587,20 @@ func (r *RegionsInfo) RemoveRegion(region *RegionInfo) {
 
 // SearchRegion searches RegionInfo from regionTree
 func (r *RegionsInfo) SearchRegion(regionKey []byte) *RegionInfo {
-	metaRegion := r.tree.search(regionKey)
-	if metaRegion == nil {
+	region := r.tree.search(regionKey)
+	if region == nil {
 		return nil
 	}
-	return r.GetRegion(metaRegion.GetId())
+	return r.GetRegion(region.GetID())
 }
 
 // SearchPrevRegion searches previous RegionInfo from regionTree
 func (r *RegionsInfo) SearchPrevRegion(regionKey []byte) *RegionInfo {
-	metaRegion := r.tree.searchPrev(regionKey)
-	if metaRegion == nil {
+	region := r.tree.searchPrev(regionKey)
+	if region == nil {
 		return nil
 	}
-	return r.GetRegion(metaRegion.GetId())
+	return r.GetRegion(region.GetID())
 }
 
 // GetRegions gets all RegionInfo from regionMap
@@ -721,14 +721,14 @@ func (r *RegionsInfo) GetFollower(storeID uint64, regionID uint64) *RegionInfo {
 // `limit` regions. limit <= 0 means no limit.
 func (r *RegionsInfo) ScanRange(startKey, endKey []byte, limit int) []*RegionInfo {
 	var res []*RegionInfo
-	r.tree.scanRange(startKey, func(meta *metapb.Region) bool {
-		if len(endKey) > 0 && bytes.Compare(meta.StartKey, endKey) >= 0 {
+	r.tree.scanRange(startKey, func(region *RegionInfo) bool {
+		if len(endKey) > 0 && bytes.Compare(region.GetStartKey(), endKey) >= 0 {
 			return false
 		}
 		if limit > 0 && len(res) >= limit {
 			return false
 		}
-		res = append(res, r.GetRegion(meta.GetId()))
+		res = append(res, r.GetRegion(region.GetID()))
 		return true
 	})
 	return res
@@ -736,20 +736,20 @@ func (r *RegionsInfo) ScanRange(startKey, endKey []byte, limit int) []*RegionInf
 
 // ScanRangeWithIterator scans from the first region containing or behind start key,
 // until iterator returns false.
-func (r *RegionsInfo) ScanRangeWithIterator(startKey []byte, iterator func(metaRegion *metapb.Region) bool) {
+func (r *RegionsInfo) ScanRangeWithIterator(startKey []byte, iterator func(region *RegionInfo) bool) {
 	r.tree.scanRange(startKey, iterator)
 }
 
 // GetAdjacentRegions returns region's info that is adjacent with specific region
 func (r *RegionsInfo) GetAdjacentRegions(region *RegionInfo) (*RegionInfo, *RegionInfo) {
-	metaPrev, metaNext := r.tree.getAdjacentRegions(region.meta)
+	p, n := r.tree.getAdjacentRegions(region)
 	var prev, next *RegionInfo
 	// check key to avoid key range hole
-	if metaPrev != nil && bytes.Equal(metaPrev.region.EndKey, region.meta.StartKey) {
-		prev = r.GetRegion(metaPrev.region.GetId())
+	if p != nil && bytes.Equal(p.region.GetEndKey(), region.GetStartKey()) {
+		prev = r.GetRegion(p.region.GetID())
 	}
-	if metaNext != nil && bytes.Equal(region.meta.EndKey, metaNext.region.StartKey) {
-		next = r.GetRegion(metaNext.region.GetId())
+	if n != nil && bytes.Equal(region.GetEndKey(), n.region.GetStartKey()) {
+		next = r.GetRegion(n.region.GetID())
 	}
 	return prev, next
 }

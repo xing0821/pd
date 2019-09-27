@@ -118,10 +118,10 @@ func (s *testRegionSuite) TestRegionTree(c *C) {
 
 	c.Assert(tree.search([]byte("a")), IsNil)
 
-	regionA := NewRegion([]byte("a"), []byte("b"))
-	regionB := NewRegion([]byte("b"), []byte("c"))
-	regionC := NewRegion([]byte("c"), []byte("d"))
-	regionD := NewRegion([]byte("d"), []byte{})
+	regionA := NewTestRegionInfo([]byte("a"), []byte("b"))
+	regionB := NewTestRegionInfo([]byte("b"), []byte("c"))
+	regionC := NewTestRegionInfo([]byte("c"), []byte("d"))
+	regionD := NewTestRegionInfo([]byte("d"), []byte{})
 
 	tree.update(regionA)
 	tree.update(regionC)
@@ -168,7 +168,7 @@ func (s *testRegionSuite) TestRegionTree(c *C) {
 	tree.update(region0)
 	c.Assert(tree.search([]byte{}), Equals, region0)
 	anotherRegion0 := newRegionItem([]byte{}, []byte("a")).region
-	anotherRegion0.Id = 123
+	anotherRegion0.meta.Id = 123
 	tree.remove(anotherRegion0)
 	c.Assert(tree.search([]byte{}), Equals, region0)
 
@@ -192,12 +192,12 @@ func (s *testRegionSuite) TestRegionTree(c *C) {
 	c.Assert(tree.search([]byte("e")), Equals, regionE)
 }
 
-func updateRegions(c *C, tree *regionTree, regions []*metapb.Region) {
+func updateRegions(c *C, tree *regionTree, regions []*RegionInfo) {
 	for _, region := range regions {
 		tree.update(region)
-		c.Assert(tree.search(region.StartKey), Equals, region)
-		if len(region.EndKey) > 0 {
-			end := region.EndKey[0]
+		c.Assert(tree.search(region.GetStartKey()), Equals, region)
+		if len(region.GetEndKey()) > 0 {
+			end := region.GetEndKey()[0]
 			c.Assert(tree.search([]byte{end - 1}), Equals, region)
 			c.Assert(tree.search([]byte{end + 1}), Not(Equals), region)
 		}
@@ -206,7 +206,7 @@ func updateRegions(c *C, tree *regionTree, regions []*metapb.Region) {
 
 func (s *testRegionSuite) TestRegionTreeSplitAndMerge(c *C) {
 	tree := newRegionTree()
-	regions := []*metapb.Region{newRegionItem([]byte{}, []byte{}).region}
+	regions := []*RegionInfo{newRegionItem([]byte{}, []byte{}).region}
 
 	// Byte will underflow/overflow if n > 7.
 	n := 7
@@ -235,13 +235,13 @@ func (s *testRegionSuite) TestRegionTreeSplitAndMerge(c *C) {
 }
 
 func newRegionItem(start, end []byte) *regionItem {
-	return &regionItem{region: NewRegion(start, end)}
+	return &regionItem{region: NewTestRegionInfo(start, end)}
 }
 
 func BenchmarkRegionTreeUpdate(b *testing.B) {
 	tree := newRegionTree()
 	for i := 0; i < b.N; i++ {
-		item := &metapb.Region{StartKey: []byte(fmt.Sprintf("%20d", i)), EndKey: []byte(fmt.Sprintf("%20d", i+1))}
+		item := &RegionInfo{meta: &metapb.Region{StartKey: []byte(fmt.Sprintf("%20d", i)), EndKey: []byte(fmt.Sprintf("%20d", i+1))}}
 		tree.update(item)
 	}
 }
