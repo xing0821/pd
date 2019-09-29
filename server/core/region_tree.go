@@ -14,10 +14,11 @@ package core
 
 import (
 	"bytes"
+	"math/rand"
 
-	"github.com/google/btree"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/log"
+	"github.com/pingcap/pd/pkg/btree"
 	"go.uber.org/zap"
 )
 
@@ -191,4 +192,55 @@ func (t *regionTree) getAdjacentRegions(region *RegionInfo) (*regionItem, *regio
 		return false
 	})
 	return prev, next
+}
+
+func (t *regionTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
+	if t.length() == 0 {
+		return nil
+	}
+
+	// The tree only contains one region.
+	if t.length() == 1 {
+		return t.tree.Min().(*regionItem).region
+	}
+
+	var startIndex, endIndex, index int
+	var startRegion, endRegion *RegionInfo
+
+	if len(startKey) != 0 {
+		startRegion, startIndex = t.getWithIndex(&regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: startKey}}})
+	} else {
+		startRegion, startIndex = t.getWithIndex(t.tree.Min())
+	}
+
+	if len(endKey) != 0 {
+		endRegion, endIndex = t.getWithIndex(&regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: endKey}}})
+	} else {
+		_, endIndex = t.getWithIndex(t.tree.Max())
+		endRegion = nil
+		endIndex++
+	}
+
+	if endIndex == startIndex {
+		if endRegion == nil {
+			return t.tree.GetAt(startIndex - 1).(*regionItem).region
+		}
+		return t.tree.GetAt(startIndex).(*regionItem).region
+	}
+
+	if endRegion == nil && startRegion == nil {
+		index = rand.Intn(endIndex-startIndex+1) + startIndex
+		return t.tree.GetAt(index - 1).(*regionItem).region
+	}
+
+	index = rand.Intn(endIndex-startIndex) + startIndex
+	return t.tree.GetAt(index).(*regionItem).region
+}
+
+func (t *regionTree) getWithIndex(item btree.Item) (*RegionInfo, int) {
+	item, index := t.tree.GetWithIndex(item)
+	if item != nil {
+		return item.(*regionItem).region, index
+	}
+	return nil, index
 }

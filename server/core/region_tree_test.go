@@ -234,6 +234,61 @@ func (s *testRegionSuite) TestRegionTreeSplitAndMerge(c *C) {
 	}
 }
 
+func (s *testRegionSuite) TestRandomRegion(c *C) {
+	tree := newRegionTree()
+
+	regionA := NewTestRegionInfo([]byte(""), []byte("g"))
+	tree.update(regionA)
+	ra := tree.RandomRegion([]byte(""), []byte(""))
+	c.Assert(ra, DeepEquals, regionA)
+
+	regionB := NewTestRegionInfo([]byte("g"), []byte("n"))
+	regionC := NewTestRegionInfo([]byte("n"), []byte("t"))
+	regionD := NewTestRegionInfo([]byte("t"), []byte(""))
+	tree.update(regionB)
+	tree.update(regionC)
+	tree.update(regionD)
+
+	rb := tree.RandomRegion([]byte("g"), []byte("n"))
+	c.Assert(rb, DeepEquals, regionB)
+	rc := tree.RandomRegion([]byte("n"), []byte("t"))
+	c.Assert(rc, DeepEquals, regionC)
+	rd := tree.RandomRegion([]byte("t"), []byte(""))
+	c.Assert(rd, DeepEquals, regionD)
+
+	re := tree.RandomRegion([]byte("a"), []byte("a"))
+	c.Assert(re, DeepEquals, regionA)
+	re = tree.RandomRegion([]byte("o"), []byte("s"))
+	c.Assert(re, DeepEquals, regionC)
+	re = tree.RandomRegion([]byte(""), []byte("a"))
+	c.Assert(re, DeepEquals, regionA)
+	re = tree.RandomRegion([]byte("z"), []byte(""))
+	c.Assert(re, DeepEquals, regionD)
+
+	checkRandomRegion(c, tree, []*RegionInfo{regionA, regionB, regionC, regionD}, []byte(""), []byte(""))
+	checkRandomRegion(c, tree, []*RegionInfo{regionA, regionB}, []byte(""), []byte("n"))
+	checkRandomRegion(c, tree, []*RegionInfo{regionC, regionD}, []byte("n"), []byte(""))
+	checkRandomRegion(c, tree, []*RegionInfo{regionB, regionC}, []byte("h"), []byte("s"))
+	checkRandomRegion(c, tree, []*RegionInfo{regionA, regionB, regionC, regionD}, []byte("a"), []byte("z"))
+}
+
+func checkRandomRegion(c *C, tree *regionTree, regions []*RegionInfo, startKey, endKey []byte) {
+	keys := make(map[string]struct{})
+	for i := 1; i < 20; i++ {
+		re := tree.RandomRegion(startKey, endKey)
+		c.Assert(re, NotNil)
+		k := string(re.GetStartKey())
+		if _, ok := keys[k]; !ok {
+			keys[k] = struct{}{}
+		}
+	}
+	for _, region := range regions {
+		_, ok := keys[string(region.GetStartKey())]
+		c.Assert(ok, IsTrue)
+	}
+	c.Assert(keys, HasLen, len(regions))
+}
+
 func newRegionItem(start, end []byte) *regionItem {
 	return &regionItem{region: NewTestRegionInfo(start, end)}
 }
