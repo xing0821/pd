@@ -136,3 +136,15 @@ func (*testRegionKey) TestRegionKey(c *C) {
 		c.Assert(strings.Contains(s, t.expect), IsTrue)
 	}
 }
+
+func BenchmarkRandomRegion(b *testing.B) {
+	regions := NewRegionsInfo()
+	for i := 0; i < 5000000; i++ {
+		item := &RegionInfo{meta: &metapb.Region{StartKey: []byte(fmt.Sprintf("%20d", i)), EndKey: []byte(fmt.Sprintf("%20d", i+1))}}
+		regions.AddRegion(item)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		regions.RandRegion()
+	}
+}
