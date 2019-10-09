@@ -176,6 +176,26 @@ func (s *storeStatistics) Collect() {
 	}
 }
 
+func (s *storeStatistics) Reset() {
+	metrics := []string{
+		"store_up_count",
+		"store_disconnected_count",
+		"store_down_count",
+		"store_unhealth_count",
+		"store_offline_count",
+		"store_tombstone_count",
+		"store_low_space_count",
+		"region_count",
+		"leader_count",
+		"storage_size",
+		"storage_capacity",
+	}
+
+	for _, m := range metrics {
+		clusterStatusGauge.WithLabelValues(m, s.namespace).Set(0)
+	}
+}
+
 func (s *storeStatistics) resetStoreStatistics(storeAddress string, id string) {
 	storeStatusGauge.WithLabelValues(s.namespace, storeAddress, id, "region_score").Set(0)
 	storeStatusGauge.WithLabelValues(s.namespace, storeAddress, id, "leader_score").Set(0)
@@ -186,6 +206,10 @@ func (s *storeStatistics) resetStoreStatistics(storeAddress string, id string) {
 	storeStatusGauge.WithLabelValues(s.namespace, storeAddress, id, "store_available").Set(0)
 	storeStatusGauge.WithLabelValues(s.namespace, storeAddress, id, "store_used").Set(0)
 	storeStatusGauge.WithLabelValues(s.namespace, storeAddress, id, "store_capacity").Set(0)
+	storeStatusGauge.WithLabelValues(s.namespace, storeAddress, id, "store_write_rate_bytes").Set(0)
+	storeStatusGauge.WithLabelValues(s.namespace, storeAddress, id, "store_read_rate_bytes").Set(0)
+	storeStatusGauge.WithLabelValues(s.namespace, storeAddress, id, "store_write_rate_keys").Set(0)
+	storeStatusGauge.WithLabelValues(s.namespace, storeAddress, id, "store_read_rate_keys").Set(0)
 }
 
 type storeStatisticsMap struct {
@@ -213,8 +237,26 @@ func (m *storeStatisticsMap) Observe(store *core.StoreInfo, stats *StoresStats) 
 	stat.Observe(store, stats)
 }
 
+func (m *storeStatisticsMap) ResetStore(store *core.StoreInfo, stats *StoresStats) {
+	namespace := m.classifier.GetStoreNamespace(store)
+	stat, ok := m.stats[namespace]
+	if !ok {
+		stat = newStoreStatistics(m.opt, namespace)
+		m.stats[namespace] = stat
+	}
+	storeAddress := store.GetAddress()
+	id := strconv.FormatUint(store.GetID(), 10)
+	stat.resetStoreStatistics(storeAddress, id)
+}
+
 func (m *storeStatisticsMap) Collect() {
 	for _, s := range m.stats {
 		s.Collect()
+	}
+}
+
+func (m *storeStatisticsMap) Reset() {
+	for _, s := range m.stats {
+		s.Reset()
 	}
 }

@@ -159,6 +159,18 @@ func (r *RegionStatistics) Collect() {
 	regionStatusGauge.WithLabelValues("empty-region-count").Set(float64(len(r.stats[EmptyRegion])))
 }
 
+// Reset resets the metrics of the regions' status.
+func (r *RegionStatistics) Reset() {
+	regionStatusGauge.WithLabelValues("miss-peer-region-count").Set(0)
+	regionStatusGauge.WithLabelValues("extra-peer-region-count").Set(0)
+	regionStatusGauge.WithLabelValues("down-peer-region-count").Set(0)
+	regionStatusGauge.WithLabelValues("pending-peer-region-count").Set(0)
+	regionStatusGauge.WithLabelValues("offline-peer-region-count").Set(0)
+	regionStatusGauge.WithLabelValues("incorrect-namespace-region-count").Set(0)
+	regionStatusGauge.WithLabelValues("learner-peer-region-count").Set(0)
+	regionStatusGauge.WithLabelValues("empty-region-count").Set(0)
+}
+
 // LabelStatistics is the statistics of the level of labels.
 type LabelStatistics struct {
 	regionLabelStats map[uint64]string
@@ -191,6 +203,13 @@ func (l *LabelStatistics) Observe(region *core.RegionInfo, stores []*core.StoreI
 func (l *LabelStatistics) Collect() {
 	for level, count := range l.labelCounter {
 		regionLabelLevelGauge.WithLabelValues(level).Set(float64(count))
+	}
+}
+
+// Reset resets the metrics of the label status.
+func (l *LabelStatistics) Reset() {
+	for level := range l.labelCounter {
+		regionLabelLevelGauge.WithLabelValues(level).Set(0)
 	}
 }
 

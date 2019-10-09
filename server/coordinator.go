@@ -311,6 +311,14 @@ func (c *coordinator) collectSchedulerMetrics() {
 	}
 }
 
+func (c *coordinator) resetSchedulerMetrics() {
+	c.RLock()
+	defer c.RUnlock()
+	for _, s := range c.schedulers {
+		schedulerStatusGauge.WithLabelValues(s.GetName(), "allow").Set(0)
+	}
+}
+
 func (c *coordinator) collectHotSpotMetrics() {
 	c.RLock()
 	defer c.RUnlock()
@@ -368,7 +376,27 @@ func (c *coordinator) collectHotSpotMetrics() {
 			hotSpotStatusGauge.WithLabelValues(storeAddress, storeLabel, "hot_read_region_as_leader").Set(0)
 		}
 	}
+}
 
+func (c *coordinator) resetHotSpotMetrics() {
+	c.RLock()
+	defer c.RUnlock()
+	// Resets hot write region metrics.
+	stores := c.cluster.GetStores()
+	for _, s := range stores {
+		storeAddress := s.GetAddress()
+		storeID := s.GetID()
+		storeLabel := fmt.Sprintf("%d", storeID)
+		// Resets hot write metrics
+		hotSpotStatusGauge.WithLabelValues(storeAddress, storeLabel, "total_written_bytes_as_peer").Set(0)
+		hotSpotStatusGauge.WithLabelValues(storeAddress, storeLabel, "hot_write_region_as_peer").Set(0)
+		hotSpotStatusGauge.WithLabelValues(storeAddress, storeLabel, "total_written_bytes_as_leader").Set(0)
+		hotSpotStatusGauge.WithLabelValues(storeAddress, storeLabel, "hot_write_region_as_leader").Set(0)
+
+		// Resets hot read metrics
+		hotSpotStatusGauge.WithLabelValues(storeAddress, storeLabel, "total_read_bytes_as_leader").Set(0)
+		hotSpotStatusGauge.WithLabelValues(storeAddress, storeLabel, "hot_read_region_as_leader").Set(0)
+	}
 }
 
 func (c *coordinator) shouldRun() bool {
