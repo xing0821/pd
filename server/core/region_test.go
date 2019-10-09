@@ -15,12 +15,15 @@ package core
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/kvproto/pkg/metapb"
+	"github.com/pingcap/pd/pkg/mock/mockid"
+	"github.com/pingcap/pd/server/id"
 )
 
 func TestCore(t *testing.T) {
@@ -146,5 +149,54 @@ func BenchmarkRandomRegion(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		regions.RandRegion()
+	}
+}
+
+const keyLength = 100
+
+func randomBytes(n int) []byte {
+	bytes := make([]byte, n)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		panic(err)
+	}
+	return bytes
+}
+
+func newRegionInfoID(idAllocator id.Allocator) *RegionInfo {
+	var (
+		peers  []*metapb.Peer
+		leader *metapb.Peer
+	)
+	for i := 0; i < 3; i++ {
+		id, _ := idAllocator.Alloc()
+		p := &metapb.Peer{Id: id, StoreId: id}
+		if i == 0 {
+			leader = p
+		}
+		peers = append(peers, p)
+	}
+	regionID, _ := idAllocator.Alloc()
+	return NewRegionInfo(
+		&metapb.Region{
+			Id:       regionID,
+			StartKey: randomBytes(keyLength),
+			EndKey:   randomBytes(keyLength),
+			Peers:    peers,
+		},
+		leader,
+	)
+}
+
+func BenchmarkAddRegion(b *testing.B) {
+	regions := NewRegionsInfo()
+	idAllocator := mockid.NewIDAllocator()
+	var items []*RegionInfo
+	for i := 0; i < 10000000; i++ {
+		items = append(items, newRegionInfoID(idAllocator))
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		regions.AddRegion(items[i])
 	}
 }
