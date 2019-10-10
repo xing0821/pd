@@ -27,16 +27,29 @@ import (
 	"github.com/pingcap/pd/server/schedule/opt"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
+	"github.com/pkg/errors"
 )
 
 func init() {
 	schedule.RegisterSliceDecoderBuilder("balance-region", func(args []string) schedule.ConfigDecoder {
 		return func(v interface{}) error {
+			conf, ok := v.(*balanceRegionSchedulerConfig)
+			if !ok {
+				return ErrScheduleConfigNotExist
+			}
+			ranges, err := getKeyRanges(args) 
+			if err != nil {
+				return errors.WithStack(err)
+			}
+			conf.Ranges = ranges
+			conf.Name=balanceRegionName
 			return nil
 		}
 	})
 	schedule.RegisterScheduler("balance-region", func(opController *schedule.OperatorController, storage *core.Storage, decoder schedule.ConfigDecoder) (schedule.Scheduler, error) {
-		return newBalanceRegionScheduler(opController), nil
+		conf := &balanceRegionSchedulerConfig{}
+		decoder(conf)
+		return newBalanceRegionScheduler(opController, conf), nil
 	})
 }
 
@@ -46,9 +59,14 @@ const (
 	balanceRegionName       = "balance-region-scheduler"
 )
 
+type balanceRegionSchedulerConfig struct {
+	Name    string `json:"name"`
+	Ranges []core.KeyRange `json:"ranges"`
+}
+
 type balanceRegionScheduler struct {
 	*baseScheduler
-	name         string
+	conf *balanceRegionSchedulerConfig
 	opController *schedule.OperatorController
 	filters      []filter.Filter
 	counter      *prometheus.CounterVec
@@ -56,10 +74,11 @@ type balanceRegionScheduler struct {
 
 // newBalanceRegionScheduler creates a scheduler that tends to keep regions on
 // each store balanced.
-func newBalanceRegionScheduler(opController *schedule.OperatorController, opts ...BalanceRegionCreateOption) schedule.Scheduler {
+func newBalanceRegionScheduler(opController *schedule.OperatorController, conf *balanceRegionSchedulerConfig, opts ...BalanceRegionCreateOption) schedule.Scheduler {
 	base := newBaseScheduler(opController)
 	s := &balanceRegionScheduler{
 		baseScheduler: base,
+		conf: conf,
 		opController:  opController,
 		counter:       balanceRegionCounter,
 	}
@@ -83,15 +102,12 @@ func WithBalanceRegionCounter(counter *prometheus.CounterVec) BalanceRegionCreat
 // WithBalanceRegionName sets the name for the scheduler.
 func WithBalanceRegionName(name string) BalanceRegionCreateOption {
 	return func(s *balanceRegionScheduler) {
-		s.name = name
+		s.conf.Name = name
 	}
 }
 
 func (s *balanceRegionScheduler) GetName() string {
-	if s.name != "" {
-		return s.name
-	}
-	return balanceRegionName
+	return s.conf.Name
 }
 
 func (s *balanceRegionScheduler) GetType() string {

@@ -154,11 +154,13 @@ func newScatterRangeScheduler(opController *schedule.OperatorController, storage
 		name:          name,
 		balanceLeader: newBalanceLeaderScheduler(
 			opController,
+			[]string{"", ""},
 			WithBalanceLeaderName("scatter-range-leader"),
 			WithBalanceLeaderCounter(scatterRangeLeaderCounter),
 		),
 		balanceRegion: newBalanceRegionScheduler(
 			opController,
+			[]string{"", ""},
 			WithBalanceRegionName("scatter-range-region"),
 			WithBalanceRegionCounter(scatterRangeRegionCounter),
 		),
