@@ -236,6 +236,8 @@ func (s *testRegionSuite) TestRegionTreeSplitAndMerge(c *C) {
 
 func (s *testRegionSuite) TestRandomRegion(c *C) {
 	tree := newRegionTree()
+	r := tree.RandomRegion([]byte(""), []byte(""))
+	c.Assert(r, IsNil)
 
 	regionA := NewTestRegionInfo([]byte(""), []byte("g"))
 	tree.update(regionA)

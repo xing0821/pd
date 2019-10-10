@@ -194,6 +194,7 @@ func (t *regionTree) getAdjacentRegions(region *RegionInfo) (*regionItem, *regio
 	return prev, next
 }
 
+// RandomRegion is used to get a random region from a given range [startKey, endKey].
 func (t *regionTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
 	if t.length() == 0 {
 		return nil
@@ -204,36 +205,27 @@ func (t *regionTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
 		return t.tree.Min().(*regionItem).region
 	}
 
-	var startIndex, endIndex, index int
-	var startRegion, endRegion *RegionInfo
-
+	var (
+		startRegion          *RegionInfo
+		startIndex, endIndex int
+	)
 	if len(startKey) != 0 {
 		startRegion, startIndex = t.getWithIndex(&regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: startKey}}})
 	} else {
-		startRegion, startIndex = t.getWithIndex(t.tree.Min())
+		startRegion, startIndex = t.getWithIndex(t.tree.Min()) // for test purpose
 	}
 
 	if len(endKey) != 0 {
-		endRegion, endIndex = t.getWithIndex(&regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: endKey}}})
+		_, endIndex = t.getWithIndex(&regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: endKey}}})
 	} else {
-		_, endIndex = t.getWithIndex(t.tree.Max())
-		endRegion = nil
-		endIndex++
+		endIndex = t.tree.Len()
 	}
 
-	if endIndex == startIndex {
-		if endRegion == nil {
-			return t.tree.GetAt(startIndex - 1).(*regionItem).region
-		}
-		return t.tree.GetAt(startIndex).(*regionItem).region
+	if startRegion == nil {
+		startIndex--
 	}
 
-	if endRegion == nil && startRegion == nil {
-		index = rand.Intn(endIndex-startIndex+1) + startIndex
-		return t.tree.GetAt(index - 1).(*regionItem).region
-	}
-
-	index = rand.Intn(endIndex-startIndex) + startIndex
+	index := rand.Intn(endIndex-startIndex) + startIndex
 	return t.tree.GetAt(index).(*regionItem).region
 }
 
