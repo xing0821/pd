@@ -237,7 +237,7 @@ func (m *storeStatisticsMap) Observe(store *core.StoreInfo, stats *StoresStats) 
 	stat.Observe(store, stats)
 }
 
-func (m *storeStatisticsMap) ResetStore(store *core.StoreInfo, stats *StoresStats) {
+func (m *storeStatisticsMap) ResetStore(store *core.StoreInfo) {
 	namespace := m.classifier.GetStoreNamespace(store)
 	stat, ok := m.stats[namespace]
 	if !ok {

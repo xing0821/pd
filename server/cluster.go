@@ -235,7 +235,7 @@ func (c *RaftCluster) runBackgroundJobs(interval time.Duration) {
 	for {
 		select {
 		case <-c.quit:
-			log.Info("metrics are resetting")
+			log.Info("metrics are reset")
 			c.resetMetrics()
 			log.Info("background jobs has been stopped")
 			return
@@ -1020,7 +1020,7 @@ func (c *RaftCluster) resetMetrics() {
 	statsMap := statistics.NewStoreStatisticsMap(c.opt, c.GetNamespaceClassifier())
 	stores := c.GetStores()
 	for _, s := range stores {
-		statsMap.ResetStore(s, c.storesStats)
+		statsMap.ResetStore(s)
 	}
 	statsMap.Reset()
 
