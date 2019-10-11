@@ -146,14 +146,6 @@ func (f *hotPeerCache) CollectMetrics(stats *StoresStats, typ string) {
 	}
 }
 
-func (f *hotPeerCache) ResetMetrics(typ string) {
-	for storeID := range f.peersOfStore {
-		store := storeTag(storeID)
-		hotCacheStatusGauge.WithLabelValues("total_length", store, typ).Set(0)
-		hotCacheStatusGauge.WithLabelValues("hotThreshold", store, typ).Set(0)
-	}
-}
-
 func (f *hotPeerCache) getBytesFlow(region *core.RegionInfo) uint64 {
 	switch f.kind {
 	case WriteFlow:

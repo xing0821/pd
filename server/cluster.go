@@ -1018,10 +1018,6 @@ func (c *RaftCluster) collectMetrics() {
 
 func (c *RaftCluster) resetMetrics() {
 	statsMap := statistics.NewStoreStatisticsMap(c.opt, c.GetNamespaceClassifier())
-	stores := c.GetStores()
-	for _, s := range stores {
-		statsMap.ResetStore(s)
-	}
 	statsMap.Reset()
 
 	c.coordinator.resetSchedulerMetrics()
@@ -1050,7 +1046,7 @@ func (c *RaftCluster) resetClusterMetrics() {
 	c.regionStats.Reset()
 	c.labelLevelStats.Reset()
 	// reset hot cache metrics
-	c.hotSpotCache.ResetMetrics(c.storesStats)
+	c.hotSpotCache.ResetMetrics()
 }
 
 func (c *RaftCluster) collectHealthStatus() {

@@ -161,14 +161,7 @@ func (r *RegionStatistics) Collect() {
 
 // Reset resets the metrics of the regions' status.
 func (r *RegionStatistics) Reset() {
-	regionStatusGauge.WithLabelValues("miss-peer-region-count").Set(0)
-	regionStatusGauge.WithLabelValues("extra-peer-region-count").Set(0)
-	regionStatusGauge.WithLabelValues("down-peer-region-count").Set(0)
-	regionStatusGauge.WithLabelValues("pending-peer-region-count").Set(0)
-	regionStatusGauge.WithLabelValues("offline-peer-region-count").Set(0)
-	regionStatusGauge.WithLabelValues("incorrect-namespace-region-count").Set(0)
-	regionStatusGauge.WithLabelValues("learner-peer-region-count").Set(0)
-	regionStatusGauge.WithLabelValues("empty-region-count").Set(0)
+	regionStatusGauge.Reset()
 }
 
 // LabelStatistics is the statistics of the level of labels.
@@ -208,9 +201,7 @@ func (l *LabelStatistics) Collect() {
 
 // Reset resets the metrics of the label status.
 func (l *LabelStatistics) Reset() {
-	for level := range l.labelCounter {
-		regionLabelLevelGauge.WithLabelValues(level).Set(0)
-	}
+	regionLabelLevelGauge.Reset()
 }
 
 // ClearDefunctRegion is used to handle the overlap region.

@@ -35,6 +35,7 @@ import (
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/schedulers"
+	"github.com/pingcap/pd/server/statistics"
 )
 
 func newTestScheduleConfig() (*config.ScheduleConfig, *config.ScheduleOption, error) {
@@ -260,6 +261,7 @@ func (s *testCoordinatorSuite) TestCollectMetrics(c *C) {
 	defer cleanup()
 	defer hbStreams.Close()
 
+	tc.regionStats = statistics.NewRegionStatistics(tc.s.scheduleOpt, tc.s.classifier)
 	co := newCoordinator(tc.RaftCluster, hbStreams, namespace.DefaultClassifier)
 	co.run()
 	// Make sure there are no problem when concurrent write and read
@@ -275,6 +277,9 @@ func (s *testCoordinatorSuite) TestCollectMetrics(c *C) {
 		co.collectSchedulerMetrics()
 		co.cluster.collectClusterMetrics()
 	}
+	co.resetHotSpotMetrics()
+	co.resetSchedulerMetrics()
+	co.cluster.resetClusterMetrics()
 }
 
 func (s *testCoordinatorSuite) TestCheckRegion(c *C) {

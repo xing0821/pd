@@ -114,8 +114,7 @@ func (w *HotCache) CollectMetrics(stats *StoresStats) {
 
 // ResetMetrics resets the hot cache metrics.
 func (w *HotCache) ResetMetrics() {
-	w.writeFlow.ResetMetrics("write")
-	w.readFlow.ResetMetrics("read")
+	hotCacheStatusGauge.Reset()
 }
 
 func (w *HotCache) incMetrics(name string, storeID uint64, kind FlowKind) {
