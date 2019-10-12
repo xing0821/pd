@@ -177,19 +177,24 @@ func (s *storeStatistics) Collect() {
 }
 
 func (s *storeStatistics) resetStoreStatistics(storeAddress string, id string) {
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "region_score")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "leader_score")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "region_size")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "region_count")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "leader_size")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "leader_count")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "store_available")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "store_used")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "store_capacity")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "store_write_rate_bytes")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "store_read_rate_bytes")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "store_write_rate_keys")
-	storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, "store_read_rate_keys")
+	metrics := []string{
+		"region_score",
+		"leader_score",
+		"region_size",
+		"region_count",
+		"leader_size",
+		"leader_count",
+		"store_available",
+		"store_used",
+		"store_capacity",
+		"store_write_rate_bytes",
+		"store_read_rate_bytes",
+		"store_write_rate_keys",
+		"store_read_rate_keys",
+	}
+	for _, m := range metrics {
+		storeStatusGauge.DeleteLabelValues(s.namespace, storeAddress, id, m)
+	}
 }
 
 type storeStatisticsMap struct {
