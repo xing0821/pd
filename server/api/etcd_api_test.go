@@ -24,8 +24,6 @@ var _ = Suite(&testEtcdAPISuite{})
 
 type testEtcdAPISuite struct{}
 
-func (s *testEtcdAPISuite) SetUpSuite(c *C) {}
-
 func (s *testEtcdAPISuite) TestGRPCGateway(c *C) {
 	svr, clean := mustNewServer(c)
 	defer clean()

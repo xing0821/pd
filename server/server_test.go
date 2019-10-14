@@ -97,7 +97,7 @@ func (s *testLeaderServerSuite) TearDownSuite(c *C) {
 	s.cancel()
 	for _, svr := range s.svrs {
 		svr.Close()
-		testutil.CleanServer(svr.cfg)
+		testutil.CleanServer(svr.cfg.DataDir)
 	}
 }
 
@@ -129,7 +129,7 @@ func newTestServersWithCfgs(ctx context.Context, c *C, cfgs []*config.Config) ([
 			svr.Close()
 		}
 		for _, cfg := range cfgs {
-			testutil.CleanServer(cfg)
+			testutil.CleanServer(cfg.DataDir)
 		}
 	}
 
@@ -143,7 +143,7 @@ func (s *testServerSuite) TestCheckClusterID(c *C) {
 	for i, cfg := range cfgs {
 		cfg.DataDir = fmt.Sprintf("/tmp/test_pd_check_clusterID_%d", i)
 		// Clean up before testing.
-		testutil.CleanServer(cfg)
+		testutil.CleanServer(cfg.DataDir)
 	}
 	originInitial := cfgs[0].InitialCluster
 	for _, cfg := range cfgs {
@@ -177,5 +177,5 @@ func (s *testServerSuite) TestCheckClusterID(c *C) {
 	err = etcdutil.CheckClusterID(etcd.Server.Cluster().ID(), urlmap, tlsConfig)
 	c.Assert(err, NotNil)
 	etcd.Close()
-	testutil.CleanServer(cfgA)
+	testutil.CleanServer(cfgA.DataDir)
 }

@@ -300,7 +300,7 @@ func (s *leaderTestSuite) SetUpSuite(c *C) {
 func (s *leaderTestSuite) TearDownSuite(c *C) {
 	s.cancel()
 	s.svr.Close()
-	testutil.CleanServer(s.cfg)
+	testutil.CleanServer(s.cfg.DataDir)
 }
 
 func (s *leaderTestSuite) TestGetLeader(c *C) {

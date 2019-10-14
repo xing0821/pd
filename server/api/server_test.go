@@ -106,7 +106,7 @@ func mustNewCluster(c *C, num int, opts ...func(cfg *config.Config)) ([]*config.
 			s.Close()
 		}
 		for _, cfg := range cfgs {
-			testutil.CleanServer(cfg)
+			testutil.CleanServer(cfg.DataDir)
 		}
 	}
 

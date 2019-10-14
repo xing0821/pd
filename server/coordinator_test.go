@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"math/rand"
 	"path/filepath"
-	"testing"
 	"sync"
+	"testing"
 	"time"
 
 	. "github.com/pingcap/check"
@@ -299,7 +299,7 @@ func MaxUint64(nums ...uint64) uint64 {
 }
 
 func prepare(setCfg func(*config.ScheduleConfig), setTc func(*testCluster), run func(*coordinator), c *C) (*testCluster, *coordinator, func()) {
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	cfg, opt, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
 	if setCfg != nil {
@@ -319,6 +319,7 @@ func prepare(setCfg func(*config.ScheduleConfig), setTc func(*testCluster), run 
 		co.wg.Wait()
 		cleanup()
 		hbStreams.Close()
+		cancel()
 	}
 }
 
@@ -1200,7 +1201,7 @@ func getHeartBeatStreams(ctx context.Context, c *C, tc *testCluster) (*heartbeat
 	cluster.clusterRoot = svr.getClusterRootPath()
 	cluster.regionSyncer = syncer.NewRegionSyncer(svr)
 	hbStreams := newHeartbeatStreams(ctx, tc.getClusterID(), cluster)
-	return hbStreams, func() { testutil.CleanServer(config) }
+	return hbStreams, func() { testutil.CleanServer(config.DataDir) }
 }
 
 func createTestRaftCluster(id id.Allocator, opt *config.ScheduleOption, storage *core.Storage) *RaftCluster {
