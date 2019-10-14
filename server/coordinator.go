@@ -66,7 +66,8 @@ type coordinator struct {
 
 // newCoordinator creates a new coordinator.
 func newCoordinator(ctx context.Context, cluster *RaftCluster, hbStreams *heartbeatStreams, classifier namespace.Classifier) *coordinator {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
+	opController := schedule.NewOperatorController(ctx, cluster, hbStreams)
 	return &coordinator{
 		ctx:             ctx,
 		cancel:          cancel,
@@ -74,7 +75,7 @@ func newCoordinator(ctx context.Context, cluster *RaftCluster, hbStreams *heartb
 		checkers:        schedule.NewCheckerController(ctx, cluster, classifier, opController),
 		regionScatterer: schedule.NewRegionScatterer(cluster, classifier),
 		schedulers:      make(map[string]*scheduleController),
-		opController:    schedule.NewOperatorController(ctx, cluster, hbStreams),
+		opController:    opController,
 		classifier:      classifier,
 		hbStreams:       hbStreams,
 	}

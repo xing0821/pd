@@ -438,8 +438,8 @@ func (t *testOperatorControllerSuite) TestStoreLimitWithMerge(c *C) {
 		tc.PutRegion(region)
 	}
 
-	mc := checker.NewMergeChecker(tc, namespace.DefaultClassifier)
-	oc := NewOperatorController(tc, mockhbstream.NewHeartbeatStream())
+	mc := checker.NewMergeChecker(t.ctx, tc, namespace.DefaultClassifier)
+	oc := NewOperatorController(t.ctx, tc, mockhbstream.NewHeartbeatStream())
 
 	cfg.StoreBalanceRate = 60
 
