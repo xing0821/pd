@@ -66,14 +66,11 @@ type coordinator struct {
 func newCoordinator(cluster *RaftCluster, hbStreams *heartbeatStreams, classifier namespace.Classifier) *coordinator {
 	ctx, cancel := context.WithCancel(context.Background())
 	opController := schedule.NewOperatorController(cluster, hbStreams)
-	clusterVersion := *cluster.opt.LoadClusterVersion()
-	minSupportVersion := *MinSupportedVersion(RegionMerge)
-	isSupportMerge := !clusterVersion.LessThan(minSupportVersion)
 	return &coordinator{
 		ctx:             ctx,
 		cancel:          cancel,
 		cluster:         cluster,
-		checkers:        schedule.NewCheckerController(cluster, classifier, opController, isSupportMerge),
+		checkers:        schedule.NewCheckerController(cluster, classifier, opController),
 		regionScatterer: schedule.NewRegionScatterer(cluster, classifier),
 		schedulers:      make(map[string]*scheduleController),
 		opController:    opController,

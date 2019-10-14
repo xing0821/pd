@@ -33,19 +33,15 @@ type CheckerController struct {
 
 // NewCheckerController create a new CheckerController.
 // TODO: isSupportMerge should be removed.
-func NewCheckerController(cluster opt.Cluster, classifier namespace.Classifier, opController *OperatorController, isSupportMerge bool) *CheckerController { // revive:disable-line:flag-parameter
-	cc := &CheckerController{
+func NewCheckerController(cluster opt.Cluster, classifier namespace.Classifier, opController *OperatorController) *CheckerController {
+	return &CheckerController{
 		cluster:          cluster,
 		opController:     opController,
 		learnerChecker:   checker.NewLearnerChecker(),
 		replicaChecker:   checker.NewReplicaChecker(cluster, classifier),
 		namespaceChecker: checker.NewNamespaceChecker(cluster, classifier),
+		mergeChecker:     checker.NewMergeChecker(cluster, classifier),
 	}
-	if isSupportMerge {
-		cc.mergeChecker = checker.NewMergeChecker(cluster, classifier)
-	}
-
-	return cc
 }
 
 // CheckRegion will check the region and add a new operator if needed.
