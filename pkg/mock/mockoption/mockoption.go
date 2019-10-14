@@ -60,6 +60,7 @@ type ScheduleOptions struct {
 	SchedulerMaxWaitingOperator  uint64
 	SplitMergeInterval           time.Duration
 	EnableOneWayMerge            bool
+	EnableGlobalMerge            bool
 	MaxStoreDownTime             time.Duration
 	MaxReplicas                  int
 	LocationLabels               []string
@@ -73,14 +74,12 @@ type ScheduleOptions struct {
 	EnableMakeUpReplica          bool
 	EnableRemoveExtraReplica     bool
 	EnableLocationReplacement    bool
-	EnableNamespaceRelocation    bool
 	EnablePlacementRules         bool
 	DisableRemoveDownReplica     bool
 	DisableReplaceOfflineReplica bool
 	DisableMakeUpReplica         bool
 	DisableRemoveExtraReplica    bool
 	DisableLocationReplacement   bool
-	DisableNamespaceRelocation   bool
 	LeaderScheduleStrategy       string
 	LabelProperties              map[string][]*metapb.StoreLabel
 }
@@ -113,33 +112,32 @@ func NewScheduleOptions() *ScheduleOptions {
 	mso.EnableMakeUpReplica = true
 	mso.EnableRemoveExtraReplica = true
 	mso.EnableLocationReplacement = true
-	mso.EnableNamespaceRelocation = true
 	mso.LeaderScheduleStrategy = defaultLeaderScheduleStrategy
 	return mso
 }
 
 // GetLeaderScheduleLimit mocks method
-func (mso *ScheduleOptions) GetLeaderScheduleLimit(name string) uint64 {
+func (mso *ScheduleOptions) GetLeaderScheduleLimit() uint64 {
 	return mso.LeaderScheduleLimit
 }
 
 // GetRegionScheduleLimit mocks method
-func (mso *ScheduleOptions) GetRegionScheduleLimit(name string) uint64 {
+func (mso *ScheduleOptions) GetRegionScheduleLimit() uint64 {
 	return mso.RegionScheduleLimit
 }
 
 // GetReplicaScheduleLimit mocks method
-func (mso *ScheduleOptions) GetReplicaScheduleLimit(name string) uint64 {
+func (mso *ScheduleOptions) GetReplicaScheduleLimit() uint64 {
 	return mso.ReplicaScheduleLimit
 }
 
 // GetMergeScheduleLimit mocks method
-func (mso *ScheduleOptions) GetMergeScheduleLimit(name string) uint64 {
+func (mso *ScheduleOptions) GetMergeScheduleLimit() uint64 {
 	return mso.MergeScheduleLimit
 }
 
 // GetHotRegionScheduleLimit mocks method
-func (mso *ScheduleOptions) GetHotRegionScheduleLimit(name string) uint64 {
+func (mso *ScheduleOptions) GetHotRegionScheduleLimit() uint64 {
 	return mso.HotRegionScheduleLimit
 }
 
@@ -178,13 +176,18 @@ func (mso *ScheduleOptions) IsOneWayMergeEnabled() bool {
 	return mso.EnableOneWayMerge
 }
 
+// IsGlobalMergeEnabled mocks method
+func (mso *ScheduleOptions) IsGlobalMergeEnabled() bool {
+	return mso.EnableGlobalMerge
+}
+
 // GetMaxStoreDownTime mocks method
 func (mso *ScheduleOptions) GetMaxStoreDownTime() time.Duration {
 	return mso.MaxStoreDownTime
 }
 
 // GetMaxReplicas mocks method
-func (mso *ScheduleOptions) GetMaxReplicas(name string) int {
+func (mso *ScheduleOptions) GetMaxReplicas() int {
 	return mso.MaxReplicas
 }
 
@@ -256,11 +259,6 @@ func (mso *ScheduleOptions) IsRemoveExtraReplicaEnabled() bool {
 // IsLocationReplacementEnabled mocks method.
 func (mso *ScheduleOptions) IsLocationReplacementEnabled() bool {
 	return mso.EnableLocationReplacement
-}
-
-// IsNamespaceRelocationEnabled mocks method.
-func (mso *ScheduleOptions) IsNamespaceRelocationEnabled() bool {
-	return mso.EnableNamespaceRelocation
 }
 
 // GetLeaderScheduleStrategy is to get leader schedule strategy

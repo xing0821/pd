@@ -19,8 +19,8 @@ import (
 
 	"github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/cache"
+	"github.com/pingcap/pd/pkg/codec"
 	"github.com/pingcap/pd/server/core"
-	"github.com/pingcap/pd/server/namespace"
 	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/schedule/opt"
 	"go.uber.org/zap"
@@ -29,17 +29,15 @@ import (
 // MergeChecker ensures region to merge with adjacent region when size is small
 type MergeChecker struct {
 	cluster    opt.Cluster
-	classifier namespace.Classifier
 	splitCache *cache.TTLUint64
 	startTime  time.Time // it's used to judge whether server recently start.
 }
 
 // NewMergeChecker creates a merge checker.
-func NewMergeChecker(ctx context.Context, cluster opt.Cluster, classifier namespace.Classifier) *MergeChecker {
+func NewMergeChecker(ctx context.Context, cluster opt.Cluster) *MergeChecker {
 	splitCache := cache.NewIDTTL(ctx, time.Minute, cluster.GetSplitMergeInterval())
 	return &MergeChecker{
 		cluster:    cluster,
-		classifier: classifier,
 		splitCache: splitCache,
 		startTime:  time.Now(),
 	}
@@ -133,8 +131,12 @@ func (m *MergeChecker) Check(region *core.RegionInfo) []*operator.Operator {
 }
 
 func (m *MergeChecker) checkTarget(region, adjacent *core.RegionInfo) bool {
+	if !m.cluster.IsGlobalMergeEnabled() {
+		if codec.Key(region.GetStartKey()).TableID() != codec.Key(adjacent.GetStartKey()).TableID() {
+			return false
+		}
+	}
 	return adjacent != nil && !m.cluster.IsRegionHot(adjacent) &&
-		m.classifier.AllowMerge(region, adjacent) &&
 		len(adjacent.GetDownPeers()) == 0 && len(adjacent.GetPendingPeers()) == 0 && len(adjacent.GetLearners()) == 0 && // no special peer
 		len(adjacent.GetPeers()) == m.cluster.GetMaxReplicas() // peer count should equal
 }

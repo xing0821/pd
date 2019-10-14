@@ -17,8 +17,6 @@ initial-cluster-state = "new"
 lease = 3
 tso-save-interval = "3s"
 
-namespace-classifier = "table"
-
 enable-prevote = true
 
 [security]

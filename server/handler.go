@@ -739,30 +739,6 @@ func (h *Handler) GetPendingPeerRegions() ([]*core.RegionInfo, error) {
 	return c.GetRegionStatsByType(statistics.PendingPeer), nil
 }
 
-// GetIncorrectNamespaceRegions gets the region with incorrect namespace peer.
-func (h *Handler) GetIncorrectNamespaceRegions() ([]*core.RegionInfo, error) {
-	c := h.s.GetRaftCluster()
-	if c == nil {
-		return nil, ErrNotBootstrapped
-	}
-	return c.GetRegionStatsByType(statistics.IncorrectNamespace), nil
-}
-
-// GetSchedulerConfigHandler gets the handler of schedulers.
-func (h *Handler) GetSchedulerConfigHandler() http.Handler {
-	c, err := h.getCoordinator()
-	if err != nil {
-		return nil
-	}
-	mux := http.NewServeMux()
-	for name, handler := range c.schedulers {
-		prefix := path.Join(pdRootPath, ScheduleConfigHandlerPath, name)
-		urlPath := prefix + "/"
-		mux.Handle(urlPath, http.StripPrefix(prefix, handler))
-	}
-	return mux
-}
-
 // GetOfflinePeer gets the region with offline peer.
 func (h *Handler) GetOfflinePeer() ([]*core.RegionInfo, error) {
 	c := h.s.GetRaftCluster()
