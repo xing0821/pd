@@ -194,7 +194,7 @@ func (t *regionTree) getAdjacentRegions(region *RegionInfo) (*regionItem, *regio
 	return prev, next
 }
 
-// RandomRegion is used to get a random region from a given range [startKey, endKey].
+// RandomRegion is used to get a random region intersecting with the range [startKey, endKey).
 func (t *regionTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
 	if t.length() == 0 {
 		return nil
