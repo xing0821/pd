@@ -14,6 +14,7 @@ package core
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
 
 	"github.com/pingcap/kvproto/pkg/metapb"
@@ -107,6 +108,9 @@ func (t *regionTree) update(region *RegionInfo) []*RegionInfo {
 // It will do nothing if it cannot find the region or the found region
 // is not the same with the region.
 func (t *regionTree) remove(region *RegionInfo) {
+	if t.length() == 0 {
+		return
+	}
 	result := t.find(region)
 	if result == nil || result.region.GetID() != region.GetID() {
 		return
@@ -200,39 +204,26 @@ func (t *regionTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
 		return nil
 	}
 
-	// The tree only contains one region.
-	if t.length() == 1 {
-		return t.tree.Min().(*regionItem).region
-	}
+	var endIndex int
 
-	var (
-		startRegion          *RegionInfo
-		startIndex, endIndex int
-	)
-	if len(startKey) != 0 {
-		startRegion, startIndex = t.getWithIndex(&regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: startKey}}})
-	} else {
-		startRegion, startIndex = t.getWithIndex(t.tree.Min()) // for test purpose
-	}
+	startRegion, startIndex := t.tree.GetWithIndex(&regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: startKey}}})
 
 	if len(endKey) != 0 {
-		_, endIndex = t.getWithIndex(&regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: endKey}}})
+		_, endIndex = t.tree.GetWithIndex(&regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: endKey}}})
 	} else {
 		endIndex = t.tree.Len()
 	}
 
-	if startRegion == nil {
+	if startIndex != 0 && startRegion == nil && t.tree.GetAt(startIndex-1).(*regionItem).Contains(startKey) {
 		startIndex--
 	}
 
+	if endIndex <= startIndex {
+		log.Error("wrong keys",
+			zap.String("start-key", fmt.Sprintf("%s", HexRegionKey(startKey))),
+			zap.String("end-key", fmt.Sprintf("%s", HexRegionKey(startKey))))
+		return nil
+	}
 	index := rand.Intn(endIndex-startIndex) + startIndex
 	return t.tree.GetAt(index).(*regionItem).region
-}
-
-func (t *regionTree) getWithIndex(item btree.Item) (*RegionInfo, int) {
-	item, index := t.tree.GetWithIndex(item)
-	if item != nil {
-		return item.(*regionItem).region, index
-	}
-	return nil, index
 }

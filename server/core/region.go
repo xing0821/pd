@@ -474,6 +474,9 @@ func (rst *regionSubTree) TotalSize() int64 {
 }
 
 func (rst *regionSubTree) scanRanges() []*RegionInfo {
+	if rst.length() == 0 {
+		return nil
+	}
 	var res []*RegionInfo
 	rst.scanRange([]byte(""), func(region *RegionInfo) bool {
 		res = append(res, region)
@@ -495,7 +498,7 @@ func (rst *regionSubTree) update(region *RegionInfo) {
 }
 
 func (rst *regionSubTree) remove(region *RegionInfo) {
-	if rst == nil {
+	if rst.length() == 0 {
 		return
 	}
 	rst.regionTree.remove(region)
@@ -509,27 +512,20 @@ func (rst *regionSubTree) length() int {
 }
 
 func (rst *regionSubTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
-	if rst == nil || rst.regionTree.length() == 0 {
+	if rst.length() == 0 {
 		return nil
 	}
-
-	// The tree only contains one region.
-	if rst.regionTree.length() == 1 {
-		return rst.tree.Min().(*regionItem).region
-	}
-
-	t := rst.regionTree
-	return t.RandomRegion(startKey, endKey)
+	return rst.regionTree.RandomRegion(startKey, endKey)
 }
 
 // RegionsInfo for export
 type RegionsInfo struct {
 	tree         *regionTree
 	regions      *regionMap                // regionID -> regionInfo
-	leaders      map[uint64]*regionSubTree // storeID -> regionID -> regionInfo
-	followers    map[uint64]*regionSubTree // storeID -> regionID -> regionInfo
-	learners     map[uint64]*regionSubTree // storeID -> regionID -> regionInfo
-	pendingPeers map[uint64]*regionSubTree // storeID -> regionID -> regionInfo
+	leaders      map[uint64]*regionSubTree // storeID -> regionSubTree -> regionInfo
+	followers    map[uint64]*regionSubTree // storeID -> regionSubTree -> regionInfo
+	learners     map[uint64]*regionSubTree // storeID -> regionSubTree -> regionInfo
+	pendingPeers map[uint64]*regionSubTree // storeID -> regionSubTree -> regionInfo
 }
 
 // NewRegionsInfo creates RegionsInfo with tree, regions, leaders and followers
