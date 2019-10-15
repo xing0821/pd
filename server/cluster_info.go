@@ -677,6 +677,18 @@ func (c *clusterInfo) collectMetrics() {
 	c.hotSpotCache.CollectMetrics(c.storesStats)
 }
 
+func (c *clusterInfo) resetClusterMetrics() {
+	if c.regionStats == nil {
+		return
+	}
+	c.RLock()
+	defer c.RUnlock()
+	c.regionStats.Reset()
+	c.labelLevelStats.Reset()
+	// reset hot spot cache metrics
+	c.hotSpotCache.ResetMetrics()
+}
+
 func (c *clusterInfo) GetRegionStatsByType(typ statistics.RegionStatisticType) []*core.RegionInfo {
 	if c.regionStats == nil {
 		return nil
