@@ -159,6 +159,11 @@ func (r *RegionStatistics) Collect() {
 	regionStatusGauge.WithLabelValues("empty-region-count").Set(float64(len(r.stats[EmptyRegion])))
 }
 
+// Reset resets the metrics of the regions' status.
+func (r *RegionStatistics) Reset() {
+	regionStatusGauge.Reset()
+}
+
 // LabelLevelStatistics is the statistics of the level of labels.
 type LabelLevelStatistics struct {
 	regionLabelLevelStats map[uint64]int
@@ -193,6 +198,11 @@ func (l *LabelLevelStatistics) Collect() {
 		typ := fmt.Sprintf("level_%d", level)
 		regionLabelLevelGauge.WithLabelValues(typ).Set(float64(count))
 	}
+}
+
+// Reset resets the metrics of the label status.
+func (l *LabelLevelStatistics) Reset() {
+	regionLabelLevelGauge.Reset()
 }
 
 // ClearDefunctRegion is used to handle the overlap region.
