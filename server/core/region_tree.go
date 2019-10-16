@@ -214,6 +214,8 @@ func (t *regionTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
 		endIndex = t.tree.Len()
 	}
 
+	// Consider that the item in the tree may not be continuous,
+	// we need to check if the previous item contains the key.
 	if startIndex != 0 && startRegion == nil && t.tree.GetAt(startIndex-1).(*regionItem).Contains(startKey) {
 		startIndex--
 	}
