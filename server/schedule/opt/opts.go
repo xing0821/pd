@@ -39,7 +39,8 @@ type Options interface {
 	GetMaxMergeRegionKeys() uint64
 	GetSplitMergeInterval() time.Duration
 	IsOneWayMergeEnabled() bool
-	IsGlobalMergeEnabled() bool
+	IsCrossTableMergeEnabled() bool
+	GetMergeStrategy() string
 
 	GetMaxReplicas() int
 	GetLocationLabels() []string

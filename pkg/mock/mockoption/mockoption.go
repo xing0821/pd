@@ -60,7 +60,8 @@ type ScheduleOptions struct {
 	SchedulerMaxWaitingOperator  uint64
 	SplitMergeInterval           time.Duration
 	EnableOneWayMerge            bool
-	EnableGlobalMerge            bool
+	EnableCrossTableMerge	     bool
+	MergeStrategy                string
 	MaxStoreDownTime             time.Duration
 	MaxReplicas                  int
 	LocationLabels               []string
@@ -176,9 +177,14 @@ func (mso *ScheduleOptions) IsOneWayMergeEnabled() bool {
 	return mso.EnableOneWayMerge
 }
 
-// IsGlobalMergeEnabled mocks method
-func (mso *ScheduleOptions) IsGlobalMergeEnabled() bool {
-	return mso.EnableGlobalMerge
+// IsCrossTableMergeEnabled mocks method
+func (mso *ScheduleOptions) IsCrossTableMergeEnabled() bool {
+	return mso.EnableCrossTableMerge
+}
+
+// GetMergeStrategy mocks method
+func (mso *ScheduleOptions) GetMergeStrategy() string {
+	return mso.MergeStrategy
 }
 
 // GetMaxStoreDownTime mocks method

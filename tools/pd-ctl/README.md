@@ -102,7 +102,7 @@ Usage:
   },
   "schedule": {
     "enable-one-way-merge": "false",
-    "enable-global-merge": "false",
+    "enable-cross-table-merge": "false",
     "disable-location-replacement": "false",
     "disable-make-up-replica": "false",
     "disable-remove-down-replica": "false",
@@ -119,6 +119,7 @@ Usage:
     "max-snapshot-count": 3,
     "max-store-down-time": "30m0s",
     "merge-schedule-limit": 8,
+    "merge-strategy": "table",
     "patrol-region-interval": "100ms",
     "region-schedule-limit": 2048,
     "replica-schedule-limit": 64,

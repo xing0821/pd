@@ -123,9 +123,14 @@ func (o *ScheduleOption) IsOneWayMergeEnabled() bool {
 	return o.Load().EnableOneWayMerge
 }
 
-// IsGlobalMergeEnabled returns if two regions which belongs to different tables can only be merged.
-func (o *ScheduleOption) IsGlobalMergeEnabled() bool {
-	return o.Load().EnableGlobalMerge
+// IsCrossTableMergeEnabled returns if across table merge is enabled.
+func (o *ScheduleOption) IsCrossTableMergeEnabled() bool {
+	return o.Load().EnableCrossTableMerge
+}
+
+// GetMergeStrategy returns the merge strategy.
+func (o *ScheduleOption) GetMergeStrategy() string {
+	return o.Load().MergeStrategy
 }
 
 // GetPatrolRegionInterval returns the interval of patroling region.

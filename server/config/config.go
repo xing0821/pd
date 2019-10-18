@@ -477,8 +477,12 @@ type ScheduleConfig struct {
 	SplitMergeInterval typeutil.Duration `toml:"split-merge-interval,omitempty" json:"split-merge-interval"`
 	// EnableOneWayMerge is the option to enable one way merge. This means a Region can only be merged into the next region of it.
 	EnableOneWayMerge bool `toml:"enable-one-way-merge,omitempty" json:"enable-one-way-merge,string"`
-	// EnableGlobalMerge is option to enable global merge. Otherwise, only the keys in the same table can be merged.
-	EnableGlobalMerge bool `toml:"enable-global-merge" json:"enable-global-merge,string"`
+	// EnableCrossTableMerge is the option to enable cross table merge. This means two Regions can be merged with different table IDs.
+	// This option only works when merge strategy is "table".
+	EnableCrossTableMerge bool `toml:"enable-cross-table-merge,omitempty" json:"enable-cross-table-merge,string"`
+	// MergeStrategy is option to control the merge strategy.
+	// There are some strategics supported: ["table", "raw", "txn"], default: "table"
+	MergeStrategy string `toml:"merge-strategy" json:"merge-strategy,string"`
 	// PatrolRegionInterval is the interval for scanning region during patrol.
 	PatrolRegionInterval typeutil.Duration `toml:"patrol-region-interval,omitempty" json:"patrol-region-interval"`
 	// MaxStoreDownTime is the max duration after which
@@ -577,7 +581,8 @@ func (c *ScheduleConfig) Clone() *ScheduleConfig {
 		ReplicaScheduleLimit:         c.ReplicaScheduleLimit,
 		MergeScheduleLimit:           c.MergeScheduleLimit,
 		EnableOneWayMerge:            c.EnableOneWayMerge,
-		EnableGlobalMerge:            c.EnableGlobalMerge,
+		EnableCrossTableMerge:       c.EnableCrossTableMerge,
+		MergeStrategy:            	  c.MergeStrategy,
 		HotRegionScheduleLimit:       c.HotRegionScheduleLimit,
 		HotRegionCacheHitsThreshold:  c.HotRegionCacheHitsThreshold,
 		StoreBalanceRate:             c.StoreBalanceRate,
@@ -623,6 +628,7 @@ const (
 	defaultHotRegionCacheHitsThreshold = 3
 	defaultSchedulerMaxWaitingOperator = 3
 	defaultLeaderScheduleStrategy      = "count"
+	defaultMergeStrategy = "table"
 )
 
 func (c *ScheduleConfig) adjust(meta *configMetaData) error {
@@ -667,6 +673,9 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	}
 	if !meta.IsDefined("leader-schedule-strategy") {
 		adjustString(&c.LeaderScheduleStrategy, defaultLeaderScheduleStrategy)
+	}
+	if !meta.IsDefined("merge-strategy") {
+		adjustString(&c.MergeStrategy, defaultMergeStrategy)
 	}
 	adjustFloat64(&c.StoreBalanceRate, defaultStoreBalanceRate)
 	adjustFloat64(&c.LowSpaceRatio, defaultLowSpaceRatio)

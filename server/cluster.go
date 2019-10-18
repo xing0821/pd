@@ -1278,9 +1278,14 @@ func (c *RaftCluster) IsOneWayMergeEnabled() bool {
 	return c.opt.IsOneWayMergeEnabled()
 }
 
-// IsGlobalMergeEnabled returns if two regions which belongs to different tables can only be merged.
-func (c *RaftCluster) IsGlobalMergeEnabled() bool {
-	return c.opt.IsGlobalMergeEnabled()
+// IsCrossTableMergeEnabled returns if across table merge is enabled.
+func (c *RaftCluster) IsCrossTableMergeEnabled() bool {
+	return c.opt.IsCrossTableMergeEnabled()
+}
+
+// GetMergeStrategy returns the merge strategy.
+func (c *RaftCluster) GetMergeStrategy() string {
+	return c.opt.GetMergeStrategy()
 }
 
 // GetPatrolRegionInterval returns the interval of patroling region.

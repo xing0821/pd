@@ -73,11 +73,14 @@ hot-region-schedule-limit = 4
 ## If it equals 0.0, PD will automatically adjust it.
 # tolerant-size-ratio = 0.0
 
-## This two parameters control the merge scheduler behavior.
+## This three parameters control the merge scheduler behavior.
 ## If it is true, it means a region can only be merged into the next region of it.
 # enable-one-way-merge = false
-## If it is true, it means two regions belongs to the different tables can be merged.
-# enable-global-merge = false
+## There are some strategics supported: ["table", "raw", "txn"], default: "table"
+# merge-strategy = "table"
+## If it is true, it means two region within different tables can be merged.
+## This option only works when merge strategy is "table".
+# enable-cross-table-merge = false
 
 ## customized schedulers, the format is as below
 ## if empty, it will use balance-leader, balance-region, hot-region as default
