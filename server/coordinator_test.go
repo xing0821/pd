@@ -798,11 +798,11 @@ func (s *testCoordinatorSuite) TestRemoveScheduler(c *C) {
 	cfg.ReplicaScheduleLimit = 0
 
 	tc := newTestCluster(opt)
-	hbStreams, cleanup := getHeartBeatStreams(c, tc)
+	hbStreams, cleanup := getHeartBeatStreams(s.ctx, c, tc)
 	defer cleanup()
 	defer hbStreams.Close()
 
-	co := newCoordinator(tc.RaftCluster, hbStreams, namespace.DefaultClassifier)
+	co := newCoordinator(s.ctx, tc.RaftCluster, hbStreams, namespace.DefaultClassifier)
 	co.run()
 
 	// Add stores 1,2
@@ -841,7 +841,7 @@ func (s *testCoordinatorSuite) TestRemoveScheduler(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(newOpt.Reload(tc.storage), IsNil)
 	tc.RaftCluster.opt = newOpt
-	co = newCoordinator(tc.RaftCluster, hbStreams, namespace.DefaultClassifier)
+	co = newCoordinator(s.ctx, tc.RaftCluster, hbStreams, namespace.DefaultClassifier)
 	co.run()
 	c.Assert(co.schedulers, HasLen, 0)
 	// the option remains default scheduler
