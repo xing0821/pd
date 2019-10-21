@@ -60,7 +60,7 @@ type ScheduleOptions struct {
 	SchedulerMaxWaitingOperator  uint64
 	SplitMergeInterval           time.Duration
 	EnableOneWayMerge            bool
-	EnableCrossTableMerge	     bool
+	EnableCrossTableMerge        bool
 	MergeStrategy                string
 	MaxStoreDownTime             time.Duration
 	MaxReplicas                  int

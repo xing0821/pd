@@ -15,6 +15,7 @@ package config_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/coreos/go-semver/semver"

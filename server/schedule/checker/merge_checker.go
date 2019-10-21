@@ -131,7 +131,7 @@ func (m *MergeChecker) Check(region *core.RegionInfo) []*operator.Operator {
 }
 
 func (m *MergeChecker) checkTarget(region, adjacent *core.RegionInfo) bool {
-	return adjacent!=nil && m.allowMerge(region, adjacent) &&!m.cluster.IsRegionHot(adjacent) &&
+	return adjacent != nil && m.allowMerge(region, adjacent) && !m.cluster.IsRegionHot(adjacent) &&
 		len(adjacent.GetDownPeers()) == 0 && len(adjacent.GetPendingPeers()) == 0 && len(adjacent.GetLearners()) == 0 && // no special peer
 		len(adjacent.GetPeers()) == m.cluster.GetMaxReplicas() // peer count should equal
 }
@@ -141,7 +141,7 @@ func (m *MergeChecker) allowMerge(region *core.RegionInfo, adjacent *core.Region
 	strategy := m.cluster.GetMergeStrategy()
 	switch strategy {
 	case "table":
-		allow :=m.cluster.IsCrossTableMergeEnabled()
+		allow := m.cluster.IsCrossTableMergeEnabled()
 		if allow {
 			return checkTable(region, adjacent)
 		}
@@ -155,24 +155,24 @@ func (m *MergeChecker) allowMerge(region *core.RegionInfo, adjacent *core.Region
 	}
 }
 
-func checkTable(region *core.RegionInfo, adjacent *core.RegionInfo)  bool {
+func checkTable(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
 	return codec.Key(region.GetStartKey()).TableID() != 0 && codec.Key(adjacent.GetStartKey()).TableID() != 0
 }
 
-func checkTableSame(region *core.RegionInfo, adjacent *core.RegionInfo)  bool {
+func checkTableSame(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
 	if codec.Key(region.GetStartKey()).TableID() != codec.Key(adjacent.GetStartKey()).TableID() {
 		return false
 	}
 	return true
 }
 
-func checkTxnKeys(region *core.RegionInfo, adjacent *core.RegionInfo)  bool {
+func checkTxnKeys(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
 	_, _, err := codec.DecodeTxnKey(region.GetStartKey())
-	if err != nil{
+	if err != nil {
 		return false
 	}
-	_, _, err =  codec.DecodeTxnKey(adjacent.GetStartKey())
-	if err != nil{
+	_, _, err = codec.DecodeTxnKey(adjacent.GetStartKey())
+	if err != nil {
 		return false
 	}
 	return true

@@ -581,8 +581,8 @@ func (c *ScheduleConfig) Clone() *ScheduleConfig {
 		ReplicaScheduleLimit:         c.ReplicaScheduleLimit,
 		MergeScheduleLimit:           c.MergeScheduleLimit,
 		EnableOneWayMerge:            c.EnableOneWayMerge,
-		EnableCrossTableMerge:       c.EnableCrossTableMerge,
-		MergeStrategy:            	  c.MergeStrategy,
+		EnableCrossTableMerge:        c.EnableCrossTableMerge,
+		MergeStrategy:                c.MergeStrategy,
 		HotRegionScheduleLimit:       c.HotRegionScheduleLimit,
 		HotRegionCacheHitsThreshold:  c.HotRegionCacheHitsThreshold,
 		StoreBalanceRate:             c.StoreBalanceRate,
@@ -628,7 +628,7 @@ const (
 	defaultHotRegionCacheHitsThreshold = 3
 	defaultSchedulerMaxWaitingOperator = 3
 	defaultLeaderScheduleStrategy      = "count"
-	defaultMergeStrategy = "table"
+	defaultMergeStrategy               = "table"
 )
 
 func (c *ScheduleConfig) adjust(meta *configMetaData) error {
