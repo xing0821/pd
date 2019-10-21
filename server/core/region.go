@@ -522,10 +522,10 @@ func (rst *regionSubTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
 type RegionsInfo struct {
 	tree         *regionTree
 	regions      *regionMap                // regionID -> regionInfo
-	leaders      map[uint64]*regionSubTree // storeID -> regionSubTree -> regionInfo
-	followers    map[uint64]*regionSubTree // storeID -> regionSubTree -> regionInfo
-	learners     map[uint64]*regionSubTree // storeID -> regionSubTree -> regionInfo
-	pendingPeers map[uint64]*regionSubTree // storeID -> regionSubTree -> regionInfo
+	leaders      map[uint64]*regionSubTree // storeID -> regionSubTree
+	followers    map[uint64]*regionSubTree // storeID -> regionSubTree
+	learners     map[uint64]*regionSubTree // storeID -> regionSubTree
+	pendingPeers map[uint64]*regionSubTree // storeID -> regionSubTree
 }
 
 // NewRegionsInfo creates RegionsInfo with tree, regions, leaders and followers

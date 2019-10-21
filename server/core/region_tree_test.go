@@ -352,13 +352,23 @@ const MaxKey = 10000000
 
 func BenchmarkRegionTreeUpdateUnordered(b *testing.B) {
 	tree := newRegionTree()
-	var keys []int
+	var items []*RegionInfo
 	for i := 0; i < MaxKey; i++ {
-		keys = append(keys, rand.Intn(MaxKey))
+		var startKey, endKey int
+		key1 := rand.Intn(MaxKey)
+		key2 := rand.Intn(MaxKey)
+		if key1 < key2 {
+			startKey = key1
+			endKey = key2
+		} else {
+			startKey = key2
+			endKey = key1
+		}
+		items = append(items, &RegionInfo{meta: &metapb.Region{StartKey: []byte(fmt.Sprintf("%20d", startKey)), EndKey: []byte(fmt.Sprintf("%20d", endKey))}})
 	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		item := &RegionInfo{meta: &metapb.Region{StartKey: []byte(fmt.Sprintf("%20d", keys[i])), EndKey: []byte(fmt.Sprintf("%20d", keys[i+1]))}}
-		tree.update(item)
+		tree.update(items[i])
 	}
 }
