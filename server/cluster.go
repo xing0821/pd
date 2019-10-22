@@ -334,7 +334,7 @@ func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
 		for _, item := range c.core.GetOverlaps(region) {
 			if region.GetRegionEpoch().GetVersion() < item.GetRegionEpoch().GetVersion() {
 				c.RUnlock()
-				return ErrRegionIsStale(region.GetMeta(), item)
+				return ErrRegionIsStale(region.GetMeta(), item.GetMeta())
 			}
 		}
 	}
@@ -441,19 +441,19 @@ func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
 		overlaps := c.core.PutRegion(region)
 		if c.storage != nil {
 			for _, item := range overlaps {
-				if err := c.storage.DeleteRegion(item); err != nil {
+				if err := c.storage.DeleteRegion(item.GetMeta()); err != nil {
 					log.Error("failed to delete region from storage",
-						zap.Uint64("region-id", item.GetId()),
-						zap.Stringer("region-meta", core.RegionToHexMeta(item)),
+						zap.Uint64("region-id", item.GetID()),
+						zap.Stringer("region-meta", core.RegionToHexMeta(item.GetMeta())),
 						zap.Error(err))
 				}
 			}
 		}
 		for _, item := range overlaps {
 			if c.regionStats != nil {
-				c.regionStats.ClearDefunctRegion(item.GetId())
+				c.regionStats.ClearDefunctRegion(item.GetID())
 			}
-			c.labelLevelStats.ClearDefunctRegion(item.GetId(), c.GetLocationLabels())
+			c.labelLevelStats.ClearDefunctRegion(item.GetID(), c.GetLocationLabels())
 		}
 
 		// Update related stores.
@@ -873,9 +873,9 @@ func (c *RaftCluster) UnblockStore(storeID uint64) {
 	c.core.UnblockStore(storeID)
 }
 
-// AttachOverloadStatus attaches the overload status to a store.
-func (c *RaftCluster) AttachOverloadStatus(storeID uint64, f func() bool) {
-	c.core.AttachOverloadStatus(storeID, f)
+// AttachAvailableFunc attaches an available function to a specific store.
+func (c *RaftCluster) AttachAvailableFunc(storeID uint64, f func() bool) {
+	c.core.AttachAvailableFunc(storeID, f)
 }
 
 // SetStoreState sets up a store's state.
@@ -985,6 +985,7 @@ func (c *RaftCluster) RemoveTombStoneRecords() error {
 					zap.Error(err))
 				return err
 			}
+			c.coordinator.opController.RemoveStoreLimit(store.GetID())
 			log.Info("delete store successed",
 				zap.Stringer("store", store.GetMeta()))
 		}
@@ -1313,6 +1314,11 @@ func (c *RaftCluster) GetHotRegionCacheHitsThreshold() int {
 // IsRemoveDownReplicaEnabled returns if remove down replica is enabled.
 func (c *RaftCluster) IsRemoveDownReplicaEnabled() bool {
 	return c.opt.IsRemoveDownReplicaEnabled()
+}
+
+// GetLeaderScheduleStrategy is to get leader schedule strategy
+func (c *RaftCluster) GetLeaderScheduleStrategy() core.ScheduleStrategy {
+	return c.opt.GetLeaderScheduleStrategy()
 }
 
 // IsReplaceOfflineReplicaEnabled returns if replace offline replica is enabled.
