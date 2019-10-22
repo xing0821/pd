@@ -107,7 +107,7 @@ func (r *RangeCluster) RandFollowerRegion(storeID uint64, ranges []core.KeyRange
 }
 
 // RandLeaderRegion returns a random region that has leader on the store.
-func (r *RangeCluster) RandLeaderRegion(storeID uint64,  ranges []core.KeyRange, opts ...core.RegionOption) *core.RegionInfo {
+func (r *RangeCluster) RandLeaderRegion(storeID uint64, ranges []core.KeyRange, opts ...core.RegionOption) *core.RegionInfo {
 	return r.subCluster.RandLeaderRegion(storeID, ranges, opts...)
 }
 

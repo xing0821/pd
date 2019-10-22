@@ -32,12 +32,12 @@ func init() {
 			if !ok {
 				return ErrScheduleConfigNotExist
 			}
-			ranges, err := getKeyRanges(args) 
+			ranges, err := getKeyRanges(args)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 			conf.Ranges = ranges
-			conf.Name=shuffleLeaderName
+			conf.Name = shuffleLeaderName
 			return nil
 		}
 	})
@@ -50,13 +50,13 @@ func init() {
 }
 
 type shuffleLeaderSchedulerConfig struct {
-	Name    string `json:"name"`
+	Name   string          `json:"name"`
 	Ranges []core.KeyRange `json:"ranges"`
 }
 
 type shuffleLeaderScheduler struct {
 	*baseScheduler
-	conf *shuffleLeaderSchedulerConfig
+	conf     *shuffleLeaderSchedulerConfig
 	selector *selector.RandomSelector
 }
 
@@ -69,7 +69,7 @@ func newShuffleLeaderScheduler(opController *schedule.OperatorController, conf *
 	base := newBaseScheduler(opController)
 	return &shuffleLeaderScheduler{
 		baseScheduler: base,
-		conf: conf,
+		conf:          conf,
 		selector:      selector.NewRandomSelector(filters),
 	}
 }
@@ -80,6 +80,10 @@ func (s *shuffleLeaderScheduler) GetName() string {
 
 func (s *shuffleLeaderScheduler) GetType() string {
 	return "shuffle-leader"
+}
+
+func (s *shuffleLeaderScheduler) EncodeConfig() ([]byte, error) {
+	return schedule.EncodeConfig(s.conf)
 }
 
 func (s *shuffleLeaderScheduler) IsScheduleAllowed(cluster opt.Cluster) bool {

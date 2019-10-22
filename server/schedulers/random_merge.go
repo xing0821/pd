@@ -30,16 +30,16 @@ const randomMergeName = "random-merge-scheduler"
 func init() {
 	schedule.RegisterSliceDecoderBuilder("random-merge", func(args []string) schedule.ConfigDecoder {
 		return func(v interface{}) error {
-			conf, ok := v.(*shuffleLeaderSchedulerConfig)
+			conf, ok := v.(*randomMergeSchedulerConfig)
 			if !ok {
 				return ErrScheduleConfigNotExist
 			}
-			ranges, err := getKeyRanges(args) 
+			ranges, err := getKeyRanges(args)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 			conf.Ranges = ranges
-			conf.Name=randomMergeName
+			conf.Name = randomMergeName
 			return nil
 		}
 	})
@@ -51,13 +51,13 @@ func init() {
 }
 
 type randomMergeSchedulerConfig struct {
-	Name    string `json:"name"`
+	Name   string          `json:"name"`
 	Ranges []core.KeyRange `json:"ranges"`
 }
 
 type randomMergeScheduler struct {
 	*baseScheduler
-	conf *randomMergeSchedulerConfig
+	conf     *randomMergeSchedulerConfig
 	selector *selector.RandomSelector
 }
 
@@ -70,7 +70,7 @@ func newRandomMergeScheduler(opController *schedule.OperatorController, conf *ra
 	base := newBaseScheduler(opController)
 	return &randomMergeScheduler{
 		baseScheduler: base,
-		conf: conf,
+		conf:          conf,
 		selector:      selector.NewRandomSelector(filters),
 	}
 }
@@ -81,6 +81,10 @@ func (s *randomMergeScheduler) GetName() string {
 
 func (s *randomMergeScheduler) GetType() string {
 	return "random-merge"
+}
+
+func (s *randomMergeScheduler) EncodeConfig() ([]byte, error) {
+	return schedule.EncodeConfig(s.conf)
 }
 
 func (s *randomMergeScheduler) IsScheduleAllowed(cluster opt.Cluster) bool {

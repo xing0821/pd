@@ -17,9 +17,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
-	"math/rand"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/pingcap/kvproto/pkg/metapb"

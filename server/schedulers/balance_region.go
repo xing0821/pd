@@ -25,9 +25,9 @@ import (
 	"github.com/pingcap/pd/server/schedule/filter"
 	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/schedule/opt"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
-	"github.com/pkg/errors"
 )
 
 func init() {
@@ -37,12 +37,12 @@ func init() {
 			if !ok {
 				return ErrScheduleConfigNotExist
 			}
-			ranges, err := getKeyRanges(args) 
+			ranges, err := getKeyRanges(args)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 			conf.Ranges = ranges
-			conf.Name=balanceRegionName
+			conf.Name = balanceRegionName
 			return nil
 		}
 	})
@@ -60,7 +60,7 @@ const (
 )
 
 type balanceRegionSchedulerConfig struct {
-	Name    string `json:"name"`
+	Name   string          `json:"name"`
 	Ranges []core.KeyRange `json:"ranges"`
 }
 
@@ -78,7 +78,7 @@ func newBalanceRegionScheduler(opController *schedule.OperatorController, conf *
 	base := newBaseScheduler(opController)
 	s := &balanceRegionScheduler{
 		baseScheduler: base,
-		conf: conf,
+		conf:          conf,
 		opController:  opController,
 		counter:       balanceRegionCounter,
 	}
@@ -112,6 +112,10 @@ func (s *balanceRegionScheduler) GetName() string {
 
 func (s *balanceRegionScheduler) GetType() string {
 	return "balance-region"
+}
+
+func (s *balanceRegionScheduler) EncodeConfig() ([]byte, error) {
+	return schedule.EncodeConfig(s.conf)
 }
 
 func (s *balanceRegionScheduler) IsScheduleAllowed(cluster opt.Cluster) bool {

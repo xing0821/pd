@@ -22,26 +22,25 @@ import (
 	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/schedule/opt"
 	"github.com/pingcap/pd/server/schedule/selector"
-	"go.uber.org/zap"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 const shuffleRegionName = "shuffle-region-scheduler"
 
-
 func init() {
 	schedule.RegisterSliceDecoderBuilder("shuffle-region", func(args []string) schedule.ConfigDecoder {
 		return func(v interface{}) error {
-			conf, ok := v.(*balanceLeaderSchedulerConfig)
+			conf, ok := v.(*shuffleRegionSchedulerConfig)
 			if !ok {
 				return ErrScheduleConfigNotExist
 			}
-			ranges, err := getKeyRanges(args) 
+			ranges, err := getKeyRanges(args)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 			conf.Ranges = ranges
-			conf.Name=shuffleRegionName
+			conf.Name = shuffleRegionName
 			return nil
 		}
 	})
@@ -53,13 +52,13 @@ func init() {
 }
 
 type shuffleRegionSchedulerConfig struct {
-	Name    string `json:"name"`
+	Name   string          `json:"name"`
 	Ranges []core.KeyRange `json:"ranges"`
 }
 
 type shuffleRegionScheduler struct {
 	*baseScheduler
-	conf *shuffleRegionSchedulerConfig
+	conf     *shuffleRegionSchedulerConfig
 	selector *selector.RandomSelector
 }
 
@@ -83,6 +82,10 @@ func (s *shuffleRegionScheduler) GetName() string {
 
 func (s *shuffleRegionScheduler) GetType() string {
 	return "shuffle-region"
+}
+
+func (s *shuffleRegionScheduler) EncodeConfig() ([]byte, error) {
+	return schedule.EncodeConfig(s.conf)
 }
 
 func (s *shuffleRegionScheduler) IsScheduleAllowed(cluster opt.Cluster) bool {

@@ -164,11 +164,11 @@ func getKeyRanges(args []string) ([]core.KeyRange, error) {
 		if err != nil {
 			return nil, err
 		}
-		args= args[2:]
-		ranges=append(ranges, core.NewKeyRange(startKey, endKey))
+		args = args[2:]
+		ranges = append(ranges, core.NewKeyRange(startKey, endKey))
 	}
-	if len(ranges)==0 {
+	if len(ranges) == 0 {
 		return []core.KeyRange{core.NewKeyRange(startKey, endKey)}, nil
 	}
-	return ranges,nil
+	return ranges, nil
 }

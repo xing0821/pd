@@ -363,13 +363,13 @@ type StoreSetController interface {
 // KeyRange is a key range.
 type KeyRange struct {
 	StartKey []byte `json:"start-key"`
-	EndKey []byte `json:"end-key"`
+	EndKey   []byte `json:"end-key"`
 }
 
 // NewKeyRange create a KeyRange with the given start key and end key.
 func NewKeyRange(startKey, endKey string) KeyRange {
-	return KeyRange {
+	return KeyRange{
 		StartKey: []byte(startKey),
-		EndKey: []byte(endKey),
+		EndKey:   []byte(endKey),
 	}
 }

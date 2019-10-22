@@ -21,8 +21,8 @@ import (
 	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/schedule/opt"
 	"github.com/pingcap/pd/server/schedule/selector"
-	"go.uber.org/zap"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 const labelSchedulerName = "label-scheduler"
@@ -34,12 +34,12 @@ func init() {
 			if !ok {
 				return ErrScheduleConfigNotExist
 			}
-			ranges, err := getKeyRanges(args) 
+			ranges, err := getKeyRanges(args)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 			conf.Ranges = ranges
-			conf.Name=labelSchedulerName
+			conf.Name = labelSchedulerName
 			return nil
 		}
 	})
@@ -52,14 +52,13 @@ func init() {
 }
 
 type labelSchedulerConfig struct {
-	Name    string `json:"name"`
+	Name   string          `json:"name"`
 	Ranges []core.KeyRange `json:"ranges"`
 }
 
-
 type labelScheduler struct {
 	*baseScheduler
-	conf *labelSchedulerConfig
+	conf     *labelSchedulerConfig
 	selector *selector.BalanceSelector
 }
 
@@ -73,7 +72,7 @@ func newLabelScheduler(opController *schedule.OperatorController, conf *labelSch
 	kind := core.NewScheduleKind(core.LeaderKind, core.ByCount)
 	return &labelScheduler{
 		baseScheduler: newBaseScheduler(opController),
-		conf: conf,
+		conf:          conf,
 		selector:      selector.NewBalanceSelector(kind, filters),
 	}
 }
@@ -84,6 +83,10 @@ func (s *labelScheduler) GetName() string {
 
 func (s *labelScheduler) GetType() string {
 	return "label"
+}
+
+func (s *labelScheduler) EncodeConfig() ([]byte, error) {
+	return schedule.EncodeConfig(s.conf)
 }
 
 func (s *labelScheduler) IsScheduleAllowed(cluster opt.Cluster) bool {

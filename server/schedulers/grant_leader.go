@@ -40,7 +40,7 @@ func init() {
 			if err != nil {
 				return errors.WithStack(err)
 			}
-			ranges, err := getKeyRanges(args[1:]) 
+			ranges, err := getKeyRanges(args[1:])
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -59,15 +59,15 @@ func init() {
 }
 
 type grandLeaderConfig struct {
-	Name    string `json:"name"`
-	StoreID uint64 `json:"store-id"`
+	Name    string          `json:"name"`
+	StoreID uint64          `json:"store-id"`
 	Ranges  []core.KeyRange `json:"ranges"`
 }
 
 // grantLeaderScheduler transfers all leaders to peers in the store.
 type grantLeaderScheduler struct {
 	*baseScheduler
-	conf   *grandLeaderConfig
+	conf *grandLeaderConfig
 }
 
 // newGrantLeaderScheduler creates an admin scheduler that transfers all leaders

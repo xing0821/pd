@@ -23,9 +23,15 @@ import (
 	"github.com/pingcap/pd/server/schedule/filter"
 	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/schedule/opt"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
-	"github.com/pkg/errors"
+)
+
+const (
+	balanceLeaderName = "balance-leader-scheduler"
+	// balanceLeaderRetryLimit is the limit to retry schedule for selected source store and target store.
+	balanceLeaderRetryLimit = 10
 )
 
 func init() {
@@ -35,12 +41,12 @@ func init() {
 			if !ok {
 				return ErrScheduleConfigNotExist
 			}
-			ranges, err := getKeyRanges(args) 
+			ranges, err := getKeyRanges(args)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 			conf.Ranges = ranges
-			conf.Name=balanceRegionName
+			conf.Name = balanceLeaderName
 			return nil
 		}
 	})
@@ -53,12 +59,9 @@ func init() {
 }
 
 type balanceLeaderSchedulerConfig struct {
-	Name    string `json:"name"`
+	Name   string          `json:"name"`
 	Ranges []core.KeyRange `json:"ranges"`
 }
-
-// balanceLeaderRetryLimit is the limit to retry schedule for selected source store and target store.
-const balanceLeaderRetryLimit = 10
 
 type balanceLeaderScheduler struct {
 	*baseScheduler
@@ -109,6 +112,10 @@ func (l *balanceLeaderScheduler) GetName() string {
 
 func (l *balanceLeaderScheduler) GetType() string {
 	return "balance-leader"
+}
+
+func (l *balanceLeaderScheduler) EncodeConfig() ([]byte, error) {
+	return schedule.EncodeConfig(l.conf)
 }
 
 func (l *balanceLeaderScheduler) IsScheduleAllowed(cluster opt.Cluster) bool {

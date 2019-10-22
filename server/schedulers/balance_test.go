@@ -165,7 +165,7 @@ func (s *testBalanceLeaderSchedulerSuite) SetUpTest(c *C) {
 	opt := mockoption.NewScheduleOptions()
 	s.tc = mockcluster.NewCluster(opt)
 	s.oc = schedule.NewOperatorController(s.ctx, nil, nil)
-	lb, err := schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), nil)
+	lb, err := schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-leader", []string{"", ""}))
 	c.Assert(err, IsNil)
 	s.lb = lb
 }
@@ -434,7 +434,7 @@ func (s *testBalanceRegionSchedulerSuite) TestBalance(c *C) {
 	tc := mockcluster.NewCluster(opt)
 	oc := schedule.NewOperatorController(s.ctx, nil, nil)
 
-	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), nil)
+	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-region", []string{"", ""}))
 	c.Assert(err, IsNil)
 
 	opt.SetMaxReplicas(1)
@@ -469,7 +469,7 @@ func (s *testBalanceRegionSchedulerSuite) TestReplicas3(c *C) {
 
 	newTestReplication(opt, 3, "zone", "rack", "host")
 
-	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), nil)
+	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-region", []string{"", ""}))
 	c.Assert(err, IsNil)
 
 	// Store 1 has the largest region score, so the balancer try to replace peer in store 1.
@@ -524,7 +524,7 @@ func (s *testBalanceRegionSchedulerSuite) TestReplicas5(c *C) {
 
 	newTestReplication(opt, 5, "zone", "rack", "host")
 
-	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), nil)
+	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-region", []string{"", ""}))
 	c.Assert(err, IsNil)
 
 	tc.AddLabelsStore(1, 4, map[string]string{"zone": "z1", "rack": "r1", "host": "h1"})
@@ -579,7 +579,7 @@ func (s *testBalanceRegionSchedulerSuite) TestBalance1(c *C) {
 
 	opt.TolerantSizeRatio = 1
 
-	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), nil)
+	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-region", []string{"", ""}))
 	c.Assert(err, IsNil)
 
 	tc.AddRegionStore(1, 11)
@@ -614,7 +614,7 @@ func (s *testBalanceRegionSchedulerSuite) TestStoreWeight(c *C) {
 	tc := mockcluster.NewCluster(opt)
 	oc := schedule.NewOperatorController(s.ctx, nil, nil)
 
-	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), nil)
+	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-region", []string{"", ""}))
 	c.Assert(err, IsNil)
 	opt.SetMaxReplicas(1)
 
@@ -641,7 +641,7 @@ func (s *testBalanceRegionSchedulerSuite) TestReplacePendingRegion(c *C) {
 
 	newTestReplication(opt, 3, "zone", "rack", "host")
 
-	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), nil)
+	sb, err := schedule.CreateScheduler("balance-region", oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-region", []string{"", ""}))
 	c.Assert(err, IsNil)
 
 	// Store 1 has the largest region score, so the balancer try to replace peer in store 1.
@@ -1000,7 +1000,7 @@ func (s *testRandomMergeSchedulerSuite) TestMerge(c *C) {
 	hb := mockhbstream.NewHeartbeatStreams(tc.ID)
 	oc := schedule.NewOperatorController(ctx, tc, hb)
 
-	mb, err := schedule.CreateScheduler("random-merge", oc, core.NewStorage(kv.NewMemoryKV()), nil)
+	mb, err := schedule.CreateScheduler("random-merge", oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("random-merge", []string{"", ""}))
 	c.Assert(err, IsNil)
 
 	tc.AddRegionStore(1, 4)

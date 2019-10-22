@@ -41,14 +41,14 @@ func init() {
 			if err != nil {
 				return errors.WithStack(err)
 			}
-			ranges, err:=getKeyRanges(args[1:])
+			ranges, err := getKeyRanges(args[1:])
 			if err != nil {
-				return  errors.WithStack(err)
+				return errors.WithStack(err)
 			}
 			name := fmt.Sprintf("evict-leader-scheduler-%d", id)
 			conf.StoreID = id
 			conf.Name = name
-			conf.Ranges=ranges
+			conf.Ranges = ranges
 			return nil
 
 		}
@@ -62,9 +62,9 @@ func init() {
 }
 
 type evictLeaderSchedulerConfig struct {
-	Name    string `json:"name"`
-	StoreID uint64 `json:"store-id"`
-	Ranges []core.KeyRange `json:"ranges"`
+	Name    string          `json:"name"`
+	StoreID uint64          `json:"store-id"`
+	Ranges  []core.KeyRange `json:"ranges"`
 }
 
 type evictLeaderScheduler struct {

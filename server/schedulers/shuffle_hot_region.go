@@ -28,7 +28,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const shuffleHotRegionName= "shuffle-hot-region-scheduler"
+const shuffleHotRegionName = "shuffle-hot-region-scheduler"
 
 func init() {
 	schedule.RegisterSliceDecoderBuilder("shuffle-hot-region", func(args []string) schedule.ConfigDecoder {
@@ -45,7 +45,7 @@ func init() {
 				}
 				conf.Limit = limit
 			}
-			conf.Name=shuffleHotRegionName
+			conf.Name = shuffleHotRegionName
 			return nil
 		}
 	})
@@ -58,7 +58,7 @@ func init() {
 }
 
 type shuffleHotRegionSchedulerConfig struct {
-	Name string `json:"name"`
+	Name  string `json:"name"`
 	Limit uint64 `json:"limit"`
 }
 
