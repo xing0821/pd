@@ -40,7 +40,6 @@ type Options interface {
 	GetSplitMergeInterval() time.Duration
 	IsOneWayMergeEnabled() bool
 	IsCrossTableMergeEnabled() bool
-	GetMergeStrategy() string
 
 	GetMaxReplicas() int
 	GetLocationLabels() []string
@@ -59,6 +58,7 @@ type Options interface {
 	IsRemoveExtraReplicaEnabled() bool
 	IsLocationReplacementEnabled() bool
 	GetLeaderScheduleStrategy() core.ScheduleStrategy
+	GetMergeStrategy() core.MergeStrategy
 
 	CheckLabelProperty(typ string, labels []*metapb.StoreLabel) bool
 }

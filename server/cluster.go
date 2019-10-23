@@ -1283,11 +1283,6 @@ func (c *RaftCluster) IsCrossTableMergeEnabled() bool {
 	return c.opt.IsCrossTableMergeEnabled()
 }
 
-// GetMergeStrategy returns the merge strategy.
-func (c *RaftCluster) GetMergeStrategy() string {
-	return c.opt.GetMergeStrategy()
-}
-
 // GetPatrolRegionInterval returns the interval of patroling region.
 func (c *RaftCluster) GetPatrolRegionInterval() time.Duration {
 	return c.opt.GetPatrolRegionInterval()
@@ -1328,9 +1323,14 @@ func (c *RaftCluster) IsRemoveDownReplicaEnabled() bool {
 	return c.opt.IsRemoveDownReplicaEnabled()
 }
 
-// GetLeaderScheduleStrategy is to get leader schedule strategy
+// GetLeaderScheduleStrategy is to get leader schedule strategy.
 func (c *RaftCluster) GetLeaderScheduleStrategy() core.ScheduleStrategy {
 	return c.opt.GetLeaderScheduleStrategy()
+}
+
+// GetMergeStrategy is to get merge strategy.
+func (c *RaftCluster) GetMergeStrategy() core.MergeStrategy {
+	return c.opt.GetMergeStrategy()
 }
 
 // IsReplaceOfflineReplicaEnabled returns if replace offline replica is enabled.

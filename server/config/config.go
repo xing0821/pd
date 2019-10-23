@@ -807,9 +807,14 @@ func IsDefaultScheduler(typ string) bool {
 	return false
 }
 
-// GetLeaderScheduleStrategy is to get leader schedule strategy
+// GetLeaderScheduleStrategy is to get leader schedule strategy.
 func (c *ScheduleConfig) GetLeaderScheduleStrategy() core.ScheduleStrategy {
 	return core.StringToScheduleStrategy(c.LeaderScheduleStrategy)
+}
+
+// GetMergeStrategy is to get merge strategy.
+func (c *ScheduleConfig) GetMergeStrategy() core.MergeStrategy {
+	return core.StringToMergeStrategy(c.MergeStrategy)
 }
 
 // ReplicationConfig is the replication configuration.

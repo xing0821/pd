@@ -114,6 +114,7 @@ func NewScheduleOptions() *ScheduleOptions {
 	mso.EnableRemoveExtraReplica = true
 	mso.EnableLocationReplacement = true
 	mso.LeaderScheduleStrategy = defaultLeaderScheduleStrategy
+	mso.MergeStrategy = defaultMergeStrategy
 	return mso
 }
 
@@ -180,11 +181,6 @@ func (mso *ScheduleOptions) IsOneWayMergeEnabled() bool {
 // IsCrossTableMergeEnabled mocks method
 func (mso *ScheduleOptions) IsCrossTableMergeEnabled() bool {
 	return mso.EnableCrossTableMerge
-}
-
-// GetMergeStrategy mocks method
-func (mso *ScheduleOptions) GetMergeStrategy() string {
-	return mso.MergeStrategy
 }
 
 // GetMaxStoreDownTime mocks method
@@ -267,7 +263,12 @@ func (mso *ScheduleOptions) IsLocationReplacementEnabled() bool {
 	return mso.EnableLocationReplacement
 }
 
-// GetLeaderScheduleStrategy is to get leader schedule strategy
+// GetLeaderScheduleStrategy is to get leader schedule strategy.
 func (mso *ScheduleOptions) GetLeaderScheduleStrategy() core.ScheduleStrategy {
 	return core.StringToScheduleStrategy(mso.LeaderScheduleStrategy)
+}
+
+// GetMergeStrategy is to get merge strategy.
+func (mso *ScheduleOptions) GetMergeStrategy() core.MergeStrategy {
+	return core.StringToMergeStrategy(mso.MergeStrategy)
 }

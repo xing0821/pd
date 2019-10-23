@@ -197,10 +197,11 @@ Usage:
     >> config set enable-one-way-merge true  // Enable one way merge.
     ```
 
-- `enable-global-merge` controls the merge scheduler behavior. This means two regions belongs to the different tables can be merged.
+- `enable-cross-table-merge` controls the merge scheduler behavior. This means two Regions can be merged with different table IDs.
+This option only works when merge strategy is "table".
 
     ```bash
-    >> config set enable-global-merge true  // Enable global merge.
+    >> config set enable-cross-table-merge true  // Enable cross table merge.
     ```
 
 - `patrol-region-interval` controls the execution frequency that `replicaChecker` checks the health status of Regions. A shorter interval indicates a higher execution frequency. Generally, you do not need to adjust it.

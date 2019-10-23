@@ -90,3 +90,42 @@ func StringToScheduleStrategy(input string) ScheduleStrategy {
 		panic("invalid schedule strategy: " + input)
 	}
 }
+
+// MergeStrategy distinguishes different kinds of merge strategy
+type MergeStrategy int
+
+const (
+	// Table indicates that if two regions can be merged will rely on table ID.
+	Table MergeStrategy = iota
+	// Raw indicates that the key is raw key.
+	Raw
+	// Txn indicates that the key is txn key.
+	Txn
+)
+
+func (k MergeStrategy) String() string {
+	switch k {
+	case Table:
+		return "table"
+	case Raw:
+		return "raw"
+	case Txn:
+		return "txn"
+	default:
+		return "unknown"
+	}
+}
+
+// StringToMergeStrategy creates a merge strategy with string.
+func StringToMergeStrategy(input string) MergeStrategy {
+	switch input {
+	case Table.String():
+		return Table
+	case Raw.String():
+		return Raw
+	case Txn.String():
+		return Txn
+	default:
+		panic("invalid merge strategy: " + input)
+	}
+}

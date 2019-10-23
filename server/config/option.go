@@ -128,11 +128,6 @@ func (o *ScheduleOption) IsCrossTableMergeEnabled() bool {
 	return o.Load().EnableCrossTableMerge
 }
 
-// GetMergeStrategy returns the merge strategy.
-func (o *ScheduleOption) GetMergeStrategy() string {
-	return o.Load().MergeStrategy
-}
-
 // GetPatrolRegionInterval returns the interval of patroling region.
 func (o *ScheduleOption) GetPatrolRegionInterval() time.Duration {
 	return o.Load().PatrolRegionInterval.Duration
@@ -193,6 +188,16 @@ func (o *ScheduleOption) GetSchedulerMaxWaitingOperator() uint64 {
 	return o.Load().SchedulerMaxWaitingOperator
 }
 
+// GetLeaderScheduleStrategy is to get leader schedule strategy.
+func (o *ScheduleOption) GetLeaderScheduleStrategy() core.ScheduleStrategy {
+	return o.Load().GetLeaderScheduleStrategy()
+}
+
+// GetMergeStrategy is to get merge strategy.
+func (o *ScheduleOption) GetMergeStrategy() core.MergeStrategy {
+	return o.Load().GetMergeStrategy()
+}
+
 // IsRemoveDownReplicaEnabled returns if remove down replica is enabled.
 func (o *ScheduleOption) IsRemoveDownReplicaEnabled() bool {
 	return o.Load().EnableRemoveDownReplica
@@ -211,11 +216,6 @@ func (o *ScheduleOption) IsMakeUpReplicaEnabled() bool {
 // IsRemoveExtraReplicaEnabled returns if remove extra replica is enabled.
 func (o *ScheduleOption) IsRemoveExtraReplicaEnabled() bool {
 	return o.Load().EnableRemoveExtraReplica
-}
-
-// GetLeaderScheduleStrategy is to get leader schedule strategy.
-func (o *ScheduleOption) GetLeaderScheduleStrategy() core.ScheduleStrategy {
-	return o.Load().GetLeaderScheduleStrategy()
 }
 
 // IsLocationReplacementEnabled returns if location replace is enabled.

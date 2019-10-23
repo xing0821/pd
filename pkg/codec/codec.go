@@ -176,43 +176,6 @@ func DecodeBytes(b []byte) ([]byte, []byte, error) {
 	return b, data, nil
 }
 
-// DecodeTxnKey decodes value of txn key.
-func DecodeTxnKey(encodedKey []byte) ([]byte, uint64, error) {
-	// Skip DataPrefix
-	remainBytes, key, err := DecodeBytes(encodedKey)
-	if err != nil {
-		// should never happen
-		return nil, 0, err
-	}
-	// if it's meta key
-	if len(remainBytes) == 0 {
-		return key, 0, nil
-	}
-	var ver uint64
-	remainBytes, ver, err = DecodeUintDesc(remainBytes)
-	if err != nil {
-		// should never happen
-		return nil, 0, err
-	}
-	if len(remainBytes) != 0 {
-		return nil, 0, errors.New("invalid txn encoded key")
-	}
-	return key, ver, nil
-}
-
-// DecodeUintDesc decodes value encoded by EncodeInt before.
-// It returns the leftover un-decoded slice, decoded value if no error.
-func DecodeUintDesc(b []byte) ([]byte, uint64, error) {
-	if len(b) < 8 {
-		return nil, 0, errors.New("insufficient bytes to decode value")
-	}
-
-	data := b[:8]
-	v := binary.BigEndian.Uint64(data)
-	b = b[8:]
-	return b, ^v, nil
-}
-
 // GenerateTableKey generates a table split key.
 func GenerateTableKey(tableID int64) []byte {
 	buf := make([]byte, 0, len(tablePrefix)+8)

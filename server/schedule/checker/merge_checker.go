@@ -140,40 +140,24 @@ func (m *MergeChecker) checkTarget(region, adjacent *core.RegionInfo) bool {
 func (m *MergeChecker) allowMerge(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
 	strategy := m.cluster.GetMergeStrategy()
 	switch strategy {
-	case "table":
+	case core.Table:
 		allow := m.cluster.IsCrossTableMergeEnabled()
 		if allow {
-			return checkTable(region, adjacent)
+			return true
 		}
-		return checkTableSame(region, adjacent)
-	case "raw":
+		return isTableIDSame(region, adjacent)
+	case core.Raw:
 		return true
-	case "txn":
-		return checkTxnKeys(region, adjacent)
+	case core.Txn:
+		return true
 	default:
-		return checkTableSame(region, adjacent)
+		return isTableIDSame(region, adjacent)
 	}
 }
 
-func checkTable(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
-	return codec.Key(region.GetStartKey()).TableID() != 0 && codec.Key(adjacent.GetStartKey()).TableID() != 0
-}
-
-func checkTableSame(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
-	if codec.Key(region.GetStartKey()).TableID() != codec.Key(adjacent.GetStartKey()).TableID() {
-		return false
+func isTableIDSame(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
+	if codec.Key(region.GetStartKey()).TableID() == codec.Key(adjacent.GetStartKey()).TableID() {
+		return true
 	}
-	return true
-}
-
-func checkTxnKeys(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
-	_, _, err := codec.DecodeTxnKey(region.GetStartKey())
-	if err != nil {
-		return false
-	}
-	_, _, err = codec.DecodeTxnKey(adjacent.GetStartKey())
-	if err != nil {
-		return false
-	}
-	return true
+	return false
 }
