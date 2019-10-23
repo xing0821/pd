@@ -141,8 +141,7 @@ func (m *MergeChecker) allowMerge(region *core.RegionInfo, adjacent *core.Region
 	strategy := m.cluster.GetMergeStrategy()
 	switch strategy {
 	case core.Table:
-		allow := m.cluster.IsCrossTableMergeEnabled()
-		if allow {
+		if m.cluster.IsCrossTableMergeEnabled() {
 			return true
 		}
 		return isTableIDSame(region, adjacent)
