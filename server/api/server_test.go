@@ -71,7 +71,7 @@ func mustNewServer(c *C, opts ...func(cfg *config.Config)) (*server.Server, clea
 var zapLogOnce sync.Once
 
 func mustNewCluster(c *C, num int, opts ...func(cfg *config.Config)) ([]*config.Config, []*server.Server, cleanUpFunc) {
-	ctx, cleanup := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	svrs := make([]*server.Server, 0, num)
 	cfgs := server.NewTestMultiConfig(c, num)
 
@@ -105,7 +105,7 @@ func mustNewCluster(c *C, num int, opts ...func(cfg *config.Config)) ([]*config.
 
 	// clean up
 	clean := func() {
-		cleanup()
+		cancel()
 		for _, s := range svrs {
 			s.Close()
 		}
