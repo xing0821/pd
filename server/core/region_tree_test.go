@@ -321,7 +321,7 @@ func (s *testRegionSuite) TestRandomRegionDiscontinuous(c *C) {
 
 func checkRandomRegion(c *C, tree *regionTree, regions []*RegionInfo, startKey, endKey []byte) {
 	keys := make(map[string]struct{})
-	for i := 1; i < 20; i++ {
+	for i := 1; i < 50; i++ {
 		re := tree.RandomRegion(startKey, endKey)
 		c.Assert(re, NotNil)
 		k := string(re.GetStartKey())
