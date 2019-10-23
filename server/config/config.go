@@ -29,7 +29,6 @@ import (
 	"github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/metricutil"
 	"github.com/pingcap/pd/pkg/typeutil"
-	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/embed"
@@ -192,8 +191,10 @@ const (
 
 	defaultLeaderPriorityCheckInterval = time.Minute
 
-	defaultUseRegionStorage    = true
-	defaultMaxResetTsGap       = 24 * time.Hour
+	defaultUseRegionStorage = true
+	defaultMaxResetTsGap    = 24 * time.Hour
+	defaultKeyType          = "table"
+
 	defaultStrictlyMatchLabel  = false
 	defaultEnableGRPCGateway   = true
 	defaultDisableErrorVerbose = true
@@ -480,9 +481,6 @@ type ScheduleConfig struct {
 	// EnableCrossTableMerge is the option to enable cross table merge. This means two Regions can be merged with different table IDs.
 	// This option only works when merge strategy is "table".
 	EnableCrossTableMerge bool `toml:"enable-cross-table-merge,omitempty" json:"enable-cross-table-merge,string"`
-	// MergeStrategy is option to control the merge strategy.
-	// There are some strategics supported: ["table", "raw", "txn"], default: "table"
-	MergeStrategy string `toml:"merge-strategy" json:"merge-strategy,string"`
 	// PatrolRegionInterval is the interval for scanning region during patrol.
 	PatrolRegionInterval typeutil.Duration `toml:"patrol-region-interval,omitempty" json:"patrol-region-interval"`
 	// MaxStoreDownTime is the max duration after which
@@ -582,7 +580,6 @@ func (c *ScheduleConfig) Clone() *ScheduleConfig {
 		MergeScheduleLimit:           c.MergeScheduleLimit,
 		EnableOneWayMerge:            c.EnableOneWayMerge,
 		EnableCrossTableMerge:        c.EnableCrossTableMerge,
-		MergeStrategy:                c.MergeStrategy,
 		HotRegionScheduleLimit:       c.HotRegionScheduleLimit,
 		HotRegionCacheHitsThreshold:  c.HotRegionCacheHitsThreshold,
 		StoreBalanceRate:             c.StoreBalanceRate,
@@ -628,7 +625,6 @@ const (
 	defaultHotRegionCacheHitsThreshold = 3
 	defaultSchedulerMaxWaitingOperator = 3
 	defaultLeaderScheduleStrategy      = "count"
-	defaultMergeStrategy               = "table"
 )
 
 func (c *ScheduleConfig) adjust(meta *configMetaData) error {
@@ -673,9 +669,6 @@ func (c *ScheduleConfig) adjust(meta *configMetaData) error {
 	}
 	if !meta.IsDefined("leader-schedule-strategy") {
 		adjustString(&c.LeaderScheduleStrategy, defaultLeaderScheduleStrategy)
-	}
-	if !meta.IsDefined("merge-strategy") {
-		adjustString(&c.MergeStrategy, defaultMergeStrategy)
 	}
 	adjustFloat64(&c.StoreBalanceRate, defaultStoreBalanceRate)
 	adjustFloat64(&c.LowSpaceRatio, defaultLowSpaceRatio)
@@ -807,16 +800,6 @@ func IsDefaultScheduler(typ string) bool {
 	return false
 }
 
-// GetLeaderScheduleStrategy is to get leader schedule strategy.
-func (c *ScheduleConfig) GetLeaderScheduleStrategy() core.ScheduleStrategy {
-	return core.StringToScheduleStrategy(c.LeaderScheduleStrategy)
-}
-
-// GetMergeStrategy is to get merge strategy.
-func (c *ScheduleConfig) GetMergeStrategy() core.MergeStrategy {
-	return core.StringToMergeStrategy(c.MergeStrategy)
-}
-
 // ReplicationConfig is the replication configuration.
 type ReplicationConfig struct {
 	// MaxReplicas is the number of replicas for each region.
@@ -897,6 +880,9 @@ type PDServerConfig struct {
 	UseRegionStorage bool `toml:"use-region-storage" json:"use-region-storage,string"`
 	// MaxResetTSGap is the max gap to reset the tso.
 	MaxResetTSGap time.Duration `toml:"max-reset-ts-gap" json:"max-reset-ts-gap"`
+	// KeyType is option to specify the type of keys.
+	// There are some types supported: ["table", "raw", "txn"], default: "table"
+	KeyType string `toml:"key-type" json:"key-type"`
 }
 
 func (c *PDServerConfig) adjust(meta *configMetaData) error {
@@ -905,6 +891,9 @@ func (c *PDServerConfig) adjust(meta *configMetaData) error {
 	}
 	if !meta.IsDefined("max-reset-ts-gap") {
 		c.MaxResetTSGap = defaultMaxResetTsGap
+	}
+	if !meta.IsDefined("key-type") {
+		c.KeyType = defaultKeyType
 	}
 	return nil
 }

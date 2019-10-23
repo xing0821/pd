@@ -58,7 +58,7 @@ type Options interface {
 	IsRemoveExtraReplicaEnabled() bool
 	IsLocationReplacementEnabled() bool
 	GetLeaderScheduleStrategy() core.ScheduleStrategy
-	GetMergeStrategy() core.MergeStrategy
+	GetKeyType() core.KeyType
 
 	CheckLabelProperty(typ string, labels []*metapb.StoreLabel) bool
 }

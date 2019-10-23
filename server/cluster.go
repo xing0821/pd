@@ -1328,9 +1328,9 @@ func (c *RaftCluster) GetLeaderScheduleStrategy() core.ScheduleStrategy {
 	return c.opt.GetLeaderScheduleStrategy()
 }
 
-// GetMergeStrategy is to get merge strategy.
-func (c *RaftCluster) GetMergeStrategy() core.MergeStrategy {
-	return c.opt.GetMergeStrategy()
+// GetKeyType is to get key type.
+func (c *RaftCluster) GetKeyType() core.KeyType {
+	return c.opt.GetKeyType()
 }
 
 // IsReplaceOfflineReplicaEnabled returns if replace offline replica is enabled.

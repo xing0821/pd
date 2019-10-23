@@ -42,7 +42,7 @@ type ScheduleOptions interface {
 	GetMaxMergeRegionSize() uint64
 	GetMaxMergeRegionKeys() uint64
 	GetLeaderScheduleStrategy() core.ScheduleStrategy
-	GetMergeStrategy() core.MergeStrategy
+	GetKeyType() core.KeyType
 
 	IsMakeUpReplicaEnabled() bool
 	IsRemoveExtraReplicaEnabled() bool

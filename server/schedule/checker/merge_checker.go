@@ -138,7 +138,7 @@ func (m *MergeChecker) checkTarget(region, adjacent *core.RegionInfo) bool {
 
 // allowMerge returns true if two regions can be merged according to the merge strategy.
 func (m *MergeChecker) allowMerge(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
-	strategy := m.cluster.GetMergeStrategy()
+	strategy := m.cluster.GetKeyType()
 	switch strategy {
 	case core.Table:
 		if m.cluster.IsCrossTableMergeEnabled() {

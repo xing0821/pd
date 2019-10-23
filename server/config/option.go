@@ -190,12 +190,12 @@ func (o *ScheduleOption) GetSchedulerMaxWaitingOperator() uint64 {
 
 // GetLeaderScheduleStrategy is to get leader schedule strategy.
 func (o *ScheduleOption) GetLeaderScheduleStrategy() core.ScheduleStrategy {
-	return o.Load().GetLeaderScheduleStrategy()
+	return core.StringToScheduleStrategy(o.Load().LeaderScheduleStrategy)
 }
 
-// GetMergeStrategy is to get merge strategy.
-func (o *ScheduleOption) GetMergeStrategy() core.MergeStrategy {
-	return o.Load().GetMergeStrategy()
+// GetKeyType is to get key type.
+func (o *ScheduleOption) GetKeyType() core.KeyType {
+	return core.StringToKeyType(o.LoadPDServerConfig().KeyType)
 }
 
 // IsRemoveDownReplicaEnabled returns if remove down replica is enabled.

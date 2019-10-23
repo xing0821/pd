@@ -42,6 +42,7 @@ const (
 	defaultStrictlyMatchLabel          = true
 	defaultLeaderScheduleStrategy      = "count"
 	defaultEnablePlacementRules        = false
+	defaultKeyType                     = "table"
 )
 
 // ScheduleOptions is a mock of ScheduleOptions
@@ -61,7 +62,7 @@ type ScheduleOptions struct {
 	SplitMergeInterval           time.Duration
 	EnableOneWayMerge            bool
 	EnableCrossTableMerge        bool
-	MergeStrategy                string
+	KeyType                      string
 	MaxStoreDownTime             time.Duration
 	MaxReplicas                  int
 	LocationLabels               []string
@@ -114,7 +115,7 @@ func NewScheduleOptions() *ScheduleOptions {
 	mso.EnableRemoveExtraReplica = true
 	mso.EnableLocationReplacement = true
 	mso.LeaderScheduleStrategy = defaultLeaderScheduleStrategy
-	mso.MergeStrategy = defaultMergeStrategy
+	mso.KeyType = defaultKeyType
 	return mso
 }
 
@@ -268,7 +269,7 @@ func (mso *ScheduleOptions) GetLeaderScheduleStrategy() core.ScheduleStrategy {
 	return core.StringToScheduleStrategy(mso.LeaderScheduleStrategy)
 }
 
-// GetMergeStrategy is to get merge strategy.
-func (mso *ScheduleOptions) GetMergeStrategy() core.MergeStrategy {
-	return core.StringToMergeStrategy(mso.MergeStrategy)
+// GetKeyType is to get key type.
+func (mso *ScheduleOptions) GetKeyType() core.KeyType {
+	return core.StringToKeyType(mso.KeyType)
 }
