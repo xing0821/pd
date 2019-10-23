@@ -893,6 +893,8 @@ func (s *testCoordinatorSuite) TestRestart(c *C) {
 }
 
 func BenchmarkPatrolRegion(b *testing.B) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	mergeLimit := uint64(4100)
 	regionNum := 10000
 
@@ -900,7 +902,7 @@ func BenchmarkPatrolRegion(b *testing.B) {
 	cfg.MergeScheduleLimit = mergeLimit
 	scheduleOpt.SetSplitMergeInterval(time.Duration(0))
 	tc := newTestCluster(scheduleOpt)
-	hbStreams, cleanup := getHeartBeatStreams(&C{}, tc)
+	hbStreams, cleanup := getHeartBeatStreams(ctx, &C{}, tc)
 	defer cleanup()
 	defer hbStreams.Close()
 
@@ -914,7 +916,7 @@ func BenchmarkPatrolRegion(b *testing.B) {
 			return
 		}
 	}
-	co := newCoordinator(tc.RaftCluster, hbStreams, namespace.DefaultClassifier)
+	co := newCoordinator(ctx, tc.RaftCluster, hbStreams, namespace.DefaultClassifier)
 
 	listen := make(chan int)
 	go func() {

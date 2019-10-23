@@ -1132,7 +1132,7 @@ func (s *testScatterRangeLeaderSuite) TestBalance(c *C) {
 func (s *testScatterRangeLeaderSuite) TestConcurrencyUpdateConfig(c *C) {
 	opt := mockoption.NewScheduleOptions()
 	tc := mockcluster.NewCluster(opt)
-	oc := schedule.NewOperatorController(nil, nil)
+	oc := schedule.NewOperatorController(s.ctx, nil, nil)
 	hb, err := schedule.CreateScheduler("scatter-range", oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("scatter-range", []string{"s_00", "s_50", "t"}))
 	sche := hb.(*scatterRangeScheduler)
 	c.Assert(err, IsNil)
