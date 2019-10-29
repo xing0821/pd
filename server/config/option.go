@@ -457,3 +457,8 @@ func (r *Replication) GetLocationLabels() []string {
 func (r *Replication) GetStrictlyMatchLabel() bool {
 	return r.Load().StrictlyMatchLabel
 }
+
+// IsPlacementRulesEnabled returns whether the feature is enabled.
+func (r *Replication) IsPlacementRulesEnabled() bool {
+	return r.Load().EnablePlacementRules
+}

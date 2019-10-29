@@ -233,7 +233,7 @@ func (s *Server) startServer(ctx context.Context) error {
 	}
 	s.storage = core.NewStorage(kvBase).SetRegionStorage(regionStorage)
 	s.cluster = newRaftCluster(ctx, s, s.clusterID)
-	s.hbStreams = newHeartbeatStreams(s.clusterID, s.cluster)
+	s.hbStreams = newHeartbeatStreams(ctx, s.clusterID, s.cluster)
 	// Server has started.
 	atomic.StoreInt64(&s.isServing, 1)
 	return nil
