@@ -87,6 +87,11 @@ func (s *Server) Tso(stream pdpb.PD_TsoServer) error {
 		if err != nil {
 			return status.Errorf(codes.Unknown, err.Error())
 		}
+
+		elapsed := time.Since(start)
+		if elapsed > time.Second {
+			log.Warn("get timestamp too slow", zap.Duration("cost", elapsed))
+		}
 		response := &pdpb.TsoResponse{
 			Header:    s.header(),
 			Timestamp: &ts,
