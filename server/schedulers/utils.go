@@ -152,15 +152,13 @@ func newTaintCache(ctx context.Context) *cache.TTLUint64 {
 }
 
 func getKeyRanges(args []string) ([]core.KeyRange, error) {
-	startKey, endKey := "", ""
 	var ranges []core.KeyRange
-	var err error
 	for len(args) > 1 {
-		startKey, err = url.QueryUnescape(args[0])
+		startKey, err := url.QueryUnescape(args[0])
 		if err != nil {
 			return nil, err
 		}
-		endKey, err = url.QueryUnescape(args[1])
+		endKey, err := url.QueryUnescape(args[1])
 		if err != nil {
 			return nil, err
 		}
@@ -168,7 +166,7 @@ func getKeyRanges(args []string) ([]core.KeyRange, error) {
 		ranges = append(ranges, core.NewKeyRange(startKey, endKey))
 	}
 	if len(ranges) == 0 {
-		return []core.KeyRange{core.NewKeyRange(startKey, endKey)}, nil
+		return []core.KeyRange{core.NewKeyRange("", "")}, nil
 	}
 	return ranges, nil
 }
