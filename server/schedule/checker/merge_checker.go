@@ -131,7 +131,7 @@ func (m *MergeChecker) Check(region *core.RegionInfo) []*operator.Operator {
 }
 
 func (m *MergeChecker) checkTarget(region, adjacent *core.RegionInfo) bool {
-	return adjacent != nil && m.allowMerge(region, adjacent) && !m.cluster.IsRegionHot(adjacent) &&
+	return adjacent != nil && !m.cluster.IsRegionHot(adjacent) && m.allowMerge(region, adjacent) &&
 		len(adjacent.GetDownPeers()) == 0 && len(adjacent.GetPendingPeers()) == 0 && len(adjacent.GetLearners()) == 0 && // no special peer
 		len(adjacent.GetPeers()) == m.cluster.GetMaxReplicas() // peer count should equal
 }
@@ -155,8 +155,5 @@ func (m *MergeChecker) allowMerge(region *core.RegionInfo, adjacent *core.Region
 }
 
 func isTableIDSame(region *core.RegionInfo, adjacent *core.RegionInfo) bool {
-	if codec.Key(region.GetStartKey()).TableID() == codec.Key(adjacent.GetStartKey()).TableID() {
-		return true
-	}
-	return false
+	return codec.Key(region.GetStartKey()).TableID() == codec.Key(adjacent.GetStartKey()).TableID()
 }
