@@ -881,6 +881,10 @@ func DiffRegionKeyInfo(origin *RegionInfo, other *RegionInfo) string {
 	return strings.Join(ret, ", ")
 }
 
+func isInvolved(region *RegionInfo, r KeyRange) bool {
+	return bytes.Compare(region.GetStartKey(), r.StartKey) >= 0 && (len(r.EndKey) == 0 || (len(region.GetEndKey()) > 0 && bytes.Compare(region.GetEndKey(), r.EndKey) <= 0))
+}
+
 // HexRegionKey converts region key to hex format. Used for formating region in
 // logs.
 func HexRegionKey(key []byte) []byte {

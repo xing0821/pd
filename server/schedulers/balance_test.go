@@ -214,8 +214,8 @@ func (s *testBalanceLeaderSchedulerSuite) TestBalanceLimit(c *C) {
 
 func (s *testBalanceLeaderSchedulerSuite) TestBalanceLeaderScheduleStrategy(c *C) {
 	// Stores:			1    	2    	3    	4
-	// Leader Count:		10    	10    	10    	10
-	// Leader Size :		10000   100    	100    	100
+	// Leader Count:	10    	10    	10    	10
+	// Leader Size :	10000   100    	100    	100
 	// Region1:			L    	F   	F    	F
 	s.tc.AddLeaderStore(1, 10, 10000)
 	s.tc.AddLeaderStore(2, 10, 100)
@@ -252,8 +252,8 @@ func (s *testBalanceSpeedSuite) TestTolerantRatio(c *C) {
 func (s *testBalanceLeaderSchedulerSuite) TestBalanceLeaderTolerantRatio(c *C) {
 	// default leader tolerant ratio is 5, when schedule by count
 	// Stores:			1		2    	3    	4
-	// Leader Count:		14->15		10    	10    	10
-	// Leader Size :		100		100    	100    	100
+	// Leader Count:	14->15	10    	10    	10
+	// Leader Size :	100		100    	100    	100
 	// Region1:			L		F   	F    	F
 	s.tc.AddLeaderStore(1, 14, 100)
 	s.tc.AddLeaderStore(2, 10, 100)
@@ -335,7 +335,7 @@ func (s *testBalanceLeaderSchedulerSuite) TestBalanceFilter(c *C) {
 }
 
 func (s *testBalanceLeaderSchedulerSuite) TestLeaderWeight(c *C) {
-	// Stores:	1	2	3	4
+	// Stores:		1		2		3		4
 	// Leaders:    10      10      10      10
 	// Weight:    0.5     0.9       1       2
 	// Region1:     L       F       F       F
@@ -412,6 +412,65 @@ func (s *testBalanceLeaderSchedulerSuite) TestBalanceSelector(c *C) {
 	s.tc.AddLeaderStore(3, 0)
 	s.tc.AddLeaderStore(4, 16)
 	testutil.CheckTransferLeader(c, s.schedule()[0], operator.OpBalance, 4, 3)
+}
+
+var _ = Suite(&testBalanceLeaderRangeSchedulerSuite{})
+
+type testBalanceLeaderRangeSchedulerSuite struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	tc     *mockcluster.Cluster
+	lb     schedule.Scheduler
+	oc     *schedule.OperatorController
+}
+
+func (s *testBalanceLeaderRangeSchedulerSuite) SetUpTest(c *C) {
+	s.ctx, s.cancel = context.WithCancel(context.Background())
+	opt := mockoption.NewScheduleOptions()
+	s.tc = mockcluster.NewCluster(opt)
+	s.oc = schedule.NewOperatorController(s.ctx, nil, nil)
+}
+
+func (s *testBalanceLeaderRangeSchedulerSuite) TearDownTest(c *C) {
+	s.cancel()
+}
+
+func (s *testBalanceLeaderRangeSchedulerSuite) TestSingleRangeBalance(c *C) {
+	// Stores:		1		2		3		4
+	// Leaders:    10      10      10      10
+	// Weight:    0.5     0.9       1       2
+	// Region1:     L       F       F       F
+
+	s.tc.AddLeaderStore(1, 10)
+	s.tc.AddLeaderStore(2, 10)
+	s.tc.AddLeaderStore(3, 10)
+	s.tc.AddLeaderStore(4, 10)
+	s.tc.UpdateStoreLeaderWeight(1, 0.5)
+	s.tc.UpdateStoreLeaderWeight(2, 0.9)
+	s.tc.UpdateStoreLeaderWeight(3, 1)
+	s.tc.UpdateStoreLeaderWeight(4, 2)
+	s.tc.AddLeaderRegionWithRange(1, "a", "g", 1, 2, 3, 4)
+	lb, err := schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-leader", []string{"", ""}))
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc), NotNil)
+	lb, err = schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-leader", []string{"h", "n"}))
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc), IsNil)
+	lb, err = schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-leader", []string{"b", "f"}))
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc), IsNil)
+	lb, err = schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-leader", []string{"", "a"}))
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc), IsNil)
+	lb, err = schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-leader", []string{"g", ""}))
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc), IsNil)
+	lb, err = schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-leader", []string{"", "f"}))
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc), IsNil)
+	lb, err = schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-leader", []string{"b", ""}))
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc), IsNil)
 }
 
 var _ = Suite(&testBalanceRegionSchedulerSuite{})

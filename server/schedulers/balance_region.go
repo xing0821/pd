@@ -66,7 +66,7 @@ type balanceRegionSchedulerConfig struct {
 
 type balanceRegionScheduler struct {
 	*baseScheduler
-	conf *balanceRegionSchedulerConfig
+	conf         *balanceRegionSchedulerConfig
 	opController *schedule.OperatorController
 	filters      []filter.Filter
 	counter      *prometheus.CounterVec
@@ -135,14 +135,14 @@ func (s *balanceRegionScheduler) Schedule(cluster opt.Cluster) []*operator.Opera
 		for i := 0; i < balanceRegionRetryLimit; i++ {
 			// Priority picks the region that has a pending peer.
 			// Pending region may means the disk is overload, remove the pending region firstly.
-			region := cluster.RandPendingRegion(sourceID, core.HealthRegionAllowPending())
+			region := cluster.RandPendingRegion(sourceID, s.conf.Ranges, core.HealthRegionAllowPending())
 			if region == nil {
 				// Then picks the region that has a follower in the source store.
-				region = cluster.RandFollowerRegion(sourceID, core.HealthRegion())
+				region = cluster.RandFollowerRegion(sourceID, s.conf.Ranges, core.HealthRegion())
 			}
 			if region == nil {
 				// Last, picks the region has the leader in the source store.
-				region = cluster.RandLeaderRegion(sourceID, core.HealthRegion())
+				region = cluster.RandLeaderRegion(sourceID, s.conf.Ranges, core.HealthRegion())
 			}
 			if region == nil {
 				schedulerCounter.WithLabelValues(s.GetName(), "no-region").Inc()
@@ -186,7 +186,7 @@ func (s *balanceRegionScheduler) transferPeer(cluster opt.Cluster, region *core.
 	scoreGuard := filter.NewDistinctScoreFilter(s.GetName(), cluster.GetLocationLabels(), stores, source)
 	checker := checker.NewReplicaChecker(cluster, s.GetName())
 	exclude := make(map[uint64]struct{})
-	excludeFilter := filter.NewExcludedFilter(s.name, nil, exclude)
+	excludeFilter := filter.NewExcludedFilter(s.GetName(), nil, exclude)
 	for {
 		storeID, _ := checker.SelectBestReplacementStore(region, oldPeer, scoreGuard, excludeFilter)
 		if storeID == 0 {

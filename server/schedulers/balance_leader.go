@@ -65,7 +65,7 @@ type balanceLeaderSchedulerConfig struct {
 
 type balanceLeaderScheduler struct {
 	*baseScheduler
-	conf  *balanceLeaderSchedulerConfig
+	conf         *balanceLeaderSchedulerConfig
 	opController *schedule.OperatorController
 	filters      []filter.Filter
 	counter      *prometheus.CounterVec
@@ -78,7 +78,7 @@ func newBalanceLeaderScheduler(opController *schedule.OperatorController, conf *
 
 	s := &balanceLeaderScheduler{
 		baseScheduler: base,
-		conf: conf,
+		conf:          conf,
 		opController:  opController,
 		counter:       balanceLeaderCounter,
 	}
