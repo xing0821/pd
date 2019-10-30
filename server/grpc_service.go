@@ -89,7 +89,7 @@ func (s *Server) Tso(stream pdpb.PD_TsoServer) error {
 		}
 
 		elapsed := time.Since(start)
-		if elapsed > time.Second {
+		if elapsed > time.Millisecond {
 			log.Warn("get timestamp too slow", zap.Duration("cost", elapsed))
 		}
 		response := &pdpb.TsoResponse{
