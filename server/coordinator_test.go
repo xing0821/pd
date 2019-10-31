@@ -37,6 +37,7 @@ import (
 	syncer "github.com/pingcap/pd/server/region_syncer"
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pingcap/pd/server/schedule/operator"
+	"github.com/pingcap/pd/server/schedulers"
 	"github.com/pingcap/pd/server/statistics"
 )
 
@@ -601,12 +602,12 @@ func (s *testCoordinatorSuite) TestAddScheduler(c *C) {
 	tc, co, cleanup := prepare(nil, nil, func(co *coordinator) { co.run() }, c)
 	defer cleanup()
 
-	c.Assert(co.schedulers, HasLen, 4)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 4)
 	c.Assert(co.removeScheduler(schedulers.BalanceLeaderName), IsNil)
 	c.Assert(co.removeScheduler(schedulers.BalanceRegionName), IsNil)
 	c.Assert(co.removeScheduler(schedulers.HotRegionName), IsNil)
 	c.Assert(co.removeScheduler(schedulers.LabelName), IsNil)
-	c.Assert(co.schedulers, HasLen, 0)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 0)
 
 	stream := mockhbstream.NewHeartbeatStream()
 
@@ -656,7 +657,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	c.Assert(tc.addLeaderStore(1, 1), IsNil)
 	c.Assert(tc.addLeaderStore(2, 1), IsNil)
 
-	c.Assert(co.schedulers, HasLen, 4)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 4)
 	oc := co.opController
 	storage := tc.RaftCluster.storage
 
@@ -666,7 +667,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	evict, err := schedule.CreateScheduler(schedulers.EvictLeaderType, oc, storage, schedule.ConfigSliceDecoder(schedulers.EvictLeaderType, []string{"2"}))
 	c.Assert(err, IsNil)
 	c.Assert(co.addScheduler(evict, "2"), IsNil)
-	c.Assert(co.schedulers, HasLen, 6)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 6)
 	sches, _, err := storage.LoadAllScheduleConfig()
 	c.Assert(err, IsNil)
 	c.Assert(sches, HasLen, 6)
@@ -674,7 +675,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	c.Assert(co.removeScheduler(schedulers.BalanceRegionName), IsNil)
 	c.Assert(co.removeScheduler(schedulers.HotRegionName), IsNil)
 	c.Assert(co.removeScheduler(schedulers.LabelName), IsNil)
-	c.Assert(co.schedulers, HasLen, 2)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 2)
 	c.Assert(co.cluster.opt.Persist(storage), IsNil)
 	co.stop()
 	co.wg.Wait()
@@ -700,7 +701,7 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 
 	co = newCoordinator(s.ctx, tc.RaftCluster, hbStreams)
 	co.run()
-	c.Assert(co.schedulers, HasLen, 3)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 3)
 	co.stop()
 	co.wg.Wait()
 	// suppose restart PD again
@@ -711,22 +712,21 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	co = newCoordinator(s.ctx, tc.RaftCluster, hbStreams)
 	co.run()
 	storage = tc.RaftCluster.storage
-	c.Assert(co.schedulers, HasLen, 3)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 3)
 	bls, err := schedule.CreateScheduler(schedulers.BalanceLeaderType, oc, storage, schedule.ConfigSliceDecoder(schedulers.BalanceLeaderType, []string{"", ""}))
 	c.Assert(err, IsNil)
 	c.Assert(co.addScheduler(bls), IsNil)
 	brs, err := schedule.CreateScheduler(schedulers.BalanceRegionType, oc, storage, schedule.ConfigSliceDecoder(schedulers.BalanceRegionType, []string{"", ""}))
 	c.Assert(err, IsNil)
 	c.Assert(co.addScheduler(brs), IsNil)
-	c.Assert(co.schedulers, HasLen, 5)
-
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 5)
 	// the scheduler option should contain 7 items
 	// the `hot scheduler` and `label scheduler` are disabled
 	c.Assert(co.cluster.opt.GetSchedulers(), HasLen, 7)
 	c.Assert(co.removeScheduler(schedulers.GrantLeaderName), IsNil)
 	// the scheduler that is not enable by default will be completely deleted
 	c.Assert(co.cluster.opt.GetSchedulers(), HasLen, 6)
-	c.Assert(co.schedulers, HasLen, 4)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 4)
 	c.Assert(co.cluster.opt.Persist(co.cluster.storage), IsNil)
 	co.stop()
 	co.wg.Wait()
@@ -737,9 +737,9 @@ func (s *testCoordinatorSuite) TestPersistScheduler(c *C) {
 	co = newCoordinator(s.ctx, tc.RaftCluster, hbStreams)
 
 	co.run()
-	c.Assert(co.schedulers, HasLen, 4)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 4)
 	c.Assert(co.removeScheduler(schedulers.EvictLeaderName), IsNil)
-	c.Assert(co.schedulers, HasLen, 3)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 3)
 }
 
 func (s *testCoordinatorSuite) TestRemoveScheduler(c *C) {
@@ -753,14 +753,14 @@ func (s *testCoordinatorSuite) TestRemoveScheduler(c *C) {
 	c.Assert(tc.addLeaderStore(1, 1), IsNil)
 	c.Assert(tc.addLeaderStore(2, 1), IsNil)
 
-	c.Assert(co.schedulers, HasLen, 4)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 4)
 	oc := co.opController
 	storage := tc.RaftCluster.storage
 
 	gls1, err := schedule.CreateScheduler(schedulers.GrantLeaderType, oc, storage, schedule.ConfigSliceDecoder(schedulers.GrantLeaderType, []string{"1"}))
 	c.Assert(err, IsNil)
 	c.Assert(co.addScheduler(gls1, "1"), IsNil)
-	c.Assert(co.schedulers, HasLen, 5)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 5)
 	sches, _, err := storage.LoadAllScheduleConfig()
 	c.Assert(err, IsNil)
 	c.Assert(sches, HasLen, 5)
@@ -775,7 +775,7 @@ func (s *testCoordinatorSuite) TestRemoveScheduler(c *C) {
 	sches, _, err = storage.LoadAllScheduleConfig()
 	c.Assert(err, IsNil)
 	c.Assert(sches, HasLen, 0)
-	c.Assert(co.schedulers, HasLen, 0)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 0)
 	c.Assert(co.cluster.opt.Persist(co.cluster.storage), IsNil)
 	co.stop()
 	co.wg.Wait()
@@ -787,7 +787,7 @@ func (s *testCoordinatorSuite) TestRemoveScheduler(c *C) {
 	tc.RaftCluster.opt = newOpt
 	co = newCoordinator(s.ctx, tc.RaftCluster, hbStreams)
 	co.run()
-	c.Assert(co.schedulers, HasLen, 0)
+	c.Assert(co.schedulers.GetSchedulers(), HasLen, 0)
 	// the option remains default scheduler
 	c.Assert(co.cluster.opt.GetSchedulers(), HasLen, 4)
 	co.stop()

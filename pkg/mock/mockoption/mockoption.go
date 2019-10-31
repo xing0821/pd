@@ -14,6 +14,7 @@
 package mockoption
 
 import (
+	"context"
 	"time"
 
 	"github.com/pingcap/kvproto/pkg/metapb"
@@ -279,3 +280,12 @@ func (mso *ScheduleOptions) GetLeaderScheduleStrategy() core.ScheduleStrategy {
 func (mso *ScheduleOptions) GetKeyType() core.KeyType {
 	return core.StringToKeyType(mso.KeyType)
 }
+
+// AddSchedulerCfg mocks method.
+func (mso *ScheduleOptions) AddSchedulerCfg(tp string, args []string) {}
+
+// RemoveSchedulerCfg mocks method.
+func (mso *ScheduleOptions) RemoveSchedulerCfg(ctx context.Context, name string) error { return nil }
+
+// Persist mocks method.
+func (mso *ScheduleOptions) Persist(storage *core.Storage) error { return nil }

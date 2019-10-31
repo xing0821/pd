@@ -32,14 +32,6 @@ var (
 			Help:      "Counter of system time jumps backward.",
 		})
 
-	schedulerStatusGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "pd",
-			Subsystem: "scheduler",
-			Name:      "status",
-			Help:      "Status of the scheduler.",
-		}, []string{"kind", "type"})
-
 	regionHeartbeatCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "pd",
@@ -110,7 +102,6 @@ var (
 
 func init() {
 	prometheus.MustRegister(timeJumpBackCounter)
-	prometheus.MustRegister(schedulerStatusGauge)
 	prometheus.MustRegister(regionHeartbeatCounter)
 	prometheus.MustRegister(regionEventCounter)
 	prometheus.MustRegister(regionHeartbeatLatency)

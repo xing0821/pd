@@ -15,6 +15,14 @@ package schedulers
 
 import "github.com/prometheus/client_golang/prometheus"
 
+var schedulerStatusGauge = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Namespace: "pd",
+		Subsystem: "scheduler",
+		Name:      "status",
+		Help:      "Status of the scheduler.",
+	}, []string{"kind", "type"})
+
 var schedulerCounter = prometheus.NewCounterVec(
 	prometheus.CounterOpts{
 		Namespace: "pd",
@@ -88,6 +96,7 @@ var scatterRangeRegionCounter = prometheus.NewCounterVec(
 	}, []string{"type", "address", "store"})
 
 func init() {
+	prometheus.MustRegister(schedulerStatusGauge)
 	prometheus.MustRegister(schedulerCounter)
 	prometheus.MustRegister(schedulerStatus)
 	prometheus.MustRegister(balanceLeaderCounter)

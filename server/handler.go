@@ -778,10 +778,10 @@ func (h *Handler) GetSchedulerConfigHandler() http.Handler {
 		return nil
 	}
 	mux := http.NewServeMux()
-	for name, handler := range c.schedulers {
+	for _, name := range c.schedulers.GetSchedulers() {
 		prefix := path.Join(pdRootPath, SchedulerConfigHandlerPath, name)
 		urlPath := prefix + "/"
-		mux.Handle(urlPath, http.StripPrefix(prefix, handler))
+		mux.Handle(urlPath, http.StripPrefix(prefix, c.schedulers.GetScheduler(name)))
 	}
 	return mux
 }
