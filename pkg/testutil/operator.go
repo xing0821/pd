@@ -15,8 +15,14 @@ package testutil
 
 import (
 	check "github.com/pingcap/check"
+	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/server/schedule/operator"
 )
+
+// NewTestOperator creates a new operator for test purpose.
+func NewTestOperator(regionID uint64, regionEpoch *metapb.RegionEpoch, kind operator.OpKind, steps ...operator.OpStep) *operator.Operator {
+	return operator.NewOperator("test", "test", regionID, regionEpoch, kind, steps...)
+}
 
 // CheckAddPeer checks if the operator is to add peer on specified store.
 func CheckAddPeer(c *check.C, op *operator.Operator, kind operator.OpKind, storeID uint64) {

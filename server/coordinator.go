@@ -18,14 +18,12 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/pingcap/log"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/server/config"
 	"github.com/pingcap/pd/server/schedule"
-	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/schedulers"
 	"github.com/pingcap/pd/server/statistics"
 	"github.com/pkg/errors"
@@ -58,7 +56,7 @@ type coordinator struct {
 	cluster         *RaftCluster
 	checkers        *schedule.CheckerController
 	regionScatterer *schedule.RegionScatterer
-	schedulers      map[string]*scheduleController
+	schedulers      map[string]*schedulers.SchedulerController
 	opController    *schedule.OperatorController
 	hbStreams       *heartbeatStreams
 }
@@ -73,7 +71,7 @@ func newCoordinator(ctx context.Context, cluster *RaftCluster, hbStreams *heartb
 		cluster:         cluster,
 		checkers:        schedule.NewCheckerController(ctx, cluster, opController),
 		regionScatterer: schedule.NewRegionScatterer(cluster),
-		schedulers:      make(map[string]*scheduleController),
+		schedulers:      make(map[string]*schedulers.SchedulerController),
 		opController:    opController,
 		hbStreams:       hbStreams,
 	}
@@ -398,7 +396,7 @@ func (c *coordinator) addScheduler(scheduler schedule.Scheduler, args ...string)
 		return errSchedulerExisted
 	}
 
-	s := newScheduleController(c, scheduler)
+	s := schedulers.NewSchedulerController(c.ctx, c.cluster, c.opController, scheduler)
 	if err := s.Prepare(c.cluster); err != nil {
 		return err
 	}
@@ -447,7 +445,7 @@ func (c *coordinator) pauseOrResumeScheduler(name string, t int64) error {
 	if c.cluster == nil {
 		return ErrNotBootstrapped
 	}
-	s := make([]*scheduleController, 0)
+	s := make([]*schedulers.SchedulerController, 0)
 	if name != "all" {
 		sc, ok := c.schedulers[name]
 		if !ok {
@@ -465,12 +463,13 @@ func (c *coordinator) pauseOrResumeScheduler(name string, t int64) error {
 		if t > 0 {
 			delayUntil = time.Now().Unix() + t
 		}
-		atomic.StoreInt64(&sc.delayUntil, delayUntil)
+		sc.SetDelay(delayUntil)
+		
 	}
 	return err
 }
 
-func (c *coordinator) runScheduler(s *scheduleController) {
+func (c *coordinator) runScheduler(s *schedulers.SchedulerController) {
 	defer logutil.LogPanic()
 	defer c.wg.Done()
 	defer s.Cleanup(c.cluster)
@@ -496,64 +495,4 @@ func (c *coordinator) runScheduler(s *scheduleController) {
 			return
 		}
 	}
-}
-
-// scheduleController is used to manage a scheduler to schedule.
-type scheduleController struct {
-	schedule.Scheduler
-	cluster      *RaftCluster
-	opController *schedule.OperatorController
-	nextInterval time.Duration
-	ctx          context.Context
-	cancel       context.CancelFunc
-	delayUntil   int64
-}
-
-// newScheduleController creates a new scheduleController.
-func newScheduleController(c *coordinator, s schedule.Scheduler) *scheduleController {
-	ctx, cancel := context.WithCancel(c.ctx)
-	return &scheduleController{
-		Scheduler:    s,
-		cluster:      c.cluster,
-		opController: c.opController,
-		nextInterval: s.GetMinInterval(),
-		ctx:          ctx,
-		cancel:       cancel,
-	}
-}
-
-func (s *scheduleController) Ctx() context.Context {
-	return s.ctx
-}
-
-func (s *scheduleController) Stop() {
-	s.cancel()
-}
-
-func (s *scheduleController) Schedule() []*operator.Operator {
-	for i := 0; i < maxScheduleRetries; i++ {
-		// If we have schedule, reset interval to the minimal interval.
-		if op := s.Scheduler.Schedule(s.cluster); op != nil {
-			s.nextInterval = s.Scheduler.GetMinInterval()
-			return op
-		}
-	}
-	s.nextInterval = s.Scheduler.GetNextInterval(s.nextInterval)
-	return nil
-}
-
-// GetInterval returns the interval of scheduling for a scheduler.
-func (s *scheduleController) GetInterval() time.Duration {
-	return s.nextInterval
-}
-
-// AllowSchedule returns if a scheduler is allowed to schedule.
-func (s *scheduleController) AllowSchedule() bool {
-	return s.Scheduler.IsScheduleAllowed(s.cluster) && !s.isPaused()
-}
-
-// isPaused returns if a schedueler is paused.
-func (s *scheduleController) isPaused() bool {
-	delayUntil := atomic.LoadInt64(&s.delayUntil)
-	return time.Now().Unix() < delayUntil
 }
