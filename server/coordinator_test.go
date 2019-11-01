@@ -272,7 +272,7 @@ func (s *testCoordinatorSuite) TestCollectMetrics(c *C) {
 	for i := 0; i <= count; i++ {
 		go func(i int) {
 			defer wg.Done()
-			for j := 0; j < 10000; j++ {
+			for j := 0; j < 1000; j++ {
 				c.Assert(tc.addRegionStore(uint64(i%5), rand.Intn(200)), IsNil)
 			}
 		}(i)
