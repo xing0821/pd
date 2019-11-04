@@ -833,10 +833,10 @@ func (s *testRegionsInfoSuite) Test(c *C) {
 	}
 
 	for i := uint64(0); i < n; i++ {
-		region := cache.RandLeaderRegion(i, []core.KeyRange{core.NewKeyRange("", "")}, core.HealthRegion())
+		region := cache.RandLeaderRegion(i, []core.KeyRange{core.NewKeyRange("", "")})
 		c.Assert(region.GetLeader().GetStoreId(), Equals, i)
 
-		region = cache.RandFollowerRegion(i, []core.KeyRange{core.NewKeyRange("", "")}, core.HealthRegion())
+		region = cache.RandFollowerRegion(i, []core.KeyRange{core.NewKeyRange("", "")})
 		c.Assert(region.GetLeader().GetStoreId(), Not(Equals), i)
 
 		c.Assert(region.GetStorePeer(i), NotNil)

@@ -473,6 +473,38 @@ func (s *testBalanceLeaderRangeSchedulerSuite) TestSingleRangeBalance(c *C) {
 	c.Assert(lb.Schedule(s.tc), IsNil)
 }
 
+func (s *testBalanceLeaderRangeSchedulerSuite) TestMultiRangeBalance(c *C) {
+	// Stores:		1		2		3		4
+	// Leaders:    10      10      10      10
+	// Weight:    0.5     0.9       1       2
+	// Region1:     L       F       F       F
+
+	s.tc.AddLeaderStore(1, 10)
+	s.tc.AddLeaderStore(2, 10)
+	s.tc.AddLeaderStore(3, 10)
+	s.tc.AddLeaderStore(4, 10)
+	s.tc.UpdateStoreLeaderWeight(1, 0.5)
+	s.tc.UpdateStoreLeaderWeight(2, 0.9)
+	s.tc.UpdateStoreLeaderWeight(3, 1)
+	s.tc.UpdateStoreLeaderWeight(4, 2)
+	s.tc.AddLeaderRegionWithRange(1, "a", "g", 1, 2, 3, 4)
+	lb, err := schedule.CreateScheduler("balance-leader", s.oc, core.NewStorage(kv.NewMemoryKV()), schedule.ConfigSliceDecoder("balance-leader", []string{"", "g", "o", "t"}))
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc)[0].RegionID(), Equals, uint64(1))
+	s.tc.RemoveRegion(s.tc.GetRegion(1))
+	s.tc.AddLeaderRegionWithRange(2, "p", "r", 1, 2, 3, 4)
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc)[0].RegionID(), Equals, uint64(2))
+	s.tc.RemoveRegion(s.tc.GetRegion(2))
+	s.tc.AddLeaderRegionWithRange(3, "u", "w", 1, 2, 3, 4)
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc), IsNil)
+	s.tc.RemoveRegion(s.tc.GetRegion(3))
+	s.tc.AddLeaderRegionWithRange(4, "", "", 1, 2, 3, 4)
+	c.Assert(err, IsNil)
+	c.Assert(lb.Schedule(s.tc), IsNil)
+}
+
 var _ = Suite(&testBalanceRegionSchedulerSuite{})
 
 type testBalanceRegionSchedulerSuite struct {

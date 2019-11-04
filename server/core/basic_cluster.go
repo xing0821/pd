@@ -188,6 +188,9 @@ func (bc *BasicCluster) RandLearnerRegion(storeID uint64, ranges []KeyRange, opt
 
 func (bc *BasicCluster) selectRegion(regions []*RegionInfo, opts ...RegionOption) *RegionInfo {
 	for _, r := range regions {
+		if r == nil {
+			break
+		}
 		if slice.AllOf(opts, func(i int) bool { return opts[i](r) }) {
 			return r
 		}

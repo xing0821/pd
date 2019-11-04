@@ -634,8 +634,8 @@ func (c *RaftCluster) RandPendingRegion(storeID uint64, ranges []core.KeyRange, 
 }
 
 // RandLearnerRegion returns a random region that has a learner peer on the store.
-func (c *RaftCluster) RandLearnerRegion(storeID uint64, opts ...core.RegionOption) *core.RegionInfo {
-	return c.core.RandLearnerRegion(storeID, opts...)
+func (c *RaftCluster) RandLearnerRegion(storeID uint64, ranges []core.KeyRange, opts ...core.RegionOption) *core.RegionInfo {
+	return c.core.RandLearnerRegion(storeID, ranges, opts...)
 }
 
 // RandHotRegionFromStore randomly picks a hot region in specified store.
