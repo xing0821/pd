@@ -213,10 +213,10 @@ func (s *testBalanceLeaderSchedulerSuite) TestBalanceLimit(c *C) {
 }
 
 func (s *testBalanceLeaderSchedulerSuite) TestBalanceLeaderScheduleStrategy(c *C) {
-	// Stores:			1    	2    	3    	4
-	// Leader Count:	10    	10    	10    	10
-	// Leader Size :	10000   100    	100    	100
-	// Region1:			L    	F   	F    	F
+	// Stores:          1       2       3       4
+	// Leader Count:    10      10      10      10
+	// Leader Size :    10000   100    	100    	100
+	// Region1:         L       F       F       F
 	s.tc.AddLeaderStore(1, 10, 10000)
 	s.tc.AddLeaderStore(2, 10, 100)
 	s.tc.AddLeaderStore(3, 10, 100)
@@ -251,10 +251,10 @@ func (s *testBalanceSpeedSuite) TestTolerantRatio(c *C) {
 
 func (s *testBalanceLeaderSchedulerSuite) TestBalanceLeaderTolerantRatio(c *C) {
 	// default leader tolerant ratio is 5, when schedule by count
-	// Stores:			1		2    	3    	4
-	// Leader Count:	14->15	10    	10    	10
-	// Leader Size :	100		100    	100    	100
-	// Region1:			L		F   	F    	F
+	// Stores:          1       2       3       4
+	// Leader Count:    14->15  10      10      10
+	// Leader Size :    100     100     100     100
+	// Region1:         L       F       F       F
 	s.tc.AddLeaderStore(1, 14, 100)
 	s.tc.AddLeaderStore(2, 10, 100)
 	s.tc.AddLeaderStore(3, 10, 100)
@@ -335,10 +335,10 @@ func (s *testBalanceLeaderSchedulerSuite) TestBalanceFilter(c *C) {
 }
 
 func (s *testBalanceLeaderSchedulerSuite) TestLeaderWeight(c *C) {
-	// Stores:		1		2		3		4
+	// Stores:     1       2       3       4
 	// Leaders:    10      10      10      10
-	// Weight:    0.5     0.9       1       2
-	// Region1:     L       F       F       F
+	// Weight:     0.5     0.9     1       2
+	// Region1:    L       F       F       F
 
 	s.tc.AddLeaderStore(1, 10)
 	s.tc.AddLeaderStore(2, 10)
@@ -436,10 +436,10 @@ func (s *testBalanceLeaderRangeSchedulerSuite) TearDownTest(c *C) {
 }
 
 func (s *testBalanceLeaderRangeSchedulerSuite) TestSingleRangeBalance(c *C) {
-	// Stores:		1		2		3		4
+	// Stores:     1       2       3       4
 	// Leaders:    10      10      10      10
-	// Weight:    0.5     0.9       1       2
-	// Region1:     L       F       F       F
+	// Weight:     0.5     0.9     1       2
+	// Region1:    L       F       F       F
 
 	s.tc.AddLeaderStore(1, 10)
 	s.tc.AddLeaderStore(2, 10)
@@ -474,10 +474,10 @@ func (s *testBalanceLeaderRangeSchedulerSuite) TestSingleRangeBalance(c *C) {
 }
 
 func (s *testBalanceLeaderRangeSchedulerSuite) TestMultiRangeBalance(c *C) {
-	// Stores:		1		2		3		4
+	// Stores:     1       2       3       4
 	// Leaders:    10      10      10      10
-	// Weight:    0.5     0.9       1       2
-	// Region1:     L       F       F       F
+	// Weight:     0.5     0.9     1       2
+	// Region1:    L       F       F       F
 
 	s.tc.AddLeaderStore(1, 10)
 	s.tc.AddLeaderStore(2, 10)
