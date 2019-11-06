@@ -60,6 +60,7 @@ func (s *testHealthAPISuite) TestHealthSlice(c *C) {
 			follow = svr
 		}
 	}
+	mustBootstrapCluster(c, leader)
 	addr := leader.GetConfig().ClientUrls + apiPrefix + "/api/v1/health"
 	follow.Close()
 	resp, err := dialClient.Get(addr)

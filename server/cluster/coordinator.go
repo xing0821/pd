@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package cluster
 
 import (
 	"context"
@@ -27,6 +27,7 @@ import (
 	"github.com/pingcap/pd/server/schedule"
 	"github.com/pingcap/pd/server/schedule/operator"
 	"github.com/pingcap/pd/server/schedulers"
+	"github.com/pingcap/pd/server/schedule/opt"
 	"github.com/pingcap/pd/server/statistics"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -39,11 +40,13 @@ const (
 	maxScheduleRetries        = 10
 	maxLoadConfigRetries      = 10
 
-	heartbeatChanCapacity = 1024
+	hotRegionScheduleName = "balance-hot-region-scheduler"
 	patrolScanRegionLimit = 128 // It takes about 14 minutes to iterate 1 million regions.
 )
 
 var (
+	// ErrNotBootstrapped is error info for cluster not bootstrapped.
+	ErrNotBootstrapped   = errors.New("TiKV cluster not bootstrapped, please start TiKV first")
 	errSchedulerExisted  = errors.New("scheduler existed")
 	errSchedulerNotFound = errors.New("scheduler not found")
 )
@@ -60,11 +63,11 @@ type coordinator struct {
 	regionScatterer *schedule.RegionScatterer
 	schedulers      map[string]*scheduleController
 	opController    *schedule.OperatorController
-	hbStreams       *heartbeatStreams
+	hbStreams       opt.HeartbeatStreams
 }
 
 // newCoordinator creates a new coordinator.
-func newCoordinator(ctx context.Context, cluster *RaftCluster, hbStreams *heartbeatStreams) *coordinator {
+func newCoordinator(ctx context.Context, cluster *RaftCluster, hbStreams opt.HeartbeatStreams) *coordinator {
 	ctx, cancel := context.WithCancel(ctx)
 	opController := schedule.NewOperatorController(ctx, cluster, hbStreams)
 	return &coordinator{
@@ -292,15 +295,10 @@ func (c *coordinator) getHotReadRegions() *statistics.StoreHotPeersInfos {
 	return nil
 }
 
-func (c *coordinator) getSchedulers() []string {
+func (c *coordinator) getSchedulers() map[string]*scheduleController {
 	c.RLock()
 	defer c.RUnlock()
-
-	names := make([]string, 0, len(c.schedulers))
-	for name := range c.schedulers {
-		names = append(names, name)
-	}
-	return names
+	return c.schedulers
 }
 
 func (c *coordinator) collectSchedulerMetrics() {
