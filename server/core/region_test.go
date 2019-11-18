@@ -133,11 +133,11 @@ func (*testRegionKey) TestRegionKey(c *C) {
 
 func (*testRegionKey) TestGetKeys(c *C) {
 	ranges := []KeyRange{}
-	startKey, endKey := GetKeys(ranges)
+	startKey, endKey := RandKeyRange(ranges)
 	c.Assert(string(startKey), Equals, "")
 	c.Assert(string(endKey), Equals, "")
 	ranges = []KeyRange{NewKeyRange("a", "b")}
-	startKey, endKey = GetKeys(ranges)
+	startKey, endKey = RandKeyRange(ranges)
 	c.Assert(string(startKey), Equals, "a")
 	c.Assert(string(endKey), Equals, "b")
 }
