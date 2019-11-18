@@ -23,8 +23,6 @@ import (
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pingcap/pd/server"
 	"github.com/pingcap/pd/server/core"
-
-	"github.com/pingcap/pd/server/cluster"
 	"github.com/unrolled/render"
 )
 

@@ -20,8 +20,6 @@ import (
 
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/server"
-
-	"github.com/pingcap/pd/server/cluster"
 	"github.com/pkg/errors"
 	"github.com/unrolled/render"
 )

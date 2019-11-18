@@ -17,7 +17,6 @@ import (
 	"net/http"
 
 	"github.com/pingcap/pd/server"
-	"github.com/pingcap/pd/server/cluster"
 	"github.com/unrolled/render"
 )
 

@@ -20,7 +20,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pingcap/pd/pkg/apiutil"
 	"github.com/pingcap/pd/server"
-	"github.com/pingcap/pd/server/cluster"
 	"github.com/unrolled/render"
 )
 

@@ -26,6 +26,7 @@ import (
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/id"
 	"github.com/pingcap/pd/server/kv"
+	"github.com/pingcap/pd/server/schedule/opt"
 )
 
 func Test(t *testing.T) {
@@ -484,8 +485,8 @@ func (s *testRegionsInfoSuite) Test(c *C) {
 	regions := newTestRegions(n, np)
 	_, opts, err := newTestScheduleConfig()
 	c.Assert(err, IsNil)
-	cluster := newTestRaftCluster(mockid.NewIDAllocator(), opts, core.NewStorage(kv.NewMemoryKV()))
-	cache := cluster.core.Regions
+	tc := newTestRaftCluster(mockid.NewIDAllocator(), opts, core.NewStorage(kv.NewMemoryKV()))
+	cache := tc.core.Regions
 
 	for i := uint64(0); i < n; i++ {
 		region := regions[i]
@@ -528,10 +529,10 @@ func (s *testRegionsInfoSuite) Test(c *C) {
 	}
 
 	for i := uint64(0); i < n; i++ {
-		region := cluster.RandLeaderRegion(i, core.HealthRegion())
+		region := tc.RandLeaderRegion(i, []core.KeyRange{core.NewKeyRange("", "")}, opt.HealthRegion(tc))
 		c.Assert(region.GetLeader().GetStoreId(), Equals, i)
 
-		region = cluster.RandFollowerRegion(i, core.HealthRegion())
+		region = tc.RandFollowerRegion(i, []core.KeyRange{core.NewKeyRange("", "")}, opt.HealthRegion(tc))
 		c.Assert(region.GetLeader().GetStoreId(), Not(Equals), i)
 
 		c.Assert(region.GetStorePeer(i), NotNil)
@@ -547,14 +548,14 @@ func (s *testRegionsInfoSuite) Test(c *C) {
 	// All regions will be filtered out if they have pending peers.
 	for i := uint64(0); i < n; i++ {
 		for j := 0; j < cache.GetStoreLeaderCount(i); j++ {
-			region := cluster.RandLeaderRegion(i, core.HealthRegion())
+			region := tc.RandLeaderRegion(i, []core.KeyRange{core.NewKeyRange("", "")}, opt.HealthRegion(tc))
 			newRegion := region.Clone(core.WithPendingPeers(region.GetPeers()))
 			cache.SetRegion(newRegion)
 		}
-		c.Assert(cluster.RandLeaderRegion(i, core.HealthRegion()), IsNil)
+		c.Assert(tc.RandLeaderRegion(i, []core.KeyRange{core.NewKeyRange("", "")}, opt.HealthRegion(tc)), IsNil)
 	}
 	for i := uint64(0); i < n; i++ {
-		c.Assert(cluster.RandFollowerRegion(i, core.HealthRegion()), IsNil)
+		c.Assert(tc.RandFollowerRegion(i, []core.KeyRange{core.NewKeyRange("", "")}, opt.HealthRegion(tc)), IsNil)
 	}
 }
 

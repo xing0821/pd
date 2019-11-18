@@ -1569,7 +1569,7 @@ var DialClient = &http.Client{
 	},
 }
 
-var healthURL = "/pd/ping"
+var healthURL = "/pd/api/v1/ping"
 
 // CheckHealth checks if members are healthy.
 func (c *RaftCluster) CheckHealth(members []*pdpb.Member) map[uint64]*pdpb.Member {

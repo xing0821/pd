@@ -25,7 +25,6 @@ import (
 	"github.com/pingcap/pd/pkg/apiutil"
 	"github.com/pingcap/pd/pkg/typeutil"
 	"github.com/pingcap/pd/server"
-	"github.com/pingcap/pd/server/cluster"
 	"github.com/pingcap/pd/server/config"
 	"github.com/pingcap/pd/server/core"
 	"github.com/pingcap/pd/server/schedule"
@@ -165,6 +164,7 @@ func (h *storeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var err error
 	_, force := r.URL.Query()["force"]
 	if force {
 		err = rc.BuryStore(storeID, force)
@@ -196,7 +196,7 @@ func (h *storeHandler) SetState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = rc.SetStoreState(storeID, metapb.StoreState(state))
+	err := rc.SetStoreState(storeID, metapb.StoreState(state))
 	if err != nil {
 		h.rd.JSON(w, http.StatusInternalServerError, err.Error())
 		return
@@ -215,7 +215,7 @@ func (h *storeHandler) SetLabels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input map[string]string
-	if err = apiutil.ReadJSONRespondError(h.rd, w, r.Body, &input); err != nil {
+	if err := apiutil.ReadJSONRespondError(h.rd, w, r.Body, &input); err != nil {
 		return
 	}
 
@@ -227,12 +227,12 @@ func (h *storeHandler) SetLabels(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if err = config.ValidateLabels(labels); err != nil {
+	if err := config.ValidateLabels(labels); err != nil {
 		apiutil.ErrorResp(h.rd, w, errcode.NewInvalidInputErr(err))
 		return
 	}
 
-	if err = rc.UpdateStoreLabels(storeID, labels); err != nil {
+	if err := rc.UpdateStoreLabels(storeID, labels); err != nil {
 		h.rd.JSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}

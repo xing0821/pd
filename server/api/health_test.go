@@ -30,7 +30,6 @@ type testHealthAPISuite struct{}
 func checkSliceResponse(c *C, body []byte, cfgs []*config.Config, unhealth string) {
 	got := []Health{}
 	c.Assert(json.Unmarshal(body, &got), IsNil)
-
 	c.Assert(len(got), Equals, len(cfgs))
 
 	for _, h := range got {

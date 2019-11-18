@@ -31,7 +31,7 @@ import (
 
 const (
 	heartbeatStreamKeepAliveInterval = time.Minute
-	heartbeatChanCapacity = 1024
+	heartbeatChanCapacity            = 1024
 )
 
 type streamUpdate struct {
