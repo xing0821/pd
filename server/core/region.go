@@ -20,11 +20,14 @@ import (
 	"math/rand"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 )
+
+var emptyKey = []byte("")
 
 // RegionInfo records detail region info.
 // Read-Only once created.
@@ -497,25 +500,51 @@ func (rst *regionSubTree) length() int {
 	return rst.regionTree.length()
 }
 
-func (rst *regionSubTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
+func (rst *regionSubTree) RandomRegion(ranges []KeyRange) *RegionInfo {
 	if rst.length() == 0 {
 		return nil
 	}
-	return rst.regionTree.RandomRegion(startKey, endKey)
+
+	if len(ranges) == 0 {
+		return rst.regionTree.RandomRegion(emptyKey /* start key */, emptyKey /* end key */)
+	}
+
+	for _, i := range rand.Perm(len(ranges)) {
+		r := ranges[i]
+		if region := rst.regionTree.RandomRegion(r.StartKey, r.EndKey); region != nil {
+			return region
+		}
+	}
+
+	return nil
 }
 
-func (rst *regionSubTree) RandomRegions(n int, startKey, endKey []byte) []*RegionInfo {
+func (rst *regionSubTree) RandomRegions(n int, ranges []KeyRange) []*RegionInfo {
 	if rst.length() == 0 {
 		return nil
 	}
 
 	regions := make([]*RegionInfo, 0, n)
-	for i := 0; i < n; i++ {
-		region := rst.regionTree.RandomRegion(startKey, endKey)
-		if region == nil || !isInvolved(region, startKey, endKey) {
-			continue
+
+	if len(ranges) == 0 {
+		for i := 0; i < n; i++ {
+			region := rst.regionTree.RandomRegion(emptyKey /* start key */, emptyKey /* end key */)
+			if region != nil {
+				regions = append(regions, region)
+			}
 		}
-		regions = append(regions, region)
+	}
+
+	for i := 0; i < n; i++ {
+		var region *RegionInfo
+		for _, j := range rand.Perm(len(ranges)) {
+			r := ranges[j]
+			region = rst.regionTree.RandomRegion(r.StartKey, r.EndKey)
+			if region != nil && isInvolved(region, r.StartKey, r.EndKey) {
+				regions = append(regions, region)
+				break
+			}
+		}
 	}
 	return regions
 }
@@ -749,50 +778,42 @@ func (r *RegionsInfo) GetStoreLearnerCount(storeID uint64) int {
 
 // RandPendingRegion randomly gets a store's region with a pending peer.
 func (r *RegionsInfo) RandPendingRegion(storeID uint64, ranges []KeyRange) *RegionInfo {
-	startKey, endKey := RandKeyRange(ranges)
-	return r.pendingPeers[storeID].RandomRegion(startKey, endKey)
+	return r.pendingPeers[storeID].RandomRegion(ranges)
 }
 
 // RandPendingRegions randomly gets a store's n regions with a pending peer.
 func (r *RegionsInfo) RandPendingRegions(storeID uint64, ranges []KeyRange, n int) []*RegionInfo {
-	startKey, endKey := RandKeyRange(ranges)
-	return r.pendingPeers[storeID].RandomRegions(n, startKey, endKey)
+	return r.pendingPeers[storeID].RandomRegions(n, ranges)
 }
 
 // RandLeaderRegion randomly gets a store's leader region.
 func (r *RegionsInfo) RandLeaderRegion(storeID uint64, ranges []KeyRange) *RegionInfo {
-	startKey, endKey := RandKeyRange(ranges)
-	return r.leaders[storeID].RandomRegion(startKey, endKey)
+	return r.leaders[storeID].RandomRegion(ranges)
 }
 
 // RandLeaderRegions randomly gets a store's n leader regions.
 func (r *RegionsInfo) RandLeaderRegions(storeID uint64, ranges []KeyRange, n int) []*RegionInfo {
-	startKey, endKey := RandKeyRange(ranges)
-	return r.leaders[storeID].RandomRegions(n, startKey, endKey)
+	return r.leaders[storeID].RandomRegions(n, ranges)
 }
 
 // RandFollowerRegion randomly gets a store's follower region.
 func (r *RegionsInfo) RandFollowerRegion(storeID uint64, ranges []KeyRange) *RegionInfo {
-	startKey, endKey := RandKeyRange(ranges)
-	return r.followers[storeID].RandomRegion(startKey, endKey)
+	return r.followers[storeID].RandomRegion(ranges)
 }
 
 // RandFollowerRegions randomly gets a store's n follower regions.
 func (r *RegionsInfo) RandFollowerRegions(storeID uint64, ranges []KeyRange, n int) []*RegionInfo {
-	startKey, endKey := RandKeyRange(ranges)
-	return r.followers[storeID].RandomRegions(n, startKey, endKey)
+	return r.followers[storeID].RandomRegions(n, ranges)
 }
 
 // RandLearnerRegion randomly gets a store's learner region.
 func (r *RegionsInfo) RandLearnerRegion(storeID uint64, ranges []KeyRange) *RegionInfo {
-	startKey, endKey := RandKeyRange(ranges)
-	return r.learners[storeID].RandomRegion(startKey, endKey)
+	return r.learners[storeID].RandomRegion(ranges)
 }
 
 // RandLearnerRegions randomly gets a store's n learner regions.
 func (r *RegionsInfo) RandLearnerRegions(storeID uint64, ranges []KeyRange, n int) []*RegionInfo {
-	startKey, endKey := RandKeyRange(ranges)
-	return r.learners[storeID].RandomRegions(n, startKey, endKey)
+	return r.learners[storeID].RandomRegions(n, ranges)
 }
 
 // GetLeader return leader RegionInfo by storeID and regionID(now only used in test)
@@ -954,11 +975,6 @@ func (h HexRegionsMeta) String() string {
 	return strings.TrimSpace(b.String())
 }
 
-// RandKeyRange gets the start key and end key from random key range.
-func RandKeyRange(ranges []KeyRange) ([]byte, []byte) {
-	if len(ranges) == 0 {
-		return []byte(""), []byte("")
-	}
-	idx := rand.Intn(len(ranges))
-	return ranges[idx].StartKey, ranges[idx].EndKey
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }

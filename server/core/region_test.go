@@ -131,17 +131,6 @@ func (*testRegionKey) TestRegionKey(c *C) {
 	}
 }
 
-func (*testRegionKey) TestGetKeys(c *C) {
-	ranges := []KeyRange{}
-	startKey, endKey := RandKeyRange(ranges)
-	c.Assert(string(startKey), Equals, "")
-	c.Assert(string(endKey), Equals, "")
-	ranges = []KeyRange{NewKeyRange("a", "b")}
-	startKey, endKey = RandKeyRange(ranges)
-	c.Assert(string(startKey), Equals, "a")
-	c.Assert(string(endKey), Equals, "b")
-}
-
 func BenchmarkRandomRegion(b *testing.B) {
 	regions := NewRegionsInfo()
 	for i := 0; i < 5000000; i++ {
@@ -156,7 +145,7 @@ func BenchmarkRandomRegion(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		regions.RandLeaderRegion(1, []KeyRange{NewKeyRange("", "")})
+		regions.RandLeaderRegion(1, nil)
 	}
 }
 
