@@ -17,17 +17,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 )
-
-var emptyKey = []byte("")
 
 // RegionInfo records detail region info.
 // Read-Only once created.
@@ -505,18 +501,7 @@ func (rst *regionSubTree) RandomRegion(ranges []KeyRange) *RegionInfo {
 		return nil
 	}
 
-	if len(ranges) == 0 {
-		return rst.regionTree.RandomRegion(emptyKey /* start key */, emptyKey /* end key */)
-	}
-
-	for _, i := range rand.Perm(len(ranges)) {
-		r := ranges[i]
-		if region := rst.regionTree.RandomRegion(r.StartKey, r.EndKey); region != nil {
-			return region
-		}
-	}
-
-	return nil
+	return rst.regionTree.RandomRegion(ranges)
 }
 
 func (rst *regionSubTree) RandomRegions(n int, ranges []KeyRange) []*RegionInfo {
@@ -526,24 +511,9 @@ func (rst *regionSubTree) RandomRegions(n int, ranges []KeyRange) []*RegionInfo 
 
 	regions := make([]*RegionInfo, 0, n)
 
-	if len(ranges) == 0 {
-		for i := 0; i < n; i++ {
-			region := rst.regionTree.RandomRegion(emptyKey /* start key */, emptyKey /* end key */)
-			if region != nil {
-				regions = append(regions, region)
-			}
-		}
-	}
-
 	for i := 0; i < n; i++ {
-		var region *RegionInfo
-		for _, j := range rand.Perm(len(ranges)) {
-			r := ranges[j]
-			region = rst.regionTree.RandomRegion(r.StartKey, r.EndKey)
-			if region != nil && isInvolved(region, r.StartKey, r.EndKey) {
-				regions = append(regions, region)
-				break
-			}
+		if region := rst.regionTree.RandomRegion(ranges); region != nil {
+			regions = append(regions, region)
 		}
 	}
 	return regions
@@ -973,8 +943,4 @@ func (h HexRegionsMeta) String() string {
 		b.WriteString(proto.CompactTextString(r))
 	}
 	return strings.TrimSpace(b.String())
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
 }
