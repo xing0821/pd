@@ -14,7 +14,6 @@ package core
 
 import (
 	"bytes"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -228,8 +227,8 @@ func (t *regionTree) RandomRegion(ranges []KeyRange) *RegionInfo {
 
 		if endIndex <= startIndex {
 			log.Error("wrong keys",
-				zap.String("start-key", fmt.Sprintf("%s", HexRegionKey(startKey))),
-				zap.String("end-key", fmt.Sprintf("%s", HexRegionKey(startKey))))
+				zap.String("start-key", string(HexRegionKey(startKey))),
+				zap.String("end-key", string(HexRegionKey(startKey))))
 			continue
 		}
 		index := rand.Intn(endIndex-startIndex) + startIndex
