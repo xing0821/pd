@@ -685,35 +685,6 @@ func newTestRegionMeta(regionID uint64) *metapb.Region {
 	}
 }
 
-func mustSaveStores(c *C, s *core.Storage, n int) []*metapb.Store {
-	stores := make([]*metapb.Store, 0, n)
-	for i := 0; i < n; i++ {
-		store := &metapb.Store{Id: uint64(i)}
-		stores = append(stores, store)
-	}
-
-	for _, store := range stores {
-		c.Assert(s.SaveStore(store), IsNil)
-	}
-
-	return stores
-}
-
-func mustSaveRegions(c *C, s *core.Storage, n int) []*metapb.Region {
-	regions := make([]*metapb.Region, 0, n)
-	for i := 0; i < n; i++ {
-		region := newTestRegionMeta(uint64(i))
-		regions = append(regions, region)
-	}
-
-	for _, region := range regions {
-		c.Assert(s.SaveRegion(region), IsNil)
-	}
-	c.Assert(s.Flush(), IsNil)
-
-	return regions
-}
-
 func checkRegion(c *C, a *core.RegionInfo, b *core.RegionInfo) {
 	c.Assert(a, DeepEquals, b)
 	c.Assert(a.GetMeta(), DeepEquals, b.GetMeta())

@@ -486,7 +486,7 @@ func (s *clusterTestSuite) TestConcurrentHandleRegion(c *C) {
 		}(i == 0)
 	}
 
-	concurrent := 2000
+	concurrent := 1000
 	for i := 0; i < concurrent; i++ {
 		peerID, err := id.Alloc()
 		c.Assert(err, IsNil)

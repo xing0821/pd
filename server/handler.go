@@ -93,15 +93,15 @@ func (h *Handler) GetOperatorController() (*schedule.OperatorController, error) 
 
 // IsSchedulerPaused returns whether scheduler is paused.
 func (h *Handler) IsSchedulerPaused(name string) (bool, error) {
-	c, err := h.getCoordinator()
+	c, err := h.GetRaftCluster()
 	if err != nil {
 		return true, err
 	}
-	sc, ok := c.schedulers[name]
+	sc, ok := c.GetSchedulers()[name]
 	if !ok {
 		return true, errors.Errorf("scheduler %v not found", name)
 	}
-	return sc.isPaused(), nil
+	return sc.IsPaused(), nil
 }
 
 // GetScheduleConfig returns ScheduleConfig.
@@ -231,11 +231,11 @@ func (h *Handler) RemoveScheduler(name string) error {
 // t == 0 : resume scheduler.
 // t > 0 : scheduler delays t seconds.
 func (h *Handler) PauseOrResumeScheduler(name string, t int64) error {
-	c, err := h.getCoordinator()
+	c, err := h.GetRaftCluster()
 	if err != nil {
 		return err
 	}
-	if err = c.pauseOrResumeScheduler(name, t); err != nil {
+	if err = c.PauseOrResumeScheduler(name, t); err != nil {
 		if t == 0 {
 			log.Error("can not resume scheduler", zap.String("scheduler-name", name), zap.Error(err))
 		} else {

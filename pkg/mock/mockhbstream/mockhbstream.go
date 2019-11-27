@@ -50,7 +50,7 @@ func (s HeartbeatStream) Send(m *pdpb.RegionHeartbeatResponse) error {
 func (s HeartbeatStream) SendMsg(region *core.RegionInfo, msg *pdpb.RegionHeartbeatResponse) {}
 
 // BindStream mock method.
-func (s HeartbeatStream) BindStream(storeID uint64, stream opt.HeartbeatStream) { return }
+func (s HeartbeatStream) BindStream(storeID uint64, stream opt.HeartbeatStream) {}
 
 // Recv mocks method.
 func (s HeartbeatStream) Recv() *pdpb.RegionHeartbeatResponse {

@@ -40,7 +40,6 @@ const (
 	maxScheduleRetries        = 10
 	maxLoadConfigRetries      = 10
 
-	hotRegionScheduleName = "balance-hot-region-scheduler"
 	patrolScanRegionLimit = 128 // It takes about 14 minutes to iterate 1 million regions.
 )
 
@@ -547,11 +546,11 @@ func (s *scheduleController) GetInterval() time.Duration {
 
 // AllowSchedule returns if a scheduler is allowed to schedule.
 func (s *scheduleController) AllowSchedule() bool {
-	return s.Scheduler.IsScheduleAllowed(s.cluster) && !s.isPaused()
+	return s.Scheduler.IsScheduleAllowed(s.cluster) && !s.IsPaused()
 }
 
 // isPaused returns if a schedueler is paused.
-func (s *scheduleController) isPaused() bool {
+func (s *scheduleController) IsPaused() bool {
 	delayUntil := atomic.LoadInt64(&s.delayUntil)
 	return time.Now().Unix() < delayUntil
 }

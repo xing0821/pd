@@ -1561,6 +1561,13 @@ func (c *RaftCluster) RemoveScheduler(name string) error {
 	return c.coordinator.removeScheduler(name)
 }
 
+// PauseOrResumeScheduler pauses or resumes a scheduler.
+func (c *RaftCluster) PauseOrResumeScheduler(name string, t int64) error {
+	c.RLock()
+	defer c.RUnlock()
+	return c.coordinator.pauseOrResumeScheduler(name, t)
+}
+
 // DialClient used to dail http request.
 var DialClient = &http.Client{
 	Timeout: clientTimeout,
