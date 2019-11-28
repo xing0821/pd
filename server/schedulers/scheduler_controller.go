@@ -139,7 +139,7 @@ func (sc *SchedulerController) RemoveScheduler(name string) error {
 			log.Error("can not remove the scheduler config", zap.Error(err))
 		}
 	}
-	return nil
+	return err
 }
 
 // PauseOrResumeScheduler pauses or resumes a scheduler.
