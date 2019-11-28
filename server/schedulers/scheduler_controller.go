@@ -15,8 +15,8 @@ package schedulers
 
 import (
 	"context"
-	"sync/atomic"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pingcap/log"
@@ -163,7 +163,6 @@ func (sc *SchedulerController) PauseOrResumeScheduler(name string, t int64) erro
 			delayUntil = time.Now().Unix() + t
 		}
 		sc.SetDelay(delayUntil)
-		
 	}
 	return err
 }
@@ -282,4 +281,10 @@ func (s *Scheduler) AllowSchedule() bool {
 // SetDelay sets the delay time.
 func (s *Scheduler) SetDelay(delayUntil int64) {
 	atomic.StoreInt64(&s.delayUntil, delayUntil)
+}
+
+// IsPaused return if the scheduler is paused.
+func (s *Scheduler) IsPaused() bool {
+	delayUntil := atomic.LoadInt64(&s.delayUntil)
+	return time.Now().Unix() < delayUntil
 }

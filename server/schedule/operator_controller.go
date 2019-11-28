@@ -258,6 +258,7 @@ func (oc *OperatorController) AddWaitingOperator(ops ...*operator.Operator) bool
 			oc.buryOperator(op)
 		}
 		oc.Unlock()
+		fmt.Println("xxxx2")
 		return false
 	}
 
@@ -270,6 +271,7 @@ func (oc *OperatorController) AddWaitingOperator(ops ...*operator.Operator) bool
 			oc.buryOperator(op)
 		}
 		oc.Unlock()
+		fmt.Println("xxxx1")
 		return false
 	}
 	oc.wop.PutOperator(op)

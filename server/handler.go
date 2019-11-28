@@ -90,11 +90,11 @@ func (h *Handler) IsSchedulerPaused(name string) (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	sc, ok := c.schedulers[name]
-	if !ok {
+	s := c.getScheduler(name)
+	if s == nil {
 		return true, errors.Errorf("scheduler %v not found", name)
 	}
-	return sc.isPaused(), nil
+	return s.IsPaused(), nil
 }
 
 // GetScheduleConfig returns ScheduleConfig.

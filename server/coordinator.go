@@ -33,7 +33,6 @@ const (
 	runSchedulerCheckInterval = 3 * time.Second
 	collectFactor             = 0.8
 	collectTimeout            = 5 * time.Minute
-	maxScheduleRetries        = 10
 	maxLoadConfigRetries      = 10
 
 	heartbeatChanCapacity = 1024
@@ -395,4 +394,10 @@ func (c *coordinator) getSchedulers() []string {
 	c.RLock()
 	defer c.RUnlock()
 	return c.schedulers.GetSchedulers()
+}
+
+func (c *coordinator) getScheduler(name string) *schedulers.Scheduler {
+	c.RLock()
+	defer c.RUnlock()
+	return c.schedulers.GetScheduler(name)
 }

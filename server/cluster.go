@@ -696,8 +696,6 @@ func (c *RaftCluster) GetRegionStats(startKey, endKey []byte) *statistics.Region
 
 // GetStoresStats returns stores' statistics from cluster.
 func (c *RaftCluster) GetStoresStats() *statistics.StoresStats {
-	c.RLock()
-	defer c.RUnlock()
 	return c.storesStats
 }
 
