@@ -212,57 +212,70 @@ func resetStoreState(c *C, rc *cluster.RaftCluster, storeID uint64, state metapb
 	rc.GetCacheCluster().PutStore(newStore)
 }
 
+func testStateAndLimit(c *C, clusterID uint64, rc *cluster.RaftCluster, grpcPDClient pdpb.PDClient, store *metapb.Store, beforeState metapb.StoreState, run func(*cluster.RaftCluster) error, expectStates ...metapb.StoreState) {
+	// prepare
+	storeID := store.GetId()
+	oc := rc.GetOperatorController()
+	oc.SetAllStoresLimit(1.0)
+	resetStoreState(c, rc, store.GetId(), beforeState)
+	_, isOKBefore := oc.GetAllStoresLimit()[storeID]
+	// run
+	err := run(rc)
+	// judge
+	_, isOKAfter := oc.GetAllStoresLimit()[storeID]
+	if len(expectStates) != 0 {
+		c.Assert(err, IsNil)
+		expectState := expectStates[0]
+		c.Assert(getStore(c, clusterID, grpcPDClient, storeID).GetState(), Equals, expectState)
+		if expectState == metapb.StoreState_Offline {
+			c.Assert(isOKAfter, IsTrue)
+		} else if expectState == metapb.StoreState_Tombstone {
+			c.Assert(isOKAfter, IsFalse)
+		}
+	} else {
+		c.Assert(err, NotNil)
+		c.Assert(isOKAfter, Equals, isOKBefore)
+	}
+}
+
 func testRemoveStore(c *C, clusterID uint64, rc *cluster.RaftCluster, grpcPDClient pdpb.PDClient, store *metapb.Store) {
-	// When store is up:
 	{
+		beforeState := metapb.StoreState_Up // When store is up
 		// Case 1: RemoveStore should be OK;
-		resetStoreState(c, rc, store.GetId(), metapb.StoreState_Up)
-		err := rc.RemoveStore(store.GetId())
-		c.Assert(err, IsNil)
-		removedStore := getStore(c, clusterID, grpcPDClient, store.GetId())
-		c.Assert(removedStore.GetState(), Equals, metapb.StoreState_Offline)
+		testStateAndLimit(c, clusterID, rc, grpcPDClient, store, beforeState, func(cluster *cluster.RaftCluster) error {
+			return cluster.RemoveStore(store.GetId())
+		}, metapb.StoreState_Offline)
 		// Case 2: BuryStore w/ force should be OK;
-		resetStoreState(c, rc, store.GetId(), metapb.StoreState_Up)
-		err = rc.BuryStore(store.GetId(), true)
-		c.Assert(err, IsNil)
-		buriedStore := getStore(c, clusterID, grpcPDClient, store.GetId())
-		c.Assert(buriedStore.GetState(), Equals, metapb.StoreState_Tombstone)
+		testStateAndLimit(c, clusterID, rc, grpcPDClient, store, beforeState, func(cluster *cluster.RaftCluster) error {
+			return cluster.BuryStore(store.GetId(), true)
+		}, metapb.StoreState_Tombstone)
 		// Case 3: BuryStore w/o force should fail.
-		resetStoreState(c, rc, store.GetId(), metapb.StoreState_Up)
-		err = rc.BuryStore(store.GetId(), false)
-		c.Assert(err, NotNil)
+		testStateAndLimit(c, clusterID, rc, grpcPDClient, store, beforeState, func(cluster *cluster.RaftCluster) error {
+			return cluster.BuryStore(store.GetId(), false)
+		})
 	}
-
-	// When store is offline:
 	{
+		beforeState := metapb.StoreState_Offline // When store is offline
 		// Case 1: RemoveStore should be OK;
-		resetStoreState(c, rc, store.GetId(), metapb.StoreState_Offline)
-		err := rc.RemoveStore(store.GetId())
-		c.Assert(err, IsNil)
-		removedStore := getStore(c, clusterID, grpcPDClient, store.GetId())
-		c.Assert(removedStore.GetState(), Equals, metapb.StoreState_Offline)
+		testStateAndLimit(c, clusterID, rc, grpcPDClient, store, beforeState, func(cluster *cluster.RaftCluster) error {
+			return cluster.RemoveStore(store.GetId())
+		}, metapb.StoreState_Offline)
 		// Case 2: BuryStore w/ or w/o force should be OK.
-		resetStoreState(c, rc, store.GetId(), metapb.StoreState_Offline)
-		err = rc.BuryStore(store.GetId(), false)
-		c.Assert(err, IsNil)
-		buriedStore := getStore(c, clusterID, grpcPDClient, store.GetId())
-		c.Assert(buriedStore.GetState(), Equals, metapb.StoreState_Tombstone)
+		testStateAndLimit(c, clusterID, rc, grpcPDClient, store, beforeState, func(cluster *cluster.RaftCluster) error {
+			return cluster.BuryStore(store.GetId(), false)
+		}, metapb.StoreState_Tombstone)
 	}
-
-	// When store is tombstone:
 	{
+		beforeState := metapb.StoreState_Tombstone // When store is tombstone
 		// Case 1: RemoveStore should should fail;
-		resetStoreState(c, rc, store.GetId(), metapb.StoreState_Tombstone)
-		err := rc.RemoveStore(store.GetId())
-		c.Assert(err, NotNil)
+		testStateAndLimit(c, clusterID, rc, grpcPDClient, store, beforeState, func(cluster *cluster.RaftCluster) error {
+			return cluster.RemoveStore(store.GetId())
+		})
 		// Case 2: BuryStore w/ or w/o force should be OK.
-		resetStoreState(c, rc, store.GetId(), metapb.StoreState_Tombstone)
-		err = rc.BuryStore(store.GetId(), false)
-		c.Assert(err, IsNil)
-		buriedStore := getStore(c, clusterID, grpcPDClient, store.GetId())
-		c.Assert(buriedStore.GetState(), Equals, metapb.StoreState_Tombstone)
+		testStateAndLimit(c, clusterID, rc, grpcPDClient, store, beforeState, func(cluster *cluster.RaftCluster) error {
+			return cluster.BuryStore(store.GetId(), false)
+		}, metapb.StoreState_Tombstone)
 	}
-
 	{
 		// Put after removed should return tombstone error.
 		resp, err := putStore(c, grpcPDClient, clusterID, store)

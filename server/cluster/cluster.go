@@ -27,6 +27,7 @@ import (
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
 	"github.com/pingcap/log"
+	"github.com/pingcap/pd/pkg/etcdutil"
 	"github.com/pingcap/pd/pkg/logutil"
 	"github.com/pingcap/pd/pkg/typeutil"
 	"github.com/pingcap/pd/server/config"
@@ -38,12 +39,9 @@ import (
 	"github.com/pingcap/pd/server/schedule/opt"
 	"github.com/pingcap/pd/server/schedule/placement"
 	"github.com/pingcap/pd/server/statistics"
-
-	"github.com/pingcap/pd/pkg/etcdutil"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
-
 	"go.etcd.io/etcd/clientv3"
+	"go.uber.org/zap"
 )
 
 var backgroundJobInterval = time.Minute
@@ -1568,7 +1566,7 @@ func (c *RaftCluster) PauseOrResumeScheduler(name string, t int64) error {
 	return c.coordinator.pauseOrResumeScheduler(name, t)
 }
 
-// DialClient used to dail http request.
+// DialClient used to dial http request.
 var DialClient = &http.Client{
 	Timeout: clientTimeout,
 	Transport: &http.Transport{
