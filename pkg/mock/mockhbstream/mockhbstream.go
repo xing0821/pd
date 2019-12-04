@@ -79,7 +79,7 @@ type HeartbeatStreams struct {
 }
 
 // NewHeartbeatStreams creates a new HeartbeatStreams.
-func NewHeartbeatStreams(clusterID uint64, noNeedRun ...struct{}) *HeartbeatStreams {
+func NewHeartbeatStreams(clusterID uint64, noNeedRun bool) *HeartbeatStreams { // revive:disable-line:flag-parameter
 	ctx, cancel := context.WithCancel(context.Background())
 	hs := &HeartbeatStreams{
 		ctx:       ctx,
@@ -89,7 +89,7 @@ func NewHeartbeatStreams(clusterID uint64, noNeedRun ...struct{}) *HeartbeatStre
 		streamCh:  make(chan streamUpdate, 1),
 		msgCh:     make(chan *pdpb.RegionHeartbeatResponse, 1024),
 	}
-	if len(noNeedRun) != 0 {
+	if noNeedRun {
 		return hs
 	}
 	hs.wg.Add(1)

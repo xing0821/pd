@@ -1547,15 +1547,15 @@ func (c *RaftCluster) GetSchedulers() map[string]*scheduleController {
 
 // AddScheduler adds a scheduler.
 func (c *RaftCluster) AddScheduler(scheduler schedule.Scheduler, args ...string) error {
-	c.RLock()
-	defer c.RUnlock()
+	c.Lock()
+	defer c.Unlock()
 	return c.coordinator.addScheduler(scheduler, args...)
 }
 
 // RemoveScheduler removes a scheduler.
 func (c *RaftCluster) RemoveScheduler(name string) error {
-	c.RLock()
-	defer c.RUnlock()
+	c.Lock()
+	defer c.Unlock()
 	return c.coordinator.removeScheduler(name)
 }
 

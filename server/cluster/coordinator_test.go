@@ -274,7 +274,7 @@ func prepare(setCfg func(*config.ScheduleConfig), setTc func(*testCluster), run 
 		setCfg(cfg)
 	}
 	tc := newTestCluster(opt)
-	hbStreams := mockhbstream.NewHeartbeatStreams(tc.getClusterID())
+	hbStreams := mockhbstream.NewHeartbeatStreams(tc.getClusterID(), false /* need to run */)
 	if setTc != nil {
 		setTc(tc)
 	}
