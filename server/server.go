@@ -117,7 +117,7 @@ type APIGroup struct {
 }
 
 const (
-	//CorePath  the core group, is at REST path `/pd/api/v1`.
+	// CorePath the core group, is at REST path `/pd/api/v1`.
 	CorePath = "/pd/api/v1"
 	// ExtensionsPath the named groups are REST at `/pd/apis/{GROUP_NAME}/{Version}`.
 	ExtensionsPath = "/pd/apis"

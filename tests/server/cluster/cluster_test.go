@@ -559,7 +559,7 @@ func (s *clusterTestSuite) TestSetScheduleOpt(c *C) {
 	scheduleOpt := svr.GetScheduleOption()
 	pdServerCfg := scheduleOpt.LoadPDServerConfig()
 
-	//PUT GET DELETE succeed
+	// PUT GET DELETE succeed
 	replicateCfg.MaxReplicas = 5
 	scheduleCfg.MaxSnapshotCount = 10
 	pdServerCfg.UseRegionStorage = true
@@ -580,7 +580,7 @@ func (s *clusterTestSuite) TestSetScheduleOpt(c *C) {
 
 	c.Assert(len(scheduleOpt.LoadLabelPropertyConfig()[typ]), Equals, 0)
 
-	//PUT GET failed
+	// PUT GET failed
 	oldStorage := svr.GetStorage()
 	svr.SetStorage(core.NewStorage(&testErrorKV{}))
 	replicateCfg.MaxReplicas = 7
@@ -597,7 +597,7 @@ func (s *clusterTestSuite) TestSetScheduleOpt(c *C) {
 	c.Assert(scheduleOpt.LoadPDServerConfig().UseRegionStorage, Equals, true)
 	c.Assert(len(scheduleOpt.LoadLabelPropertyConfig()[typ]), Equals, 0)
 
-	//DELETE failed
+	// DELETE failed
 	svr.SetStorage(oldStorage)
 	c.Assert(svr.SetReplicationConfig(*replicateCfg), IsNil)
 
@@ -621,8 +621,8 @@ func (s *clusterTestSuite) TestLoadClusterInfo(c *C) {
 	leaderServer := tc.GetServer(tc.GetLeader())
 	svr := leaderServer.GetServer()
 	rc := cluster.NewRaftCluster(s.ctx, svr.GetClusterRootPath(), svr.ClusterID(), syncer.NewRegionSyncer(svr), svr.GetClient())
-	// Cluster is not bootstrapped.
 
+	// Cluster is not bootstrapped.
 	rc.InitCluster(svr.GetAllocator(), svr.GetScheduleOption(), svr.GetStorage())
 	raftCluster, err := rc.LoadClusterInfo()
 	c.Assert(err, IsNil)

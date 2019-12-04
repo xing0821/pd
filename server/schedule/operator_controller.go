@@ -91,7 +91,7 @@ func (oc *OperatorController) Ctx() context.Context {
 	return oc.ctx
 }
 
-//GetCluster export cluster to evict-scheduler for check sctore status
+// GetCluster exports cluster to evict-scheduler for check sctore status.
 func (oc *OperatorController) GetCluster() opt.Cluster {
 	oc.RLock()
 	defer oc.RUnlock()
