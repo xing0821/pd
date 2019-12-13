@@ -14,12 +14,18 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/pprof"
 
 	"github.com/gorilla/mux"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/pingcap/kvproto/pkg/configpb"
+	"github.com/pingcap/log"
 	"github.com/pingcap/pd/server"
 	"github.com/unrolled/render"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 func createStreamingRender() *render.Render {
@@ -34,11 +40,23 @@ func createIndentRender() *render.Render {
 	})
 }
 
-func createRouter(prefix string, svr *server.Server) *mux.Router {
+func createRouter(ctx context.Context, prefix string, svr *server.Server) *mux.Router {
 	rd := createIndentRender()
 
 	rootRouter := mux.NewRouter().PathPrefix(prefix).Subrouter()
 	handler := svr.GetHandler()
+
+	configRouter := rootRouter.NewRoute().Subrouter()
+	gwmux := runtime.NewServeMux()
+	opts := []grpc.DialOption{grpc.WithInsecure()}
+	err := configpb.RegisterConfigHandlerFromEndpoint(ctx, gwmux, svr.GetAddr()[7:], opts)
+	if err != nil {
+		log.Error("fail to register grpc gateway", zap.Error(err))
+	}
+
+	middleware := newConfigMiddleware(svr)
+	configRouter.Use(middleware.Middleware)
+	configRouter.Handle("/api/v1/config", gwmux).Methods("POST")
 
 	clusterRouter := rootRouter.NewRoute().Subrouter()
 	clusterRouter.Use(newClusterMiddleware(svr).Middleware)
@@ -63,7 +81,6 @@ func createRouter(prefix string, svr *server.Server) *mux.Router {
 
 	confHandler := newConfHandler(svr, rd)
 	rootRouter.HandleFunc("/api/v1/config", confHandler.Get).Methods("GET")
-	rootRouter.HandleFunc("/api/v1/config", confHandler.Post).Methods("POST")
 	rootRouter.HandleFunc("/api/v1/config/schedule", confHandler.SetSchedule).Methods("POST")
 	rootRouter.HandleFunc("/api/v1/config/schedule", confHandler.GetSchedule).Methods("GET")
 	rootRouter.HandleFunc("/api/v1/config/replicate", confHandler.SetReplication).Methods("POST")

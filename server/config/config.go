@@ -561,7 +561,7 @@ type ScheduleConfig struct {
 	Schedulers SchedulerConfigs `toml:"schedulers,omitempty" json:"schedulers-v2"` // json v2 is for the sake of compatible upgrade
 
 	// Only used to display
-	SchedulersPayload map[string]string `json:"schedulers,omitempty"`
+	SchedulersPayload map[string]string `json:"schedulers-payload,omitempty"`
 }
 
 // Clone returns a cloned scheduling configuration.
@@ -813,7 +813,7 @@ type ReplicationConfig struct {
 	// The placement priorities is implied by the order of label keys.
 	// For example, ["zone", "rack"] means that we should place replicas to
 	// different zones first, then to different racks if we don't have enough zones.
-	LocationLabels typeutil.StringSlice `toml:"location-labels,omitempty" json:"location-labels"`
+	LocationLabels []string `toml:"location-labels,omitempty" json:"location-labels"`
 	// StrictlyMatchLabel strictly checks if the label of TiKV is matched with LocationLabels.
 	StrictlyMatchLabel bool `toml:"strictly-match-label,omitempty" json:"strictly-match-label,string"`
 
@@ -822,8 +822,9 @@ type ReplicationConfig struct {
 }
 
 func (c *ReplicationConfig) clone() *ReplicationConfig {
-	locationLabels := make(typeutil.StringSlice, len(c.LocationLabels))
-	copy(locationLabels, c.LocationLabels)
+	ll := make([]string, len(c.LocationLabels))
+	copy(ll, c.LocationLabels)
+	locationLabels := ll
 	return &ReplicationConfig{
 		MaxReplicas:          c.MaxReplicas,
 		LocationLabels:       locationLabels,
@@ -835,6 +836,9 @@ func (c *ReplicationConfig) clone() *ReplicationConfig {
 // Validate is used to validate if some replication configurations are right.
 func (c *ReplicationConfig) Validate() error {
 	for _, label := range c.LocationLabels {
+		if label == "" {
+			continue
+		}
 		err := ValidateLabelString(label)
 		if err != nil {
 			return err
@@ -847,6 +851,9 @@ func (c *ReplicationConfig) adjust(meta *configMetaData) error {
 	adjustUint64(&c.MaxReplicas, defaultMaxReplicas)
 	if !meta.IsDefined("strictly-match-label") {
 		c.StrictlyMatchLabel = defaultStrictlyMatchLabel
+	}
+	if !meta.IsDefined("location-labels") {
+		c.LocationLabels = []string{""}
 	}
 	return c.Validate()
 }

@@ -90,7 +90,8 @@ func main() {
 	if err != nil {
 		log.Fatal("join meet error", zap.Error(err))
 	}
-	svr, err := server.CreateServer(cfg, api.NewHandler)
+	ctx, cancel := context.WithCancel(context.Background())
+	svr, err := server.CreateServer(ctx, cfg, api.NewHandler)
 	if err != nil {
 		log.Fatal("create server failed", zap.Error(err))
 	}
@@ -106,7 +107,6 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	ctx, cancel := context.WithCancel(context.Background())
 	var sig os.Signal
 	go func() {
 		sig = <-sc
